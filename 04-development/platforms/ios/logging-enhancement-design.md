@@ -1,0 +1,1136 @@
+# iOS 客户端日志丰富度增强设计方案
+
+## 1. 现状分析
+
+### 1.1 现有日志系统
+
+当前项目已有 `LoggingService` 日志服务，具备：
+- **双层日志架构**：Legacy日志 + RuntimeLogEntry
+- **日志级别**：DEBUG, INFO, WARNING, ERROR, FATAL
+- **日志分类**：14个类别 (Auth, Books, Reading, AI, Vocabulary 等)
+- **输出渠道**：OSLog (Xcode Console) + 服务器批量上传
+
+### 1.2 现有问题
+
+| 问题 | 描述 |
+|------|------|
+| 页面追踪缺失 | 没有统一的页面进入/退出日志 |
+| 生命周期盲区 | 视图的 onAppear/onDisappear 没有自动记录 |
+| 性能数据缺失 | 无页面加载耗时、渲染耗时等指标 |
+| 导航链路不清晰 | 无法追踪用户的页面跳转路径 |
+| 日志格式不统一 | 各模块日志格式不一致，难以检索 |
+
+---
+
+## 2. 设计目标
+
+1. **页面级自动日志**：每个页面进入/退出时自动输出详细日志
+2. **性能追踪**：记录页面加载耗时、首屏渲染时间
+3. **导航链路追踪**：完整的用户页面跳转路径
+4. **统一日志格式**：结构化、可检索的日志输出
+5. **零侵入式**：通过 ViewModifier 实现，不需要大量修改现有代码
+6. **开发环境优化**：DEBUG 模式输出更详细，Xcode Console 易读
+
+---
+
+## 3. 架构设计
+
+### 3.1 整体架构
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Application Layer                         │
+├─────────────────────────────────────────────────────────────────┤
+│  ViewModifiers                                                   │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────────┐ │
+│  │ PageTracking │ │ Performance  │ │ InteractionTracking     │ │
+│  │ Modifier     │ │ Modifier     │ │ Modifier                │ │
+│  └──────────────┘ └──────────────┘ └──────────────────────────┘ │
+├─────────────────────────────────────────────────────────────────┤
+│  Navigation & State Tracking                                     │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   NavigationTracker                       │   │
+│  │  • pageStack: [PageInfo]                                  │   │
+│  │  • breadcrumb: String                                     │   │
+│  │  • sessionFlowId: UUID                                    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Enhanced Logging Service                                        │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  LoggingService (Enhanced)                │   │
+│  │  + pageEnter(name:, source:, metadata:)                   │   │
+│  │  + pageExit(name:, duration:, metadata:)                  │   │
+│  │  + performance(name:, metrics:)                           │   │
+│  │  + userAction(action:, target:, metadata:)                │   │
+│  └──────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Output Formatters                                               │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐   │
+│  │ ConsoleLog  │ │   OSLog     │ │    ServerBatch          │   │
+│  │ (Debug)     │ │             │ │                         │   │
+│  └─────────────┘ └─────────────┘ └─────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3.2 新增日志分类
+
+在现有 `LogCategory` 基础上新增：
+
+```swift
+enum LogCategory: String, Codable {
+    // ... 现有分类
+
+    // 新增
+    case navigation = "Navigation"   // 导航/页面切换
+    case lifecycle = "Lifecycle"     // 视图生命周期
+    case performance = "Performance" // 性能指标
+    case interaction = "Interaction" // 用户交互
+}
+```
+
+---
+
+## 4. 核心组件设计
+
+### 4.1 NavigationTracker - 导航追踪器
+
+**职责**：维护页面栈，追踪导航路径
+
+```swift
+@MainActor
+class NavigationTracker: ObservableObject {
+    static let shared = NavigationTracker()
+
+    struct PageInfo {
+        let name: String
+        let enterTime: Date
+        let source: String?      // 来源页面
+        let metadata: [String: Any]
+    }
+
+    @Published private(set) var pageStack: [PageInfo] = []
+    @Published private(set) var breadcrumb: String = ""
+
+    private(set) var sessionFlowId: String = UUID().uuidString
+
+    func pushPage(_ name: String, source: String?, metadata: [String: Any])
+    func popPage(_ name: String) -> TimeInterval?
+    func currentPage() -> String?
+    func generateBreadcrumb() -> String
+}
+```
+
+**日志输出示例**：
+```
+[Navigation] 📍 Page Stack: Library → BookDetail → ReaderView
+[Navigation] Session Flow: abc-123-def
+```
+
+### 4.2 PageTrackingModifier - 页面追踪修饰符
+
+**职责**：自动在页面 onAppear/onDisappear 时输出日志
+
+```swift
+struct PageTrackingModifier: ViewModifier {
+    let pageName: String
+    let metadata: [String: String]
+
+    @State private var appearTime: Date?
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                appearTime = Date()
+                logPageEnter()
+            }
+            .onDisappear {
+                logPageExit()
+            }
+    }
+}
+
+// 使用方式
+extension View {
+    func trackPage(_ name: String, metadata: [String: String] = [:]) -> some View {
+        modifier(PageTrackingModifier(pageName: name, metadata: metadata))
+    }
+}
+```
+
+**日志输出示例**：
+```
+════════════════════════════════════════════════════════════════
+[Lifecycle] ▶️ PAGE ENTER: BookDetailView
+├─ Timestamp: 2025-01-15 14:32:05.123
+├─ Source: LibraryView
+├─ Session: abc-123-def
+├─ Breadcrumb: Library → BookDetail
+├─ Metadata:
+│   └─ bookId: "978-0-14-028329-7"
+│   └─ bookTitle: "1984"
+════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+[Lifecycle] ⏹️ PAGE EXIT: BookDetailView
+├─ Duration: 12.34s
+├─ Next: ReaderView
+════════════════════════════════════════════════════════════════
+```
+
+### 4.3 PerformanceTrackingModifier - 性能追踪修饰符
+
+**职责**：追踪页面加载和渲染性能
+
+```swift
+struct PerformanceTrackingModifier: ViewModifier {
+    let pageName: String
+
+    @State private var initTime: Date = Date()
+    @State private var firstRenderTime: Date?
+    @State private var hasLoggedFirstRender = false
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                if !hasLoggedFirstRender {
+                    firstRenderTime = Date()
+                    logFirstRender()
+                    hasLoggedFirstRender = true
+                }
+            }
+    }
+}
+```
+
+**日志输出示例**：
+```
+[Performance] ⏱️ RENDER METRICS: ReaderView
+├─ Init → FirstRender: 0.234s
+├─ Memory: 45.2 MB
+├─ Thread: main
+```
+
+### 4.4 LoggingService 扩展
+
+在现有 LoggingService 基础上扩展：
+
+```swift
+extension LoggingService {
+
+    // MARK: - Page Lifecycle Logging
+
+    func pageEnter(
+        _ pageName: String,
+        source: String? = nil,
+        metadata: [String: String] = [:]
+    ) {
+        let tracker = NavigationTracker.shared
+        tracker.pushPage(pageName, source: source, metadata: metadata)
+
+        #if DEBUG
+        printFormattedPageEnter(pageName, source: source, metadata: metadata)
+        #endif
+
+        logRuntime(.info, category: .lifecycle,
+                   message: "Page Enter: \(pageName)",
+                   component: pageName,
+                   metadata: metadata.merging([
+                       "source": source ?? "unknown",
+                       "breadcrumb": tracker.breadcrumb,
+                       "sessionFlow": tracker.sessionFlowId
+                   ]) { $1 })
+    }
+
+    func pageExit(_ pageName: String, duration: TimeInterval? = nil) {
+        let tracker = NavigationTracker.shared
+        let actualDuration = tracker.popPage(pageName) ?? duration
+
+        #if DEBUG
+        printFormattedPageExit(pageName, duration: actualDuration)
+        #endif
+
+        var meta: [String: String] = [:]
+        if let d = actualDuration {
+            meta["duration_ms"] = String(format: "%.0f", d * 1000)
+        }
+
+        logRuntime(.info, category: .lifecycle,
+                   message: "Page Exit: \(pageName)",
+                   component: pageName,
+                   metadata: meta)
+    }
+
+    func performance(
+        _ pageName: String,
+        initToRender: TimeInterval,
+        memoryMB: Double? = nil
+    ) {
+        #if DEBUG
+        printFormattedPerformance(pageName, initToRender: initToRender, memoryMB: memoryMB)
+        #endif
+
+        logRuntime(.debug, category: .performance,
+                   message: "Render: \(pageName) in \(String(format: "%.3f", initToRender))s",
+                   component: pageName,
+                   metadata: [
+                       "init_to_render_ms": String(format: "%.0f", initToRender * 1000),
+                       "memory_mb": memoryMB.map { String(format: "%.1f", $0) } ?? "unknown"
+                   ])
+    }
+
+    func userAction(
+        _ action: String,
+        target: String,
+        page: String,
+        metadata: [String: String] = [:]
+    ) {
+        #if DEBUG
+        printFormattedUserAction(action, target: target, page: page)
+        #endif
+
+        logRuntime(.info, category: .interaction,
+                   message: "Action: \(action) on \(target)",
+                   component: page,
+                   metadata: metadata.merging([
+                       "action": action,
+                       "target": target
+                   ]) { $1 })
+    }
+}
+```
+
+### 4.5 Debug Console 格式化输出
+
+为 DEBUG 模式设计的格式化输出：
+
+```swift
+extension LoggingService {
+
+    #if DEBUG
+    private func printFormattedPageEnter(
+        _ pageName: String,
+        source: String?,
+        metadata: [String: String]
+    ) {
+        let separator = String(repeating: "═", count: 64)
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let tracker = NavigationTracker.shared
+
+        print("""
+        \(separator)
+        [Lifecycle] ▶️ PAGE ENTER: \(pageName)
+        ├─ Timestamp: \(timestamp)
+        ├─ Source: \(source ?? "App Launch")
+        ├─ Session: \(tracker.sessionFlowId.prefix(8))...
+        ├─ Breadcrumb: \(tracker.breadcrumb)
+        """)
+
+        if !metadata.isEmpty {
+            print("├─ Metadata:")
+            for (key, value) in metadata {
+                print("│   └─ \(key): \(value)")
+            }
+        }
+        print(separator)
+    }
+
+    private func printFormattedPageExit(_ pageName: String, duration: TimeInterval?) {
+        let separator = String(repeating: "═", count: 64)
+        let durationStr = duration.map { String(format: "%.2fs", $0) } ?? "unknown"
+
+        print("""
+        \(separator)
+        [Lifecycle] ⏹️ PAGE EXIT: \(pageName)
+        ├─ Duration: \(durationStr)
+        \(separator)
+        """)
+    }
+
+    private func printFormattedPerformance(
+        _ pageName: String,
+        initToRender: TimeInterval,
+        memoryMB: Double?
+    ) {
+        print("""
+        [Performance] ⏱️ \(pageName)
+        ├─ Init→Render: \(String(format: "%.3fs", initToRender))
+        ├─ Memory: \(memoryMB.map { String(format: "%.1f MB", $0) } ?? "N/A")
+        """)
+    }
+
+    private func printFormattedUserAction(_ action: String, target: String, page: String) {
+        print("[Interaction] 👆 \(action) → \(target) @ \(page)")
+    }
+    #endif
+}
+```
+
+---
+
+## 5. 网络请求日志增强
+
+### 5.1 现有网络日志问题
+
+当前 `APIClient` 的日志：
+- 仅输出简单文本：`Request started: GET /endpoint`
+- 缺少请求/响应详情（Body、Headers）
+- 没有结构化格式，难以扫描
+- 错误信息不够详细
+
+### 5.2 增强后的网络日志设计
+
+#### 5.2.1 NetworkLogger 组件
+
+```swift
+@MainActor
+class NetworkLogger {
+    static let shared = NetworkLogger()
+
+    /// 记录请求开始
+    func logRequest(
+        method: String,
+        endpoint: String,
+        correlationId: String,
+        headers: [String: String]? = nil,
+        body: Data? = nil
+    ) {
+        #if DEBUG
+        printFormattedRequest(method: method, endpoint: endpoint,
+                              correlationId: correlationId, headers: headers, body: body)
+        #endif
+
+        LoggingService.shared.debug(.network,
+            "→ \(method) \(endpoint)",
+            component: "APIClient",
+            metadata: [
+                "correlationId": correlationId,
+                "method": method,
+                "endpoint": endpoint
+            ])
+    }
+
+    /// 记录请求成功
+    func logResponse(
+        method: String,
+        endpoint: String,
+        statusCode: Int,
+        duration: TimeInterval,
+        correlationId: String,
+        responseSize: Int? = nil,
+        responseBody: Data? = nil
+    ) {
+        #if DEBUG
+        printFormattedResponse(method: method, endpoint: endpoint, statusCode: statusCode,
+                               duration: duration, correlationId: correlationId,
+                               responseSize: responseSize, responseBody: responseBody)
+        #endif
+
+        LoggingService.shared.info(.network,
+            "← \(method) \(endpoint) [\(statusCode)] \(formatDuration(duration))",
+            component: "APIClient",
+            metadata: [
+                "correlationId": correlationId,
+                "statusCode": "\(statusCode)",
+                "duration_ms": "\(Int(duration * 1000))",
+                "responseSize": responseSize.map { "\($0)" } ?? "unknown"
+            ])
+    }
+
+    /// 记录请求失败
+    func logError(
+        method: String,
+        endpoint: String,
+        error: Error,
+        statusCode: Int? = nil,
+        duration: TimeInterval,
+        correlationId: String,
+        responseBody: Data? = nil
+    ) {
+        #if DEBUG
+        printFormattedError(method: method, endpoint: endpoint, error: error,
+                           statusCode: statusCode, duration: duration,
+                           correlationId: correlationId, responseBody: responseBody)
+        #endif
+
+        LoggingService.shared.error(.network,
+            "✗ \(method) \(endpoint) - \(error.localizedDescription)",
+            component: "APIClient",
+            metadata: [
+                "correlationId": correlationId,
+                "statusCode": statusCode.map { "\($0)" } ?? "N/A",
+                "duration_ms": "\(Int(duration * 1000))",
+                "errorType": String(describing: type(of: error)),
+                "errorMessage": error.localizedDescription
+            ])
+    }
+}
+```
+
+#### 5.2.2 Debug 格式化输出
+
+```swift
+extension NetworkLogger {
+
+    #if DEBUG
+    private func printFormattedRequest(
+        method: String,
+        endpoint: String,
+        correlationId: String,
+        headers: [String: String]?,
+        body: Data?
+    ) {
+        let separator = String(repeating: "─", count: 64)
+
+        print("""
+        \(separator)
+        [Network] 📤 REQUEST
+        ├─ \(method) \(endpoint)
+        ├─ CorrelationId: \(correlationId.prefix(8))...
+        ├─ Timestamp: \(formattedTimestamp())
+        """)
+
+        // 打印关键 Headers（排除敏感信息）
+        if let headers = headers {
+            print("├─ Headers:")
+            let safeHeaders = headers.filter { !["Authorization", "Cookie"].contains($0.key) }
+            for (key, value) in safeHeaders.prefix(5) {
+                print("│   └─ \(key): \(value)")
+            }
+        }
+
+        // 打印 Request Body（限制大小）
+        if let body = body, let jsonString = prettyPrintJSON(body, maxLength: 500) {
+            print("├─ Body:")
+            jsonString.split(separator: "\n").forEach { line in
+                print("│   \(line)")
+            }
+        }
+        print(separator)
+    }
+
+    private func printFormattedResponse(
+        method: String,
+        endpoint: String,
+        statusCode: Int,
+        duration: TimeInterval,
+        correlationId: String,
+        responseSize: Int?,
+        responseBody: Data?
+    ) {
+        let separator = String(repeating: "─", count: 64)
+        let statusEmoji = statusCode < 300 ? "✅" : (statusCode < 400 ? "⚠️" : "❌")
+
+        print("""
+        \(separator)
+        [Network] 📥 RESPONSE \(statusEmoji)
+        ├─ \(method) \(endpoint)
+        ├─ Status: \(statusCode) \(httpStatusText(statusCode))
+        ├─ Duration: \(formatDuration(duration))
+        ├─ Size: \(formatBytes(responseSize))
+        ├─ CorrelationId: \(correlationId.prefix(8))...
+        """)
+
+        // 打印 Response Body（限制大小，仅在开发时）
+        if let body = responseBody, let jsonString = prettyPrintJSON(body, maxLength: 800) {
+            print("├─ Body (preview):")
+            jsonString.split(separator: "\n").prefix(15).forEach { line in
+                print("│   \(line)")
+            }
+            if jsonString.split(separator: "\n").count > 15 {
+                print("│   ... (truncated)")
+            }
+        }
+        print(separator)
+    }
+
+    private func printFormattedError(
+        method: String,
+        endpoint: String,
+        error: Error,
+        statusCode: Int?,
+        duration: TimeInterval,
+        correlationId: String,
+        responseBody: Data?
+    ) {
+        let separator = String(repeating: "═", count: 64)
+
+        print("""
+        \(separator)
+        [Network] ❌ ERROR
+        ├─ \(method) \(endpoint)
+        ├─ Status: \(statusCode.map { "\($0)" } ?? "N/A")
+        ├─ Duration: \(formatDuration(duration))
+        ├─ Error Type: \(String(describing: type(of: error)))
+        ├─ Message: \(error.localizedDescription)
+        ├─ CorrelationId: \(correlationId.prefix(8))...
+        """)
+
+        // 打印错误响应体
+        if let body = responseBody, let jsonString = prettyPrintJSON(body, maxLength: 500) {
+            print("├─ Response Body:")
+            jsonString.split(separator: "\n").forEach { line in
+                print("│   \(line)")
+            }
+        }
+        print(separator)
+    }
+
+    // MARK: - Helper Methods
+
+    private func formattedTimestamp() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        return formatter.string(from: Date())
+    }
+
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        if duration < 1 {
+            return String(format: "%.0fms", duration * 1000)
+        } else {
+            return String(format: "%.2fs", duration)
+        }
+    }
+
+    private func formatBytes(_ bytes: Int?) -> String {
+        guard let bytes = bytes else { return "unknown" }
+        if bytes < 1024 {
+            return "\(bytes) B"
+        } else if bytes < 1024 * 1024 {
+            return String(format: "%.1f KB", Double(bytes) / 1024)
+        } else {
+            return String(format: "%.1f MB", Double(bytes) / 1024 / 1024)
+        }
+    }
+
+    private func httpStatusText(_ code: Int) -> String {
+        switch code {
+        case 200: return "OK"
+        case 201: return "Created"
+        case 204: return "No Content"
+        case 400: return "Bad Request"
+        case 401: return "Unauthorized"
+        case 403: return "Forbidden"
+        case 404: return "Not Found"
+        case 500: return "Internal Server Error"
+        default: return ""
+        }
+    }
+
+    private func prettyPrintJSON(_ data: Data, maxLength: Int) -> String? {
+        guard let json = try? JSONSerialization.jsonObject(with: data),
+              let prettyData = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
+              var string = String(data: prettyData, encoding: .utf8) else {
+            return nil
+        }
+
+        if string.count > maxLength {
+            string = String(string.prefix(maxLength)) + "\n... (truncated)"
+        }
+        return string
+    }
+    #endif
+}
+```
+
+### 5.3 APIClient 集成改动
+
+修改 `APIClient.swift` 中的 `request` 方法：
+
+```swift
+func request<T: Decodable>(
+    endpoint: String,
+    method: HTTPMethod = .get,
+    body: Encodable? = nil,
+    headers: [String: String]? = nil
+) async throws -> T {
+    // ... URL 构建代码 ...
+
+    let correlationId = await MainActor.run { LoggingService.shared.generateCorrelationId() }
+    let startTime = Date()
+
+    // ... 构建 request ...
+
+    // 记录请求开始
+    await MainActor.run {
+        NetworkLogger.shared.logRequest(
+            method: method.rawValue,
+            endpoint: endpoint,
+            correlationId: correlationId,
+            headers: Dictionary(uniqueKeysWithValues: request.allHTTPHeaderFields?.map { ($0.key, $0.value) } ?? []),
+            body: request.httpBody
+        )
+    }
+
+    do {
+        let (data, response) = try await session.data(for: request)
+        let duration = Date().timeIntervalSince(startTime)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.noData
+        }
+
+        switch httpResponse.statusCode {
+        case 200...299:
+            // 记录成功响应
+            await MainActor.run {
+                NetworkLogger.shared.logResponse(
+                    method: method.rawValue,
+                    endpoint: endpoint,
+                    statusCode: httpResponse.statusCode,
+                    duration: duration,
+                    correlationId: correlationId,
+                    responseSize: data.count,
+                    responseBody: data
+                )
+            }
+
+            let result = try decoder.decode(T.self, from: data)
+            return result
+
+        default:
+            // 记录错误响应
+            let error = APIError.serverError(httpResponse.statusCode, nil)
+            await MainActor.run {
+                NetworkLogger.shared.logError(
+                    method: method.rawValue,
+                    endpoint: endpoint,
+                    error: error,
+                    statusCode: httpResponse.statusCode,
+                    duration: duration,
+                    correlationId: correlationId,
+                    responseBody: data
+                )
+            }
+            throw error
+        }
+    } catch {
+        let duration = Date().timeIntervalSince(startTime)
+        await MainActor.run {
+            NetworkLogger.shared.logError(
+                method: method.rawValue,
+                endpoint: endpoint,
+                error: error,
+                statusCode: nil,
+                duration: duration,
+                correlationId: correlationId
+            )
+        }
+        throw error
+    }
+}
+```
+
+### 5.4 网络日志输出示例
+
+#### 成功请求
+
+```
+────────────────────────────────────────────────────────────────
+[Network] 📤 REQUEST
+├─ GET /books/978-0-14-028329-7
+├─ CorrelationId: a1b2c3d4...
+├─ Timestamp: 14:32:05.123
+├─ Headers:
+│   └─ Accept-Language: zh-Hans
+│   └─ X-Platform: ios
+────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────
+[Network] 📥 RESPONSE ✅
+├─ GET /books/978-0-14-028329-7
+├─ Status: 200 OK
+├─ Duration: 234ms
+├─ Size: 4.2 KB
+├─ CorrelationId: a1b2c3d4...
+├─ Body (preview):
+│   {
+│     "id": "978-0-14-028329-7",
+│     "title": "1984",
+│     "author": "George Orwell",
+│     "coverUrl": "https://...",
+│     ...
+│   }
+────────────────────────────────────────────────────────────────
+```
+
+#### POST 请求
+
+```
+────────────────────────────────────────────────────────────────
+[Network] 📤 REQUEST
+├─ POST /reading/progress
+├─ CorrelationId: e5f6g7h8...
+├─ Timestamp: 14:35:12.456
+├─ Headers:
+│   └─ Content-Type: application/json
+│   └─ Accept-Language: zh-Hans
+├─ Body:
+│   {
+│     "bookId": "978-0-14-028329-7",
+│     "chapterIndex": 5,
+│     "progress": 0.45,
+│     "timestamp": "2025-01-15T14:35:12Z"
+│   }
+────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────
+[Network] 📥 RESPONSE ✅
+├─ POST /reading/progress
+├─ Status: 200 OK
+├─ Duration: 156ms
+├─ Size: 128 B
+├─ CorrelationId: e5f6g7h8...
+├─ Body (preview):
+│   {
+│     "success": true,
+│     "syncedAt": "2025-01-15T14:35:12Z"
+│   }
+────────────────────────────────────────────────────────────────
+```
+
+#### 错误请求
+
+```
+════════════════════════════════════════════════════════════════
+[Network] ❌ ERROR
+├─ GET /books/invalid-id
+├─ Status: 404
+├─ Duration: 89ms
+├─ Error Type: APIError
+├─ Message: Book not found
+├─ CorrelationId: i9j0k1l2...
+├─ Response Body:
+│   {
+│     "error": "Not Found",
+│     "message": "Book with ID 'invalid-id' does not exist",
+│     "statusCode": 404
+│   }
+════════════════════════════════════════════════════════════════
+```
+
+#### 网络超时
+
+```
+════════════════════════════════════════════════════════════════
+[Network] ❌ ERROR
+├─ GET /ai/generate-summary
+├─ Status: N/A
+├─ Duration: 30.00s
+├─ Error Type: URLError
+├─ Message: The request timed out.
+├─ CorrelationId: m3n4o5p6...
+════════════════════════════════════════════════════════════════
+```
+
+### 5.5 配置选项
+
+```swift
+extension NetworkLogger {
+    struct Config {
+        /// 是否打印请求 Body
+        static var logRequestBody = true
+
+        /// 是否打印响应 Body
+        static var logResponseBody = true
+
+        /// Body 最大打印长度
+        static var maxBodyLength = 800
+
+        /// 是否打印 Headers
+        static var logHeaders = true
+
+        /// 需要隐藏的敏感 Header Keys
+        static var sensitiveHeaders: Set<String> = ["Authorization", "Cookie", "X-Auth-Token"]
+
+        /// 仅在非生产环境打印详细日志
+        static var verboseLogging: Bool {
+            #if DEBUG
+            return true
+            #else
+            return false
+            #endif
+        }
+    }
+}
+```
+
+### 5.6 实现文件
+
+| 文件 | 类型 | 描述 |
+|------|------|------|
+| `Core/Network/NetworkLogger.swift` | 新增 | 网络日志工具类 |
+| `Core/Network/APIClient.swift` | 修改 | 集成 NetworkLogger |
+
+---
+
+## 6. 使用方式
+
+### 6.1 页面级别应用
+
+**方式一：使用 ViewModifier（推荐）**
+
+```swift
+struct BookDetailView: View {
+    let bookId: String
+
+    var body: some View {
+        ScrollView {
+            // ... 页面内容
+        }
+        .trackPage("BookDetailView", metadata: ["bookId": bookId])
+    }
+}
+```
+
+**方式二：手动调用（需要更多控制时）**
+
+```swift
+struct ReaderView: View {
+    @State private var isLoading = true
+
+    var body: some View {
+        ZStack {
+            // ... 页面内容
+        }
+        .onAppear {
+            LoggingService.shared.pageEnter("ReaderView",
+                source: "BookDetailView",
+                metadata: ["bookId": bookId, "chapter": "\(chapterIndex)"])
+        }
+        .onDisappear {
+            LoggingService.shared.pageExit("ReaderView")
+        }
+    }
+}
+```
+
+### 6.2 全局应用（批量修改）
+
+在关键页面入口统一添加：
+
+```swift
+// MainTabView.swift
+TabView(selection: $selectedTab) {
+    LibraryView()
+        .trackPage("LibraryView")
+        .tag(0)
+
+    DiscoverView()
+        .trackPage("DiscoverView")
+        .tag(1)
+
+    AudiobookListView()
+        .trackPage("AudiobookListView")
+        .tag(2)
+
+    AgoraView()
+        .trackPage("AgoraView")
+        .tag(3)
+
+    MeView()
+        .trackPage("MeView")
+        .tag(4)
+}
+```
+
+### 6.3 用户交互追踪
+
+```swift
+Button("Start Reading") {
+    LoggingService.shared.userAction("tap", target: "StartReadingButton", page: "BookDetailView")
+    startReading()
+}
+```
+
+---
+
+## 7. 日志输出示例
+
+### 7.1 完整的页面切换日志
+
+当用户从 Library 进入 BookDetail 再进入 Reader 时的 Xcode Console 输出：
+
+```
+════════════════════════════════════════════════════════════════
+[Lifecycle] ▶️ PAGE ENTER: LibraryView
+├─ Timestamp: 2025-01-15T14:30:00Z
+├─ Source: App Launch
+├─ Session: abc12345...
+├─ Breadcrumb: Library
+════════════════════════════════════════════════════════════════
+[Performance] ⏱️ LibraryView
+├─ Init→Render: 0.156s
+├─ Memory: 42.3 MB
+
+[Network] 📡 GET /api/v1/books/library → 200 (234ms)
+
+════════════════════════════════════════════════════════════════
+[Lifecycle] ⏹️ PAGE EXIT: LibraryView
+├─ Duration: 8.45s
+════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+[Lifecycle] ▶️ PAGE ENTER: BookDetailView
+├─ Timestamp: 2025-01-15T14:30:08Z
+├─ Source: LibraryView
+├─ Session: abc12345...
+├─ Breadcrumb: Library → BookDetail
+├─ Metadata:
+│   └─ bookId: "978-0-14-028329-7"
+│   └─ bookTitle: "1984"
+════════════════════════════════════════════════════════════════
+[Performance] ⏱️ BookDetailView
+├─ Init→Render: 0.089s
+├─ Memory: 44.1 MB
+
+[Interaction] 👆 tap → StartReadingButton @ BookDetailView
+
+════════════════════════════════════════════════════════════════
+[Lifecycle] ⏹️ PAGE EXIT: BookDetailView
+├─ Duration: 3.21s
+════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+[Lifecycle] ▶️ PAGE ENTER: ReaderView
+├─ Timestamp: 2025-01-15T14:30:11Z
+├─ Source: BookDetailView
+├─ Session: abc12345...
+├─ Breadcrumb: Library → BookDetail → Reader
+├─ Metadata:
+│   └─ bookId: "978-0-14-028329-7"
+│   └─ chapter: "1"
+│   └─ readingMode: "enhanced"
+════════════════════════════════════════════════════════════════
+[Performance] ⏱️ ReaderView
+├─ Init→Render: 0.312s
+├─ Memory: 52.7 MB
+```
+
+### 7.2 App 启动日志
+
+```
+════════════════════════════════════════════════════════════════
+[App] 🚀 APPLICATION LAUNCH
+├─ Version: 1.2.3 (456)
+├─ Environment: debugging
+├─ Device: iPhone 15 Pro (iOS 18.0)
+├─ Session: abc12345-def6-7890-ghij-klmnopqrstuv
+├─ Timestamp: 2025-01-15T14:30:00Z
+════════════════════════════════════════════════════════════════
+
+[Cache] Image cache configured: 50MB memory, 200MB disk, 7-day TTL
+[Auth] Checking authentication status...
+[Auth] User authenticated: user@example.com
+[Network] 📡 GET /api/v1/config → 200 (89ms)
+
+════════════════════════════════════════════════════════════════
+[Lifecycle] ▶️ PAGE ENTER: MainTabView
+├─ Timestamp: 2025-01-15T14:30:00Z
+├─ Source: App Launch
+├─ Session: abc12345...
+├─ Breadcrumb: MainTab
+════════════════════════════════════════════════════════════════
+```
+
+---
+
+## 8. 实现文件清单
+
+| 文件 | 类型 | 描述 |
+|------|------|------|
+| `Core/Services/NavigationTracker.swift` | 新增 | 导航追踪器 |
+| `Core/UI/Modifiers/PageTrackingModifier.swift` | 新增 | 页面追踪修饰符 |
+| `Core/UI/Modifiers/PerformanceTrackingModifier.swift` | 新增 | 性能追踪修饰符 |
+| `Core/Services/LoggingService+PageLifecycle.swift` | 新增 | 日志服务扩展 |
+| `Core/Services/LoggingService+DebugFormatter.swift` | 新增 | Debug格式化输出 |
+| `Core/Network/NetworkLogger.swift` | 新增 | 网络请求日志工具 |
+| `Core/Network/APIClient.swift` | 修改 | 集成 NetworkLogger |
+| `Core/Models/Log.swift` | 修改 | 新增 LogCategory |
+
+---
+
+## 9. 配置选项
+
+### 9.1 日志级别控制
+
+```swift
+struct LoggingConfig {
+    static var isPageTrackingEnabled = true
+    static var isPerformanceTrackingEnabled = true
+    static var isInteractionTrackingEnabled = true
+    static var minLogLevel: LogLevel = .debug
+
+    // 仅在 DEBUG 模式输出详细格式
+    static var verboseConsoleOutput: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+}
+```
+
+### 9.2 按需开关
+
+```swift
+// 可以在 EnvironmentManager 中控制
+extension EnvironmentManager {
+    var isVerboseLoggingEnabled: Bool {
+        currentEnvironment != .production
+    }
+}
+```
+
+---
+
+## 10. 实施步骤
+
+### Phase 1：基础设施（核心）
+1. 创建 `NavigationTracker`
+2. 扩展 `LogCategory`
+3. 实现 `LoggingService` 页面生命周期扩展
+4. 实现 Debug 格式化输出
+
+### Phase 2：ViewModifier
+1. 实现 `PageTrackingModifier`
+2. 实现 `PerformanceTrackingModifier`
+3. 添加 View extension 便捷方法
+
+### Phase 3：集成到现有页面
+1. 在 `MainTabView` 添加追踪
+2. 在核心功能页面添加追踪（Reader、BookDetail、Auth 等）
+3. 在二级页面逐步添加
+
+### Phase 4：增强功能
+1. 用户交互追踪
+2. 网络请求日志增强
+3. 错误追踪增强
+
+---
+
+## 11. 注意事项
+
+1. **性能影响**：日志操作应尽量轻量，避免在主线程阻塞
+2. **隐私合规**：避免记录敏感用户数据（如密码、token）
+3. **日志清理**：DEBUG 日志不应发送到服务器
+4. **内存控制**：NavigationTracker 的 pageStack 应有上限（建议 50）
+
+---
+
+## 12. 预期效果
+
+实施后的改进：
+
+| 指标 | 改进前 | 改进后 |
+|------|--------|--------|
+| 页面进入日志 | 无 | 每个页面自动记录 |
+| 页面停留时间 | 无 | 自动计算并记录 |
+| 导航路径 | 无 | 完整 Breadcrumb |
+| 性能指标 | 无 | Init→Render 耗时 |
+| 日志可读性 | 一般 | 结构化格式，易于扫描 |
+| 问题定位效率 | 低 | 可快速定位用户操作路径 |
+
+---
+
+请 Review 这份设计文档，如有任何问题或需要调整的地方，请告诉我。确认后我将开始实现。

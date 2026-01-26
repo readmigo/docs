@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Progress/Chart Icon -->
+  <defs>
+    <linearGradient id="progressGradient" x1="60" y1="0" x2="60" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8BB9FF"/>
+      <stop offset="100%" stop-color="#7C8DF5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Circle Background -->
+  <circle cx="60" cy="60" r="60" fill="url(#progressGradient)"/>
+
+  <!-- Chart -->
+  <g transform="translate(25, 25)">
+    <!-- Axes -->
+    <line x1="10" y1="60" x2="60" y2="60" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <line x1="10" y1="10" x2="10" y2="60" stroke="white" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Upward trend line -->
+    <path d="M15 55 L25 45 L35 40 L45 25 L55 15" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- Data points -->
+    <circle cx="15" cy="55" r="4" fill="white"/>
+    <circle cx="25" cy="45" r="4" fill="white"/>
+    <circle cx="35" cy="40" r="4" fill="white"/>
+    <circle cx="45" cy="25" r="4" fill="white"/>
+    <circle cx="55" cy="15" r="5" fill="#FBBF24"/>
+
+    <!-- Arrow at end -->
+    <path d="M50 10 L55 15 L50 20" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+</svg>

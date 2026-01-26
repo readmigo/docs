@@ -1,0 +1,297 @@
+# Project Gutenberg 中文书籍数据盘点
+
+> 从产品和运营角度，梳理 Project Gutenberg 中文公版书数据及其对 Readmigo 的价值
+
+---
+
+## 1. 概述
+
+| 项目 | 描述 |
+|------|------|
+| **来源** | https://www.gutenberg.org/browse/languages/zh |
+| **定位** | Project Gutenberg 中文公版书分区 |
+| **书籍数量** | 200+ 本中文古籍 |
+| **内容类型** | 古典小说、诗词、史书、哲学、笔记小说等 |
+| **许可协议** | 公共领域 (Public Domain) |
+
+### 核心特点
+
+| 优势 | 劣势 |
+|------|------|
+| 完全免费、无版权限制 | 数量相对有限 |
+| 提供 EPUB 格式下载 | 部分书籍格式化质量一般 |
+| 覆盖经典名著 | 无官方中文 API |
+| 有封面图片 | 需要繁简转换 |
+| 与英文 Gutenberg 共享基础设施 | 元数据为英文 |
+
+### 对 Readmigo 的价值
+
+```
+✅ 中文古典文学核心内容来源
+✅ 四大名著、二十四史等经典全覆盖
+✅ EPUB 格式可直接使用
+✅ 支持中文难度分析和 HSK 等级标注
+✅ 繁简转换后适合简体中文用户
+```
+
+---
+
+## 2. 书籍分类
+
+### 2.1 四大名著
+
+| 书名 | 作者 | Gutenberg ID |
+|------|------|--------------|
+| 红楼梦 | 曹雪芹 | 24264 |
+| 西游记 | 吴承恩 | 23962 |
+| 三国志演义 | 罗贯中 | 23950 |
+| 水浒传 | 施耐庵 | 23863 |
+
+### 2.2 古典小说
+
+| 书名 | 作者 | Gutenberg ID |
+|------|------|--------------|
+| 聊斋志异 | 蒲松龄 | 51828 |
+| 儒林外史 | 吴敬梓 | 24032 |
+| 金瓶梅 | 兰陵笑笑生 | 52200 |
+| 镜花缘 | 李汝珍 | 25377 |
+| 封神演义 | 许仲琳 | 23910 |
+| 三侠五义 | 石玉昆 | 25376 |
+
+### 2.3 三言二拍
+
+| 书名 | 作者 | Gutenberg ID |
+|------|------|--------------|
+| 喻世明言 | 冯梦龙 | 27582 |
+| 警世通言 | 冯梦龙 | 24141 |
+| 醒世恒言 | 冯梦龙 | 24239 |
+| 初刻拍案惊奇 | 凌濛初 | 57248 |
+| 二刻拍案惊奇 | 凌濛初 | 26729 |
+
+### 2.4 史书
+
+| 书名 | 作者 | Gutenberg ID |
+|------|------|--------------|
+| 史记 | 司马迁 | 24226 |
+| 汉书 | 班固 | 23841 |
+| 三国志 | 陈寿 | 25606 |
+| 左传 | 左丘明 | 24136 |
+
+### 2.5 诗词
+
+| 书名 | 作者 | Gutenberg ID |
+|------|------|--------------|
+| 唐诗三百首 | 蘅塘退士 | 52323 |
+| 李太白集 | 李白 | 24169 |
+| 东坡乐府 | 苏轼 | 24028 |
+| 诗经 | 佚名 | 23873 |
+
+### 2.6 哲学思想
+
+| 书名 | 作者 | Gutenberg ID |
+|------|------|--------------|
+| 道德经 | 老子 | 7337 |
+| 孟子 | 孟子 | 24178 |
+| 韩非子 | 韩非 | 24049 |
+| 墨子 | 墨翟 | 24240 |
+| 孙子兵法 | 孙武 | 23864 |
+
+### 2.7 近现代文学
+
+| 书名 | 作者 | Gutenberg ID |
+|------|------|--------------|
+| 呐喊 | 鲁迅 | 27166 |
+| 彷徨 | 鲁迅 | 24042 |
+| 朝花夕拾 | 鲁迅 | 25271 |
+| 阿Q正传 | 鲁迅 | 25332 |
+| 老残游记 | 刘鹗 | 25124 |
+
+---
+
+## 3. 数据获取方式
+
+### 3.1 EPUB 下载 URL
+
+```
+# 优先格式 - EPUB3 带图片
+https://www.gutenberg.org/ebooks/{id}.epub3.images
+
+# 备选格式 - EPUB 带图片
+https://www.gutenberg.org/ebooks/{id}.epub.images
+
+# 备选格式 - EPUB 无图片
+https://www.gutenberg.org/ebooks/{id}.epub.noimages
+
+# 缓存目录格式
+https://www.gutenberg.org/cache/epub/{id}/pg{id}.epub
+```
+
+### 3.2 封面图片 URL
+
+```
+# 中等尺寸封面
+https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.medium.jpg
+
+# 小尺寸缩略图
+https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.small.jpg
+```
+
+### 3.3 元数据获取
+
+通过网页抓取获取元数据：
+
+```
+书籍详情页: https://www.gutenberg.org/ebooks/{id}
+
+可提取字段:
+- 标题 (itemprop="name")
+- 作者 (itemprop="creator")
+- 主题 (itemprop="about")
+- 语言 (itemprop="inLanguage")
+```
+
+---
+
+## 4. 数据处理流程
+
+### 4.1 导入流程
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Step 1: 遍历预定义书籍列表                                    │
+│  └── 使用 CHINESE_BOOKS 数组中的 ID 列表                      │
+│                                                             │
+│  Step 2: 下载 EPUB 文件                                       │
+│  └── 尝试多种 URL 格式                                        │
+│  └── 缓存到本地 ./downloads/gutenberg-zh/                     │
+│                                                             │
+│  Step 3: 解析 EPUB                                           │
+│  └── 提取章节、元数据                                         │
+│  └── 繁体转简体                                              │
+│                                                             │
+│  Step 4: 难度分析                                            │
+│  └── 使用 ChineseDifficultyAnalyzer                          │
+│  └── 计算 HSK 等级、平均笔画数                                 │
+│                                                             │
+│  Step 5: 上传到 R2                                           │
+│  └── EPUB: epubs/gutenberg-zh/{id}.epub                      │
+│  └── 封面: covers/gutenberg-zh/{id}.jpg                      │
+│                                                             │
+│  Step 6: 存入数据库                                           │
+│  └── source: GUTENBERG_ZH                                    │
+│  └── 创建 Book 和 Chapter 记录                                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 4.2 中文处理特性
+
+| 处理项 | 说明 |
+|--------|------|
+| **繁简转换** | 使用 TextConverter 转换为简体中文 |
+| **难度分析** | 基于字频、HSK 词表、笔画数计算 |
+| **字数统计** | 统计汉字数量（过滤非汉字字符） |
+| **阅读时间** | 按 400 字/分钟估算 |
+| **类型判断** | 基于主题和标题自动分类 |
+
+---
+
+## 5. 数据字段映射
+
+### 5.1 与 Readmigo 需求对照
+
+| Readmigo 字段 | 数据来源 | 说明 |
+|---------------|----------|------|
+| `title` | 预定义列表 / 网页抓取 | 优先使用预定义中文标题 |
+| `author` | 预定义列表 / 网页抓取 | 优先使用预定义中文作者名 |
+| `description` | 自动生成 | 基于标题、作者、章节数生成 |
+| `language` | 固定值 `zh` | - |
+| `genres` | 自动判断 | 基于主题和标题分类 |
+| `difficultyScore` | 难度分析 | 1-10 分 |
+| `hskLevel` | 难度分析 | 1-6 级 |
+| `characterCount` | 统计计算 | 汉字总数 |
+| `chapterCount` | EPUB 解析 | 章节数量 |
+| `epubUrl` | R2 上传 | 存储 URL |
+| `coverUrl` | R2 上传 | 封面 URL |
+| `source` | 固定值 | `GUTENBERG_ZH` |
+| `sourceId` | Gutenberg ID | 如 `24264` |
+| `sourceUrl` | 构建 | `gutenberg.org/ebooks/{id}` |
+
+---
+
+## 6. 分类体系
+
+### 6.1 自动分类逻辑
+
+```typescript
+// 基于标题判断
+四大名著: ['红楼梦', '西游记', '三国演义', '水浒传'] → '古典小说'
+戏剧: ['西厢记', '牡丹亭', '长生殿', '桃花扇'] → '戏剧'
+诗词: 标题含 '诗' 或 '词' → '诗词'
+笔记小说: ['聊斋', '奇观', '拍案', '笔记'] → '短篇小说'
+现代文学: ['呐喊', '彷徨', '朝花夕拾'] → '现代文学'
+
+// 基于主题判断
+fiction, novel → '古典小说'
+history → '历史'
+philosophy → '哲学'
+poetry, poems → '诗词'
+```
+
+---
+
+## 7. 实现状态
+
+### 7.1 代码位置
+
+| 文件 | 说明 |
+|------|------|
+| `scripts/book-ingestion/sources/gutenberg-zh.ts` | 主导入脚本 |
+| `scripts/book-ingestion/processors/chinese-difficulty-analyzer.js` | 中文难度分析 |
+| `scripts/book-ingestion/processors/text-converter.js` | 繁简转换 |
+| `scripts/book-ingestion/processors/epub-parser.js` | EPUB 解析 |
+
+### 7.2 运行方式
+
+```bash
+# 导入前 20 本书
+npx tsx scripts/book-ingestion/sources/gutenberg-zh.ts 20
+
+# 导入全部书籍
+npx tsx scripts/book-ingestion/sources/gutenberg-zh.ts 999
+```
+
+### 7.3 数据库枚举
+
+```prisma
+enum BookSource {
+  GUTENBERG_ZH  // Project Gutenberg 中文
+  // ...
+}
+```
+
+---
+
+## 8. 与其他数据源对比
+
+| 对比项 | Gutenberg ZH | CText | WikiSource ZH |
+|--------|--------------|-------|---------------|
+| **数量** | 200+ | 12+ 核心经典 | 10+ |
+| **格式** | EPUB | 纯文本 (API) | 纯文本 (Wiki) |
+| **封面** | ✅ 有 | ❌ 无 | ❌ 无 |
+| **章节** | ✅ 完整 | ✅ 完整 | ✅ 完整 |
+| **质量** | 中等 | 高（专业校对） | 高（社区校对） |
+| **API** | ❌ 无 | ✅ 官方 | ✅ MediaWiki |
+| **特色** | 覆盖面广 | 儒释道经典 | 四大名著 |
+
+---
+
+## 9. 参考资源
+
+- [Project Gutenberg 中文书籍](https://www.gutenberg.org/browse/languages/zh)
+- [Project Gutenberg OPDS](https://www.gutenberg.org/ebooks/search.opds/)
+- [Gutendex API](https://gutendex.com/)
+
+---
+
+*最后更新: 2025-12-28*

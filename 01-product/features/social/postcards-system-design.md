@@ -1,0 +1,207 @@
+# 明信片系统设计文档
+
+> 模块名称: Postcards Module
+> 状态: ✅ 后端已实现
+> 优先级: P2
+
+---
+
+## 1. 功能概述
+
+明信片系统允许用户将金句、划线或自定义内容制作成精美的可分享图片。
+
+### 1.1 核心功能
+
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| 模板浏览 | 查看可用的明信片模板 | ✅ 已实现 |
+| 创建明信片 | 基于模板创建个性化明信片 | ✅ 已实现 |
+| 我的明信片 | 管理用户创建的明信片 | ✅ 已实现 |
+| 公开广场 | 浏览公开分享的明信片 | ✅ 已实现 |
+| 分享功能 | 生成分享链接 | ✅ 已实现 |
+| 图片生成 | 生成明信片图片 | 🚧 待完善 |
+
+### 1.2 内容来源
+
+| 类型 | 说明 |
+|------|------|
+| `quote` | 来自金句系统的名言 |
+| `highlight` | 用户在阅读中的划线 |
+| `custom` | 用户自定义内容 |
+
+---
+
+## 2. 数据模型
+
+### 2.1 PostcardTemplate 模板
+
+```typescript
+interface PostcardTemplate {
+  id: string;              // 模板ID
+  name: string;            // 模板名称
+  previewUrl: string;      // 预览图URL
+  backgroundColor: string; // 背景色
+  fontFamily: string;      // 字体
+  fontColor: string;       // 字体颜色
+  isPremium: boolean;      // 是否付费模板
+}
+```
+
+### 2.2 Postcard 明信片
+
+```typescript
+interface Postcard {
+  id: string;              // 明信片ID
+  userId: string;          // 创建者ID
+  templateId: string;      // 使用的模板ID
+  content: string;         // 内容文本
+  contentType: 'quote' | 'highlight' | 'custom';  // 内容类型
+  sourceId?: string;       // 来源ID（金句或划线ID）
+  bookTitle?: string;      // 关联书籍
+  author?: string;         // 作者名
+  imageUrl?: string;       // 生成的图片URL
+  isPublic: boolean;       // 是否公开
+  shareCount: number;      // 分享次数
+  createdAt: Date;         // 创建时间
+}
+```
+
+### 2.3 预设模板
+
+| 模板 | 风格 | 会员专属 |
+|------|------|----------|
+| Classic | 经典白底黑字 | 免费 |
+| Vintage | 复古羊皮纸色 | 免费 |
+| Modern | 现代深色主题 | 免费 |
+| Nature | 自然绿色系 | 免费 |
+| Elegant | 优雅暖色系 | ✅ Premium |
+| Minimal | 极简设计 | ✅ Premium |
+| Ocean | 海洋蓝色系 | ✅ Premium |
+| Sunset | 日落橙色系 | ✅ Premium |
+
+---
+
+## 3. API 接口
+
+### 3.1 公开接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/postcards/templates` | 获取模板列表 |
+| GET | `/postcards/templates/:id` | 获取模板详情 |
+| GET | `/postcards/public` | 获取公开明信片列表 |
+| GET | `/postcards/:id` | 获取明信片详情 |
+| GET | `/postcards/:id/image` | 获取明信片图片信息 |
+
+### 3.2 需认证接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/postcards/mine` | 获取用户的明信片 |
+| POST | `/postcards` | 创建明信片 |
+| PUT | `/postcards/:id` | 更新明信片 |
+| DELETE | `/postcards/:id` | 删除明信片 |
+| POST | `/postcards/:id/share` | 生成分享链接 |
+
+### 3.3 创建参数
+
+```typescript
+interface CreatePostcardDto {
+  templateId: string;            // 模板ID
+  content: string;               // 内容
+  contentType: 'quote' | 'highlight' | 'custom';
+  sourceId?: string;             // 来源ID
+  bookTitle?: string;            // 书籍标题
+  author?: string;               // 作者
+  isPublic?: boolean;            // 是否公开（默认false）
+}
+```
+
+---
+
+## 4. 业务逻辑
+
+### 4.1 会员权限
+
+- 免费用户：可使用 4 个免费模板
+- Premium 会员：可使用全部 8 个模板
+- 权限检查通过 `Subscription` 表验证
+
+### 4.2 公开广场
+
+- 按分享次数降序排列
+- 仅显示 `isPublic: true` 的明信片
+- 支持按内容类型筛选
+
+### 4.3 图片生成
+
+- 生成尺寸：1200 x 630 像素（适合社交媒体分享）
+- 待实现：使用 Canvas 或图像处理库生成实际图片
+
+---
+
+## 5. 代码位置
+
+| 文件 | 说明 |
+|------|------|
+| `apps/backend/src/modules/postcards/postcards.module.ts` | 模块定义 |
+| `apps/backend/src/modules/postcards/postcards.service.ts` | 业务逻辑 |
+| `apps/backend/src/modules/postcards/postcards.controller.ts` | API 控制器 |
+
+---
+
+## 6. 实施状态
+
+### 6.1 后端
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| API 接口 | ✅ 已完成 | 10个接口 |
+| 模板系统 | ✅ 已完成 | 8个预设模板 |
+| 会员权限 | ✅ 已完成 | Premium 模板限制 |
+| 图片生成 | 📝 规划中 | 待实现 Canvas 渲染 |
+| 数据持久化 | 🚧 临时 | 使用内存存储 |
+
+### 6.2 客户端
+
+| 平台 | 状态 | 说明 |
+|------|------|------|
+| iOS | 📝 待实现 | - |
+| Web | 📝 待实现 | - |
+| Android | 📝 待实现 | - |
+
+---
+
+## 7. 后续规划
+
+### P1 - 核心功能完善
+- [ ] 实现图片生成（使用 Sharp 或 Canvas）
+- [ ] 创建 Postcard 数据库模型
+- [ ] 迁移到数据库持久化
+- [ ] 图片上传到 R2 存储
+
+### P2 - 功能增强
+- [ ] 自定义模板（用户上传背景图）
+- [ ] 更多字体选择
+- [ ] 文字位置和大小调整
+- [ ] 添加装饰元素（边框、图标）
+
+### P3 - 社交功能
+- [ ] 明信片点赞
+- [ ] 明信片评论
+- [ ] 直接分享到微信/微博
+- [ ] 生成海报二维码
+
+---
+
+## 8. 与其他模块关联
+
+| 模块 | 关联说明 |
+|------|----------|
+| Quotes | 从金句创建明信片 |
+| Reading | 从划线内容创建明信片 |
+| Subscriptions | 检查 Premium 权限 |
+
+---
+
+*最后更新: 2025-12-28*

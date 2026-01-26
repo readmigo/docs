@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Book Icon - Two open pages -->
+  <defs>
+    <linearGradient id="brandGradient" x1="60" y1="20" x2="60" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8BB9FF"/>
+      <stop offset="50%" stop-color="#B9B3F5"/>
+      <stop offset="100%" stop-color="#F6B6E8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left page -->
+  <path d="M18 30 C18 26 21 23 25 23 L55 23 C57 23 58 24 58 26 L58 90 C58 92 57 93 55 93 L25 93 C21 93 18 90 18 86 L18 30 Z"
+        fill="url(#brandGradient)"/>
+
+  <!-- Right page -->
+  <path d="M62 26 C62 24 63 23 65 23 L95 23 C99 23 102 26 102 30 L102 86 C102 90 99 93 95 93 L65 93 C63 93 62 92 62 90 L62 26 Z"
+        fill="url(#brandGradient)"/>
+
+  <!-- Center spine highlight -->
+  <rect x="57" y="23" width="6" height="70" fill="url(#brandGradient)" opacity="0.3"/>
+</svg>

@@ -1,0 +1,310 @@
+# CarPlay Integration (iOS)
+
+Apple CarPlay support for audiobook playback while driving.
+
+---
+
+## Overview
+
+| Item | Description |
+|------|-------------|
+| Path | `ios/Readmigo/Features/CarPlay/` |
+| Entitlement | com.apple.developer.carplay-audio |
+| Framework | CarPlay.framework |
+
+---
+
+## Architecture
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                    CarPlay Head Unit                           │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │                    Tab Bar Template                       │ │
+│  │  [ Now Playing ] [ Library ] [ Recent ]                   │ │
+│  └──────────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────┐
+│                CarPlaySceneDelegate                            │
+│  CPTemplateApplicationSceneDelegate                            │
+├───────────────────────────────────────────────────────────────┤
+│  didConnect → Set up root template                            │
+│  didDisconnect → Clean up resources                           │
+└───────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────┐
+│              CarPlayTemplateManager                            │
+│  @MainActor singleton                                          │
+├───────────────────────────────────────────────────────────────┤
+│  - Create templates (Tab Bar, List, Now Playing)              │
+│  - Handle user interactions                                    │
+│  - Manage audiobook playback                                   │
+│  - Cache audiobook data                                        │
+└───────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────┐
+│                   AudiobookPlayer                              │
+│  Shared instance for playback control                          │
+└───────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Template Structure
+
+### Tab Bar (Root)
+
+```
+┌─────────────────────────────────────────────┐
+│  [ 🎧 Now Playing ] [ 📚 Library ] [ 🕐 Recent ]  │
+└─────────────────────────────────────────────┘
+```
+
+### Now Playing Tab
+
+Uses `CPNowPlayingTemplate.shared` with custom buttons:
+
+| Button | Action |
+|--------|--------|
+| ⏪ | Seek back 30 seconds |
+| ⏩ | Seek forward 30 seconds |
+| 🔄 | Cycle playback speed |
+
+### Library Tab
+
+```
+┌─────────────────────────────────────────────┐
+│  Library                                     │
+├─────────────────────────────────────────────┤
+│  📚 All Audiobooks                      ▶   │
+│  ▶️ Continue Listening                  ▶   │
+│  ⬇️ Downloaded                          ▶   │
+└─────────────────────────────────────────────┘
+```
+
+### Recent Tab
+
+```
+┌─────────────────────────────────────────────┐
+│  Recent                                      │
+├─────────────────────────────────────────────┤
+│  🎵 Pride and Prejudice                     │
+│     Jane Austen                         ▶   │
+│  🎵 The Great Gatsby                        │
+│     F. Scott Fitzgerald                 ▶   │
+└─────────────────────────────────────────────┘
+```
+
+### Audiobook Detail
+
+```
+┌─────────────────────────────────────────────┐
+│  Pride and Prejudice                         │
+├─────────────────────────────────────────────┤
+│  ▶️ Play from Beginning                     │
+│  ⏯️ Continue - Resume where you left off    │
+├─────────────────────────────────────────────┤
+│  Chapters                                    │
+│  1. Volume 1 - Chapter 1          12:34    │
+│  2. Volume 1 - Chapter 2          15:20    │
+│  3. Volume 1 - Chapter 3          11:45    │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## Scene Configuration
+
+### Info.plist
+
+```xml
+<key>UIApplicationSceneManifest</key>
+<dict>
+    <key>UISceneConfigurations</key>
+    <dict>
+        <key>CPTemplateApplicationSceneSessionRoleApplication</key>
+        <array>
+            <dict>
+                <key>UISceneConfigurationName</key>
+                <string>CarPlay</string>
+                <key>UISceneDelegateClassName</key>
+                <string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
+            </dict>
+        </array>
+    </dict>
+</dict>
+```
+
+### Entitlements
+
+```xml
+<key>com.apple.developer.carplay-audio</key>
+<true/>
+```
+
+---
+
+## Data Flow
+
+### Connection Flow
+
+```
+CarPlay Connected
+       │
+       ▼
+CarPlaySceneDelegate.didConnect()
+       │
+       ▼
+CarPlayTemplateManager.createRootTemplate()
+       │
+       ▼
+interfaceController.setRootTemplate()
+       │
+       ▼
+User sees Tab Bar
+```
+
+### Playback Flow
+
+```
+User taps audiobook
+        │
+        ▼
+showAudiobookDetail()
+        │
+        ▼
+Fetch audiobook from API
+        │
+        ▼
+Display chapter list
+        │
+        ▼
+User taps "Play"/"Continue"
+        │
+        ▼
+AudiobookPlayer.loadAndPlay()
+        │
+        ▼
+Push CPNowPlayingTemplate
+        │
+        ▼
+Audio plays through car speakers
+```
+
+---
+
+## API Integration
+
+### Load Recent Audiobooks
+
+```
+GET /audiobooks/recently-listened?limit=10
+```
+
+### Load All Audiobooks
+
+```
+GET /audiobooks
+Response: { items: AudiobookListItem[] }
+```
+
+### Load Audiobook Detail
+
+```
+GET /audiobooks/:id
+Response: Audiobook (with chapters)
+```
+
+### Get Progress
+
+```
+GET /audiobooks/:id/progress
+Response: { currentChapter: Int, currentPosition: Float }
+```
+
+---
+
+## Models
+
+### AudiobookListItem
+
+```swift
+struct AudiobookListItem: Decodable {
+    let id: String
+    let title: String
+    let author: String
+    let coverUrl: String?
+    let duration: Int  // seconds
+}
+```
+
+### Audiobook (Full)
+
+```swift
+struct Audiobook: Decodable {
+    let id: String
+    let title: String
+    let author: String
+    let coverUrl: String?
+    let chapters: [AudiobookChapter]
+}
+```
+
+### AudiobookProgress
+
+```swift
+struct AudiobookProgress: Decodable {
+    let currentChapter: Int
+    let currentPosition: Float  // seconds
+}
+```
+
+---
+
+## Best Practices
+
+### Performance
+
+- Cache audiobook list to minimize API calls
+- Load cover images asynchronously
+- Pre-fetch recently listened audiobooks
+
+### User Experience
+
+- Show clear "No Downloads" state for offline section
+- Provide "Continue" option to resume playback
+- Display chapter duration for informed selection
+
+### Error Handling
+
+- Fall back to beginning if progress fetch fails
+- Show empty state with helpful message
+- Log errors for debugging
+
+---
+
+## Testing
+
+### Simulator
+
+1. Xcode → Window → Devices and Simulators
+2. Select CarPlay simulator
+3. Run app and connect to CarPlay
+
+### Real Device
+
+1. Connect iPhone to CarPlay-enabled vehicle
+2. Open Readmigo app
+3. Verify audiobook appears in CarPlay
+
+---
+
+## Related Documentation
+
+- [Audiobook Module](../modules/audiobook.md)
+- [Offline Support](./offline-support.md)
+- [Apple CarPlay Documentation](https://developer.apple.com/carplay/)

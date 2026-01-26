@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Readmigo Brand Assets Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+            background: #f5f5f5;
+            padding: 40px;
+            color: #1c1c1e;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            font-size: 24px;
+            margin: 40px 0 20px;
+            color: #7C8DF5;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .assets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .asset-card {
+            text-align: center;
+        }
+
+        .asset-card img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 12px;
+        }
+
+        .asset-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #8BB9FF 0%, #B9B3F5 50%, #F6B6E8 100%);
+            padding: 40px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .dark-bg {
+            background: #1c1c1e;
+            padding: 40px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .color-swatch {
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 8px;
+            color: white;
+            font-size: 12px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .app-icon-preview {
+            width: 180px;
+            height: 180px;
+            border-radius: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>Readmigo Brand Assets</h1>
+    <p class="subtitle">Logo, App Icon & Color Palette</p>
+
+    <h2>App Icon</h2>
+    <div class="section">
+        <div class="assets-grid">
+            <div class="asset-card">
+                <img src="app-icon-1024.svg" alt="App Icon" class="app-icon-preview">
+                <div class="asset-label">iOS App Icon (1024×1024)</div>
+            </div>
+        </div>
+    </div>
+
+    <h2>Logo Variations</h2>
+    <div class="section">
+        <div class="assets-grid">
+            <div class="asset-card">
+                <img src="logo-mark.svg" alt="Logo Mark" width="120">
+                <div class="asset-label">Logo Mark (Gradient)</div>
+            </div>
+            <div class="asset-card">
+                <div class="gradient-bg">
+                    <img src="logo-mark-white.svg" alt="Logo Mark White" width="80">
+                </div>
+                <div class="asset-label">Logo Mark (White)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="assets-grid">
+            <div class="asset-card">
+                <img src="logo-horizontal.svg" alt="Horizontal Logo" width="280">
+                <div class="asset-label">Horizontal Logo (Gradient)</div>
+            </div>
+        </div>
+        <br>
+        <div class="gradient-bg">
+            <img src="logo-horizontal-white.svg" alt="Horizontal Logo White" width="280">
+        </div>
+        <div class="asset-label" style="text-align:center">Horizontal Logo (White on gradient)</div>
+    </div>
+
+    <h2>Brand Colors</h2>
+    <div class="section">
+        <div class="color-palette">
+            <div class="color-swatch" style="background: #7C8DF5;">
+                <span>Primary</span>
+                <span>#7C8DF5</span>
+            </div>
+            <div class="color-swatch" style="background: #9A8CF2;">
+                <span>Accent Purple</span>
+                <span>#9A8CF2</span>
+            </div>
+            <div class="color-swatch" style="background: #F3A6DC;">
+                <span>Accent Pink</span>
+                <span>#F3A6DC</span>
+            </div>
+            <div class="color-swatch" style="background: #A5C7FF;">
+                <span>Accent Blue</span>
+                <span>#A5C7FF</span>
+            </div>
+            <div class="color-swatch" style="background: #FFD36A; color: #1c1c1e; text-shadow: none;">
+                <span>Achievement</span>
+                <span>#FFD36A</span>
+            </div>
+            <div class="color-swatch" style="background: linear-gradient(135deg, #8BB9FF, #B9B3F5, #F6B6E8);">
+                <span>Gradient</span>
+            </div>
+        </div>
+    </div>
+
+    <h2>Favicon</h2>
+    <div class="section">
+        <div class="assets-grid">
+            <div class="asset-card">
+                <img src="favicon.svg" alt="Favicon" width="32">
+                <div class="asset-label">Favicon (32×32)</div>
+            </div>
+        </div>
+    </div>
+
+    <h2>Onboarding Icons</h2>
+    <div class="section">
+        <div class="assets-grid">
+            <div class="asset-card">
+                <img src="onboarding/icon-welcome.svg" alt="Welcome" width="120">
+                <div class="asset-label">Welcome</div>
+            </div>
+            <div class="asset-card">
+                <img src="onboarding/icon-books.svg" alt="Books" width="120">
+                <div class="asset-label">Classic Literature</div>
+            </div>
+            <div class="asset-card">
+                <img src="onboarding/icon-ai.svg" alt="AI" width="120">
+                <div class="asset-label">AI Learning</div>
+            </div>
+            <div class="asset-card">
+                <img src="onboarding/icon-progress.svg" alt="Progress" width="120">
+                <div class="asset-label">Track Progress</div>
+            </div>
+            <div class="asset-card">
+                <img src="onboarding/icon-level.svg" alt="Level" width="120">
+                <div class="asset-label">English Level</div>
+            </div>
+            <div class="asset-card">
+                <img src="onboarding/icon-goal.svg" alt="Goal" width="120">
+                <div class="asset-label">Daily Goal</div>
+            </div>
+            <div class="asset-card">
+                <img src="onboarding/icon-interests.svg" alt="Interests" width="120">
+                <div class="asset-label">Interests</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

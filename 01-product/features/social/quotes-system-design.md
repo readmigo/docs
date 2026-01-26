@@ -1,0 +1,183 @@
+# 金句系统设计文档
+
+> 模块名称: Quotes Module
+> 状态: ✅ 后端已实现
+> 优先级: P2
+
+---
+
+## 1. 功能概述
+
+金句系统允许用户发现、收藏和分享经典书籍中的名句以及著名作者的名言。
+
+### 1.1 核心功能
+
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| 金句浏览 | 按来源/作者/标签筛选金句 | ✅ 已实现 |
+| 每日金句 | 每日推送一条精选金句 | ✅ 已实现 |
+| 随机金句 | 获取随机金句 | ✅ 已实现 |
+| 热门金句 | 按点赞数排序的热门金句 | ✅ 已实现 |
+| 收藏功能 | 用户点赞/取消点赞金句 | ✅ 已实现 |
+| 我的收藏 | 查看用户收藏的金句列表 | ✅ 已实现 |
+
+### 1.2 金句来源
+
+| 来源类型 | 说明 |
+|----------|------|
+| `book` | 书中金句 - 来自经典文学作品 |
+| `author` | 作者名言 - 作者的著名语录 |
+
+---
+
+## 2. 数据模型
+
+### 2.1 Quote 金句
+
+```typescript
+interface Quote {
+  id: string;              // 金句ID
+  text: string;            // 金句内容（英文）
+  textEn?: string;         // 英文版本（如原文非英文）
+  source: 'book' | 'author';  // 来源类型
+  bookId?: string;         // 关联书籍ID（书中金句）
+  bookTitle?: string;      // 书籍标题
+  author: string;          // 作者名
+  chapter?: string;        // 章节（书中金句）
+  tags: string[];          // 标签列表
+  likeCount: number;       // 点赞数
+  isLiked?: boolean;       // 当前用户是否已点赞
+  createdAt: Date;         // 创建时间
+}
+```
+
+### 2.2 标签系统
+
+预设标签分类：
+
+| 类别 | 标签示例 |
+|------|----------|
+| 文学特征 | classic, irony, satire, opening |
+| 主题 | love, wisdom, courage, freedom |
+| 情感 | inspiration, hope, perseverance |
+| 类型 | politics, history, philosophy |
+
+---
+
+## 3. API 接口
+
+### 3.1 公开接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/quotes` | 获取金句列表（支持筛选） |
+| GET | `/quotes/daily` | 获取每日金句 |
+| GET | `/quotes/random` | 获取随机金句 |
+| GET | `/quotes/trending` | 获取热门金句 |
+| GET | `/quotes/tags` | 获取可用标签列表 |
+| GET | `/quotes/authors` | 获取有金句的作者列表 |
+| GET | `/quotes/book/:bookId` | 获取指定书籍的金句 |
+| GET | `/quotes/author/:author` | 获取指定作者的金句 |
+| GET | `/quotes/:id` | 获取金句详情 |
+
+### 3.2 需认证接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/quotes/favorites` | 获取用户收藏的金句 |
+| POST | `/quotes/:id/like` | 点赞金句 |
+| DELETE | `/quotes/:id/like` | 取消点赞 |
+
+### 3.3 查询参数
+
+```typescript
+interface QuoteQueryDto {
+  source?: 'book' | 'author';  // 筛选来源类型
+  bookId?: string;             // 筛选书籍
+  author?: string;             // 筛选作者
+  tag?: string;                // 筛选标签
+  search?: string;             // 搜索关键词
+  page?: number;               // 页码（默认1）
+  limit?: number;              // 每页数量（默认20）
+}
+```
+
+---
+
+## 4. 业务逻辑
+
+### 4.1 每日金句算法
+
+基于日期生成当日金句，同一天返回相同金句：
+
+```typescript
+const dayOfYear = Math.floor(
+  (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime())
+  / (24 * 60 * 60 * 1000)
+);
+const index = dayOfYear % quotes.length;
+```
+
+### 4.2 热门排序
+
+按 `likeCount` 降序排列，返回指定数量的热门金句。
+
+### 4.3 用户收藏
+
+- 点赞状态存储在数据库（当前使用内存模拟）
+- API 响应中包含 `isLiked` 字段标识用户收藏状态
+
+---
+
+## 5. 代码位置
+
+| 文件 | 说明 |
+|------|------|
+| `apps/backend/src/modules/quotes/quotes.module.ts` | 模块定义 |
+| `apps/backend/src/modules/quotes/quotes.service.ts` | 业务逻辑 |
+| `apps/backend/src/modules/quotes/quotes.controller.ts` | API 控制器 |
+
+---
+
+## 6. 实施状态
+
+### 6.1 后端
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| API 接口 | ✅ 已完成 | 12个接口 |
+| 数据模型 | 🚧 临时 | 使用内存数据，待迁移到数据库 |
+| 用户收藏 | 📝 规划中 | 待实现数据库存储 |
+
+### 6.2 客户端
+
+| 平台 | 状态 | 说明 |
+|------|------|------|
+| iOS | 📝 待实现 | - |
+| Web | 📝 待实现 | - |
+| Android | 📝 待实现 | - |
+
+---
+
+## 7. 后续规划
+
+### P1 - 数据持久化
+- [ ] 创建 Quote 数据库模型
+- [ ] 创建 UserQuoteLike 关联表
+- [ ] 迁移预置金句数据到数据库
+- [ ] 实现用户收藏持久化
+
+### P2 - 功能增强
+- [ ] 金句分享到社交媒体
+- [ ] 金句生成明信片（与 Postcards 模块联动）
+- [ ] 金句评论功能
+- [ ] 金句数据管理后台
+
+### P3 - 数据扩充
+- [ ] 从 Gutenberg 书籍中提取金句
+- [ ] 从 Wikiquote 导入作者名言
+- [ ] AI 辅助金句识别和提取
+
+---
+
+*最后更新: 2025-12-28*

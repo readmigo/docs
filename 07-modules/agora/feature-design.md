@@ -1,0 +1,1191 @@
+# 城邦（Agora）功能设计文档
+
+## 一、功能概述
+
+### 1.1 功能定位
+"城邦"是一个类似微信朋友圈的金句社交展示专区，让经典著作的作者们仿佛"穿越"到现代，像朋友一样在朋友圈分享他们的智慧金句。用户可以与这些"穿越而来的文豪"互动——点赞、分享他们的金句。
+
+> **V1 版本范围**: 第一版本仅支持点赞和分享功能，评论功能将在后续版本中推出。详见 [Agora V1 版本功能清单](./v1-feature-list.md)
+
+### 1.2 核心理念
+- **穿越感**：历史人物像当代人一样发朋友圈
+- **沉浸感**：用户仿佛置身于一个文学大师云集的社交圈
+- **互动性**：不只是阅读，更是与大师们"互动"
+
+### 1.3 入口位置
+- 底部导航栏第5个Tab
+- 图标：`building.columns`（希腊神殿）
+- 名称：城邦
+
+---
+
+## 二、信息流设计
+
+### 2.1 帖子卡片结构
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  ┌──────┐                                               │
+│  │ 头像 │  Jane Austen                    ···  (更多)   │
+│  └──────┘  3分钟前 · 来自英国                            │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  "It is a truth universally acknowledged, that a        │
+│   single man in possession of a good fortune, must      │
+│   be in want of a wife."                                │
+│                                                         │
+│  ─────────────────────────────────────────────────────  │
+│  📖 《傲慢与偏见》· 第一章                                │
+│                                                         │
+├─────────────────────────────────────────────────────────┤
+│  ❤️ 128      ↗️ 分享                                     │
+└─────────────────────────────────────────────────────────┘
+
+> **注**: V1 版本不包含评论功能，评论区域将在后续版本中添加。
+```
+
+### 2.2 卡片元素详解
+
+#### 头部区域
+| 元素 | 说明 |
+|-----|------|
+| 作者头像 | AI生成的艺术风格头像，圆形，44x44pt |
+| 作者名 | 加粗显示，点击可查看作者主页 |
+| 发布时间 | 相对时间（如"3分钟前"、"1小时前"、"昨天"） |
+| 位置标签 | 可选，显示作者国籍（如"来自英国"） |
+| 更多按钮 | 点击弹出操作菜单（屏蔽、举报等） |
+
+#### 内容区域
+| 元素 | 说明 |
+|-----|------|
+| 金句正文 | 主要内容，支持多行展示，超过5行折叠 |
+| 来源信息 | 显示书名、章节，带书籍图标 |
+
+#### 互动区域
+| 元素 | 说明 |
+|-----|------|
+| 点赞按钮 | ❤️ 图标 + 数量，点击切换点赞状态 |
+| 分享按钮 | ↗️ 图标，点击弹出分享面板 |
+
+> **V2 规划**: 评论功能将在 V2 版本中添加
+
+---
+
+## 三、用户交互功能
+
+### 3.1 点赞功能
+
+#### 交互流程
+1. 用户点击 ❤️ 按钮
+2. 心形图标变红，伴随放大动画
+3. 点赞数 +1
+4. 再次点击取消点赞
+
+#### 视觉反馈
+- 未点赞：空心灰色心形 `heart`
+- 已点赞：实心红色心形 `heart.fill`，带缩放动画
+
+### 3.2 分享功能
+
+#### 分享选项
+| 选项 | 说明 |
+|-----|------|
+| 生成图片 | 将金句生成精美图片，保存到相册 |
+| 分享到微信 | 调用微信分享（需集成SDK） |
+| 复制文字 | 复制金句文本到剪贴板 |
+| 更多方式 | 调用系统分享面板 |
+
+#### 分享图片样式
+```
+┌─────────────────────────────┐
+│                             │
+│   "金句内容..."              │
+│                             │
+│        —— 作者名             │
+│        《书名》              │
+│                             │
+│   ─────────────────────────  │
+│   Readmigo                  │
+└─────────────────────────────┘
+```
+
+### 3.3 屏蔽功能
+
+#### 屏蔽选项（点击"更多"按钮）
+| 选项 | 说明 |
+|-----|------|
+| 不感兴趣 | 减少类似内容推荐，隐藏当前帖子 |
+| 屏蔽该作者 | 不再显示该作者的所有金句 |
+| 举报 | 举报不当内容 |
+
+#### 屏蔽数据结构
+```swift
+struct BlockedItem: Identifiable, Codable {
+    let id: String
+    let type: BlockType        // .post, .author
+    let targetId: String       // 帖子ID或作者ID
+    let reason: String?
+    let createdAt: Date
+}
+
+enum BlockType: String, Codable {
+    case post = "POST"
+    case author = "AUTHOR"
+}
+```
+
+---
+
+## 四、数据模型设计
+
+### 4.1 Author（作者）
+
+```swift
+struct Author: Codable, Identifiable, Hashable {
+    let id: String
+    let name: String              // 作者名
+    let avatarUrl: String?        // AI生成头像URL
+    let bio: String?              // 简介
+    let era: String?              // 年代 (如 "1775-1817")
+    let nationality: String?      // 国籍
+    let bookCount: Int            // 著作数量
+
+    // 计算属性
+    var initials: String          // 头像占位文字
+    var avatarColorIndex: Int     // 头像背景色索引
+}
+```
+
+### 4.2 AgoraPost（帖子）
+
+```swift
+struct AgoraPost: Codable, Identifiable {
+    let id: String
+    let author: Author            // 作者信息
+    let quote: Quote              // 金句内容
+    let simulatedPostTime: Date   // 模拟发布时间
+    var likeCount: Int            // 点赞数
+    var shareCount: Int           // 分享数
+    var isLiked: Bool             // 当前用户是否点赞
+    var isBookmarked: Bool        // 是否收藏
+
+    // 计算属性
+    var relativeTimeString: String // "3分钟前"
+    var sourceString: String       // "《傲慢与偏见》· 第一章"
+
+    // V2 规划
+    // var commentCount: Int      // 评论数 (V2)
+    // var comments: [Comment]?   // 评论列表 (V2)
+}
+```
+
+### 4.3 Comment（评论）- V2 规划
+
+> **注**: Comment 模型将在 V2 版本中实现
+
+### 4.4 BlockedItem（屏蔽项）
+
+```swift
+struct BlockedItem: Codable, Identifiable {
+    let id: String
+    let type: BlockType
+    let targetId: String
+    let reason: String?
+    let createdAt: Date
+}
+
+enum BlockType: String, Codable {
+    case post = "POST"
+    case author = "AUTHOR"
+}
+```
+
+---
+
+## 五、业务逻辑层
+
+### 5.1 AgoraManager
+
+```swift
+@MainActor
+class AgoraManager: ObservableObject {
+    static let shared = AgoraManager()
+
+    // MARK: - Published Properties
+    @Published var posts: [AgoraPost] = []
+    @Published var isLoading = false
+    @Published var hasMorePosts = true
+    @Published var blockedAuthors: Set<String> = []
+    @Published var blockedPosts: Set<String> = []
+
+    // MARK: - Posts Management
+    func fetchPosts(refresh: Bool = false) async
+    func loadMorePosts() async
+    func refreshPosts() async
+
+    // MARK: - Interactions
+    func likePost(_ postId: String) async
+    func unlikePost(_ postId: String) async
+    func sharePost(_ postId: String) async
+    func bookmarkPost(_ postId: String) async
+
+    // MARK: - Comments (V2 规划)
+    // func fetchComments(for postId: String) async -> [Comment]
+    // func addComment(to postId: String, content: String) async
+    // func likeComment(_ commentId: String) async
+    // func replyToComment(_ commentId: String, content: String) async
+
+    // MARK: - Block/Hide
+    func hidePost(_ postId: String)
+    func blockAuthor(_ authorId: String)
+    func unblockAuthor(_ authorId: String)
+    func reportPost(_ postId: String, reason: String) async
+
+    // MARK: - Helpers
+    func generateSimulatedPostTime() -> Date
+    func filterBlockedContent(_ posts: [AgoraPost]) -> [AgoraPost]
+}
+```
+
+### 5.2 时间显示逻辑
+
+```swift
+extension Date {
+    var relativeTimeString: String {
+        let now = Date()
+        let interval = now.timeIntervalSince(self)
+
+        switch interval {
+        case 0..<60:
+            return "刚刚"
+        case 60..<3600:
+            let minutes = Int(interval / 60)
+            return "\(minutes)分钟前"
+        case 3600..<86400:
+            let hours = Int(interval / 3600)
+            return "\(hours)小时前"
+        case 86400..<172800:
+            return "昨天"
+        case 172800..<604800:
+            let days = Int(interval / 86400)
+            return "\(days)天前"
+        default:
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MM月dd日"
+            return formatter.string(from: self)
+        }
+    }
+}
+```
+
+---
+
+## 六、UI组件设计
+
+### 6.1 视图层级
+
+```
+AgoraView (主视图)
+├── NavigationStack
+│   └── ScrollView
+│       └── LazyVStack
+│           └── ForEach(posts)
+│               └── AgoraPostCard (帖子卡片)
+│                   ├── PostHeaderView (头部：头像+作者+时间)
+│                   ├── PostContentView (内容：金句+来源)
+│                   └── PostActionsView (操作：点赞+分享)
+│
+├── Sheet: ShareSheet (分享面板)
+└── ActionSheet: MoreActionsSheet (更多操作)
+
+# V2 新增组件
+# ├── PostCommentsView (评论区)
+# ├── Sheet: CommentInputSheet (评论输入)
+```
+
+### 6.2 组件文件清单
+
+| 文件名 | 说明 | 版本 |
+|-------|------|------|
+| `AgoraView.swift` | 主视图，信息流列表 | V1 |
+| `AgoraPostCard.swift` | 帖子卡片组件 | V1 |
+| `AuthorAvatarView.swift` | 作者头像组件 | V1 |
+| `PostHeaderView.swift` | 帖子头部（可内嵌在卡片中） | V1 |
+| `PostActionsView.swift` | 互动按钮栏 | V1 |
+| `ShareSheet.swift` | 分享面板 | V1 |
+| `AuthorProfileView.swift` | 作者主页（可选） | V1 |
+| `PostCommentsView.swift` | 评论区组件 | V2 |
+| `CommentInputView.swift` | 评论输入框 | V2 |
+| `CommentCell.swift` | 单条评论组件 | V2 |
+
+### 6.3 设计规范
+
+#### 颜色
+| 用途 | 颜色 |
+|-----|------|
+| 卡片背景 | `Color(.systemBackground)` |
+| 分割线 | `Color(.separator)` |
+| 作者名 | `.primary` |
+| 时间/来源 | `.secondary` |
+| 金句正文 | `.primary` |
+| 点赞（未） | `.secondary` |
+| 点赞（已） | `.red` |
+| 评论文字 | `.primary` |
+
+#### 字体
+| 用途 | 字体 |
+|-----|------|
+| 作者名 | `.headline` |
+| 时间 | `.caption` |
+| 金句正文 | `.body` |
+| 来源信息 | `.caption` |
+| 互动数字 | `.subheadline` |
+| 评论内容 | `.subheadline` |
+
+#### 间距
+| 用途 | 数值 |
+|-----|------|
+| 卡片间距 | 16pt |
+| 卡片内边距 | 16pt |
+| 头像尺寸 | 44x44pt |
+| 头像与文字间距 | 12pt |
+| 区域间分割 | 12pt |
+| 评论之间间距 | 8pt |
+
+#### 圆角
+| 用途 | 数值 |
+|-----|------|
+| 卡片圆角 | 12pt |
+| 头像圆角 | 22pt (圆形) |
+| 评论区背景 | 8pt |
+| 输入框圆角 | 20pt |
+
+---
+
+## 七、API接口设计
+
+### 7.1 端点列表
+
+#### V1 端点
+
+| 方法 | 端点 | 说明 |
+|-----|------|------|
+| GET | `/agora/posts` | 获取帖子列表 |
+| GET | `/agora/posts/:id` | 获取单个帖子详情 |
+| POST | `/agora/posts/:id/like` | 点赞帖子 |
+| DELETE | `/agora/posts/:id/like` | 取消点赞 |
+| POST | `/agora/posts/:id/share` | 记录分享 |
+| POST | `/agora/posts/:id/hide` | 隐藏帖子 |
+| POST | `/agora/authors/:id/block` | 屏蔽作者 |
+| DELETE | `/agora/authors/:id/block` | 取消屏蔽 |
+| GET | `/agora/blocked` | 获取屏蔽列表 |
+| POST | `/agora/posts/:id/report` | 举报帖子 |
+
+#### V2 端点（评论功能）
+
+| 方法 | 端点 | 说明 |
+|-----|------|------|
+| GET | `/agora/posts/:id/comments` | 获取帖子评论 |
+| POST | `/agora/posts/:id/comments` | 发表评论 |
+| POST | `/agora/comments/:id/like` | 点赞评论 |
+
+### 7.2 响应示例
+
+#### 获取帖子列表
+```json
+{
+  "data": [
+    {
+      "id": "post-1",
+      "author": {
+        "id": "author-jane-austen",
+        "name": "Jane Austen",
+        "avatarUrl": "https://...",
+        "nationality": "British"
+      },
+      "quote": {
+        "id": "quote-1",
+        "text": "It is a truth universally acknowledged...",
+        "bookTitle": "Pride and Prejudice",
+        "chapter": "Chapter 1"
+      },
+      "simulatedPostTime": "2025-12-19T10:30:00Z",
+      "likeCount": 128,
+      "shareCount": 5,
+      "isLiked": false
+    }
+  ],
+  "total": 100,
+  "page": 1,
+  "limit": 20,
+  "hasMore": true
+}
+```
+
+---
+
+## 八、Mock数据设计
+
+### 8.1 示例帖子
+
+```swift
+static let mockPosts: [AgoraPost] = [
+    // Jane Austen
+    AgoraPost(
+        id: "post-1",
+        author: Author.janeAusten,
+        quote: Quote(
+            text: "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.",
+            bookTitle: "Pride and Prejudice",
+            chapter: "Chapter 1"
+        ),
+        simulatedPostTime: Date().addingTimeInterval(-180),
+        likeCount: 128,
+        shareCount: 5,
+        isLiked: false
+    ),
+
+    // Oscar Wilde
+    AgoraPost(
+        id: "post-2",
+        author: Author.oscarWilde,
+        quote: Quote(
+            text: "To live is the rarest thing in the world. Most people exist, that is all.",
+            bookTitle: "The Soul of Man under Socialism"
+        ),
+        simulatedPostTime: Date().addingTimeInterval(-3600),
+        likeCount: 256,
+        shareCount: 12,
+        isLiked: true
+    ),
+
+    // Mark Twain
+    AgoraPost(
+        id: "post-3",
+        author: Author.markTwain,
+        quote: Quote(
+            text: "The secret of getting ahead is getting started.",
+            source: "author"
+        ),
+        simulatedPostTime: Date().addingTimeInterval(-7200),
+        likeCount: 89,
+        shareCount: 3,
+        isLiked: false
+    ),
+
+    // Fyodor Dostoevsky
+    AgoraPost(
+        id: "post-4",
+        author: Author.dostoevsky,
+        quote: Quote(
+            text: "Pain and suffering are always inevitable for a large intelligence and a deep heart.",
+            bookTitle: "Crime and Punishment"
+        ),
+        simulatedPostTime: Date().addingTimeInterval(-86400),
+        likeCount: 312,
+        shareCount: 28,
+        isLiked: false
+    )
+]
+```
+
+---
+
+## 九、用户体验细节
+
+### 9.1 动画效果
+
+| 场景 | 动画 | 版本 |
+|-----|------|------|
+| 点赞 | 心形放大至1.3倍后回弹 | V1 |
+| 取消点赞 | 心形缩小消失 | V1 |
+| 隐藏帖子 | 向左滑出屏幕 | V1 |
+| 下拉刷新 | 标准下拉刷新动画 | V1 |
+| 加载更多 | 底部loading指示器 | V1 |
+| 新评论出现 | 从底部滑入 | V2 |
+
+### 9.2 空状态处理
+
+| 场景 | 显示内容 |
+|-----|----------|
+| 首次加载 | 骨架屏占位 |
+| 无数据 | 插图 + "暂无动态" |
+| 加载失败 | 插图 + "加载失败，点击重试" |
+| 全部屏蔽 | "您已屏蔽所有内容" |
+
+### 9.3 手势支持
+
+| 手势 | 操作 |
+|-----|------|
+| 下拉 | 刷新信息流 |
+| 上滑 | 加载更多 |
+| 双击卡片 | 快速点赞 |
+| 长按金句 | 复制文字 |
+| 左滑卡片 | 快速屏蔽（可选） |
+
+---
+
+## 十、文件结构
+
+```
+ios/Readmigo/Features/Agora/
+├── AgoraView.swift              # 主视图
+├── AgoraManager.swift           # 业务逻辑管理
+├── Components/
+│   ├── AgoraPostCard.swift      # 帖子卡片
+│   ├── AuthorAvatarView.swift   # 作者头像
+│   ├── PostActionsView.swift    # 互动按钮
+│   ├── PostCommentsView.swift   # 评论区
+│   ├── CommentCell.swift        # 评论单元
+│   └── CommentInputView.swift   # 评论输入
+├── Sheets/
+│   ├── ShareSheet.swift         # 分享面板
+│   └── MoreActionsSheet.swift   # 更多操作
+└── AuthorProfileView.swift      # 作者主页（可选）
+
+ios/Readmigo/Core/Models/
+├── Author.swift                 # 作者模型
+├── AgoraPost.swift              # 帖子模型
+├── Comment.swift                # 评论模型
+└── BlockedItem.swift            # 屏蔽项模型
+```
+
+---
+
+## 十一、实现优先级
+
+> **版本功能追踪**: 详见 [Agora V1 版本功能清单](./v1-feature-list.md)
+
+### V1 功能范围
+
+#### Phase 1: 核心功能（MVP）
+
+1. ✅ 信息流列表展示
+2. ✅ 帖子卡片（头像、金句、来源）
+3. ✅ 点赞功能
+4. ✅ 相对时间显示
+5. ✅ 底部Tab集成
+
+#### Phase 2: 管理功能
+
+1. 分享功能（图片生成）
+2. 屏蔽帖子
+3. 屏蔽作者
+4. 举报功能
+
+#### Phase 3: 增强功能
+
+1. 作者主页
+2. 搜索/筛选
+3. 收藏功能
+
+### V2 功能范围
+
+#### 社交功能
+
+1. 评论展示
+2. 发表评论
+3. 评论点赞
+4. 回复评论
+5. 推送通知
+
+---
+
+## 十二、技术注意事项
+
+### 12.1 性能优化
+
+- 使用 `LazyVStack` 实现列表懒加载
+- 图片使用 `AsyncImage` 异步加载
+- 实现分页加载，每次20条
+
+### 12.2 数据同步
+
+- 点赞状态本地立即更新，后台异步同步
+- 屏蔽操作本地持久化
+
+### 12.3 离线支持
+
+- 缓存已加载的帖子
+- 离线状态下可浏览缓存内容
+- 离线操作（点赞）进入队列，联网后同步
+
+---
+
+---
+
+## 十三、用户发帖功能设计
+
+### 13.1 功能概述
+
+#### 核心理念
+让用户成为城邦的"公民"，不仅可以欣赏文豪们的智慧金句，还可以分享自己的阅读收获。用户可以：
+- **分享划线**：将阅读过程中划线的精彩段落分享到城邦
+- **记录感悟**：为划线内容添加个人感想和解读
+- **自由创作**：发布独立的阅读笔记或书评
+
+#### 与文豪帖子的区别
+
+| 维度 | 文豪帖子 | 用户帖子 |
+|------|----------|----------|
+| 内容来源 | 系统从书籍中提取金句 | 用户主动分享 |
+| 发布者标识 | AI生成的文豪头像 | 用户真实头像 |
+| 发布时间 | 模拟的"穿越"时间 | 真实发布时间 |
+| 内容类型 | 纯金句 | 划线+感悟 / 纯文字 |
+| 编辑权限 | 不可编辑 | 可编辑、可删除 |
+
+---
+
+### 13.2 发帖入口设计
+
+#### 入口位置
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  城邦                                      🔍    ➕     │
+│  ───────────────────────────────────────────────────── │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  [帖子卡片 1]                                    │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  [帖子卡片 2]                                    │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+         │
+         └──── 右上角 ➕ 按钮：发布新帖子
+```
+
+#### 入口触发场景
+
+| 入口 | 位置 | 触发方式 |
+|------|------|----------|
+| 导航栏按钮 | 城邦页面右上角 | 点击 ➕ 图标 |
+| 阅读器分享 | 阅读器划线菜单 | 选择"分享到城邦" |
+| 笔记列表 | 个人笔记页面 | 长按笔记 → 分享 |
+| 浮动按钮 | 城邦页面右下角（可选） | 点击浮动 ➕ 按钮 |
+
+---
+
+### 13.3 发帖流程设计
+
+#### 流程图
+
+```
+┌──────────────┐
+│  点击发帖入口  │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────────────┐
+│                    选择发帖方式                            │
+│  ┌────────────┐   ┌────────────┐   ┌────────────┐        │
+│  │  📚 从书籍  │   │  📝 从笔记  │   │  ✏️ 自由   │        │
+│  │   划线分享  │   │   分享      │   │   创作     │        │
+│  └────────────┘   └────────────┘   └────────────┘        │
+└──────────────────────────────────────────────────────────┘
+       │                   │                   │
+       ▼                   ▼                   ▼
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│  选择书籍     │   │  选择已有笔记 │   │  直接编辑    │
+└──────┬───────┘   └──────┬───────┘   └──────┬───────┘
+       │                   │                   │
+       ▼                   ▼                   │
+┌──────────────┐   ┌──────────────┐           │
+│  选择划线内容 │   │  预览笔记内容 │           │
+└──────┬───────┘   └──────┬───────┘           │
+       │                   │                   │
+       ▼                   ▼                   ▼
+┌──────────────────────────────────────────────────────────┐
+│                    编辑发帖内容                            │
+│  ┌──────────────────────────────────────────────────┐    │
+│  │  引用内容（划线/笔记原文）                          │    │
+│  └──────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────┐    │
+│  │  我的感悟...（可选，最多500字）                     │    │
+│  └──────────────────────────────────────────────────┘    │
+│  📖 来源：《傲慢与偏见》第一章                            │
+│  ──────────────────────────────────────────────────────  │
+│  话题标签：#经典语录  #爱情  +添加                        │
+│  ──────────────────────────────────────────────────────  │
+│  可见范围：🌍 公开  👥 仅好友  🔒 仅自己                   │
+└──────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────┐
+│  预览并发布   │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│  发布成功     │
+└──────────────┘
+```
+
+---
+
+### 13.4 发帖界面设计
+
+#### 方式一：从书籍划线分享
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  ✕ 取消                分享划线                  发布    │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  选择划线内容                                            │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  📖 《傲慢与偏见》                                │   │
+│  ├──────────────────────────────────────────────────┤   │
+│  │  ☑️ "It is a truth universally acknowledged..."  │   │
+│  │     第一章 · 2024年12月15日划线                   │   │
+│  ├──────────────────────────────────────────────────┤   │
+│  │  ☐ "A lady's imagination is very rapid..."       │   │
+│  │     第六章 · 2024年12月18日划线                   │   │
+│  ├──────────────────────────────────────────────────┤   │
+│  │  ☐ "I could easily forgive his pride..."         │   │
+│  │     第五章 · 2024年12月17日划线                   │   │
+│  └──────────────────────────────────────────────────┘   │
+│                                                         │
+│  添加我的感悟                                            │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │                                                   │   │
+│  │  这句开篇太绝了！简·奥斯汀用一句话就揭示了当时       │   │
+│  │  社会对婚姻的普遍态度，既是讽刺也是事实...          │   │
+│  │                                                   │   │
+│  │                                          128/500  │   │
+│  └──────────────────────────────────────────────────┘   │
+│                                                         │
+│  ──────────────────────────────────────────────────────  │
+│                                                         │
+│  话题标签                                                │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────┐             │
+│  │#经典语录│ │#英国文学│ │#婚姻观 │ │ +添加 │             │
+│  └────────┘ └────────┘ └────────┘ └──────┘             │
+│                                                         │
+│  可见范围                                                │
+│  ○ 🌍 公开 · 所有人可见                                  │
+│  ● 👥 仅好友 · 仅互相关注的人可见                        │
+│  ○ 🔒 仅自己 · 仅自己可见                                │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 方式二：自由创作
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  ✕ 取消                发布动态                  发布    │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │                                                   │   │
+│  │  分享你的阅读感悟...                              │   │
+│  │                                                   │   │
+│  │                                                   │   │
+│  │                                                   │   │
+│  │                                                   │   │
+│  │                                                   │   │
+│  │                                          0/1000   │   │
+│  └──────────────────────────────────────────────────┘   │
+│                                                         │
+│  ──────────────────────────────────────────────────────  │
+│                                                         │
+│  📎 关联书籍（可选）                                     │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  🔍 搜索书籍名称...                               │   │
+│  └──────────────────────────────────────────────────┘   │
+│                                                         │
+│  话题标签                                                │
+│  ┌────────┐ ┌──────┐                                   │
+│  │#读书笔记│ │ +添加 │                                   │
+│  └────────┘ └──────┘                                   │
+│                                                         │
+│  可见范围                                                │
+│  ● 🌍 公开 · 所有人可见                                  │
+│  ○ 👥 仅好友 · 仅互相关注的人可见                        │
+│  ○ 🔒 仅自己 · 仅自己可见                                │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 13.5 用户帖子卡片设计
+
+#### 卡片样式（与文豪帖子区分）
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  ┌──────┐                                               │
+│  │ 用户  │  读书的小明                     ···  (更多)   │
+│  │ 头像  │  10分钟前                                     │
+│  └──────┘                                               │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ ❝                                                │    │
+│  │  "It is a truth universally acknowledged, that   │    │
+│  │   a single man in possession of a good fortune,  │    │
+│  │   must be in want of a wife."                    │    │
+│  │                                               ❞  │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                         │
+│  这句开篇太绝了！简·奥斯汀用一句话就揭示了当时社会对      │
+│  婚姻的普遍态度，既是讽刺也是事实。每次重读都有新感悟。   │
+│                                                         │
+│  ─────────────────────────────────────────────────────  │
+│  📖 《傲慢与偏见》· 第一章                                │
+│  #经典语录  #英国文学  #婚姻观                            │
+│                                                         │
+├─────────────────────────────────────────────────────────┤
+│  ❤️ 32       💬 5       ↗️ 分享                          │
+├─────────────────────────────────────────────────────────┤
+│  [评论区...]                                             │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 用户帖子与文豪帖子的视觉区分
+
+| 元素 | 文豪帖子 | 用户帖子 |
+|------|----------|----------|
+| 头像样式 | AI生成的艺术风格头像 | 用户真实头像（带用户徽章） |
+| 引用样式 | 纯文字显示 | 引用块样式（带引号装饰） |
+| 来源标注 | 书名+章节 | 书名+章节（如有） |
+| 额外内容 | 无 | 用户感悟文字 |
+| 标签区域 | 无 | 话题标签 |
+| 操作菜单 | 屏蔽/举报 | 编辑/删除/屏蔽/举报 |
+
+---
+
+### 13.6 数据模型扩展
+
+#### UserPost（用户帖子）
+
+```
+UserPost
+├── id: String                    // 帖子唯一ID
+├── userId: String                // 发布者用户ID
+├── user: UserProfile             // 发布者信息
+├── type: PostType                // 帖子类型
+│   ├── HIGHLIGHT_SHARE           // 划线分享
+│   ├── NOTE_SHARE                // 笔记分享
+│   └── FREE_POST                 // 自由创作
+├── quotedContent: QuotedContent? // 引用内容（划线/笔记原文）
+│   ├── text: String              // 引用文本
+│   ├── bookId: String?           // 关联书籍ID
+│   ├── bookTitle: String?        // 书名
+│   ├── chapter: String?          // 章节
+│   └── highlightId: String?      // 原划线ID
+├── content: String               // 用户感悟/正文（最多1000字）
+├── tags: [String]                // 话题标签
+├── visibility: Visibility        // 可见范围
+│   ├── PUBLIC                    // 公开
+│   ├── FRIENDS_ONLY              // 仅好友
+│   └── PRIVATE                   // 仅自己
+├── likeCount: Int                // 点赞数
+├── commentCount: Int             // 评论数
+├── shareCount: Int               // 分享数
+├── isLiked: Bool                 // 当前用户是否点赞
+├── isBookmarked: Bool            // 是否收藏
+├── comments: [Comment]?          // 评论列表
+├── createdAt: Date               // 创建时间
+├── updatedAt: Date               // 更新时间
+└── status: PostStatus            // 帖子状态
+    ├── PUBLISHED                 // 已发布
+    ├── DRAFT                     // 草稿
+    └── DELETED                   // 已删除
+```
+
+#### Tag（话题标签）
+
+```
+Tag
+├── id: String                    // 标签ID
+├── name: String                  // 标签名（如"经典语录"）
+├── postCount: Int                // 使用该标签的帖子数
+├── isHot: Bool                   // 是否热门标签
+└── category: TagCategory         // 标签分类
+    ├── GENRE                     // 文学类型（小说、诗歌...）
+    ├── THEME                     // 主题（爱情、人生...）
+    ├── EMOTION                   // 情感（励志、治愈...）
+    └── CUSTOM                    // 用户自定义
+```
+
+---
+
+### 13.7 API接口设计
+
+#### 用户发帖相关接口
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| POST | `/agora/user-posts` | 创建新帖子 |
+| PUT | `/agora/user-posts/:id` | 编辑帖子 |
+| DELETE | `/agora/user-posts/:id` | 删除帖子 |
+| GET | `/agora/user-posts/:id` | 获取帖子详情 |
+| GET | `/agora/users/:id/posts` | 获取用户的帖子列表 |
+| POST | `/agora/user-posts/:id/like` | 点赞用户帖子 |
+| DELETE | `/agora/user-posts/:id/like` | 取消点赞 |
+| GET | `/agora/drafts` | 获取草稿列表 |
+| POST | `/agora/drafts` | 保存草稿 |
+| DELETE | `/agora/drafts/:id` | 删除草稿 |
+| GET | `/agora/tags/hot` | 获取热门标签 |
+| GET | `/agora/tags/search` | 搜索标签 |
+| GET | `/agora/highlights` | 获取可分享的划线列表 |
+
+#### 请求/响应示例
+
+**创建帖子请求**
+```
+POST /agora/user-posts
+
+请求体:
+{
+  "type": "HIGHLIGHT_SHARE",
+  "quotedContent": {
+    "text": "It is a truth universally acknowledged...",
+    "bookId": "book-pride-prejudice",
+    "bookTitle": "Pride and Prejudice",
+    "chapter": "Chapter 1",
+    "highlightId": "highlight-123"
+  },
+  "content": "这句开篇太绝了！简·奥斯汀用一句话就揭示了...",
+  "tags": ["经典语录", "英国文学", "婚姻观"],
+  "visibility": "PUBLIC"
+}
+
+响应体:
+{
+  "code": 200,
+  "data": {
+    "id": "user-post-456",
+    "userId": "user-789",
+    "type": "HIGHLIGHT_SHARE",
+    ...
+    "createdAt": "2025-12-28T10:30:00Z"
+  }
+}
+```
+
+---
+
+### 13.8 信息流融合策略
+
+#### 帖子排序算法
+
+用户帖子与文豪帖子需要在同一信息流中展示，排序策略：
+
+| 因素 | 权重 | 说明 |
+|------|------|------|
+| 时效性 | 40% | 发布时间越近权重越高 |
+| 互动度 | 30% | 点赞、评论、分享综合评分 |
+| 关系度 | 20% | 关注的人、互动过的人的帖子优先 |
+| 内容质量 | 10% | 原创内容、引用长度、感悟质量 |
+
+#### 分流控制
+
+```
+信息流帖子分布比例
+├── 文豪金句帖子: 60%
+├── 关注用户帖子: 25%
+└── 推荐用户帖子: 15%
+```
+
+#### Tab切换（可选增强）
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  城邦                                      🔍    ➕     │
+├─────────────────────────────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
+│  │   推荐    │  │   关注    │  │  文豪说   │              │
+│  └──────────┘  └──────────┘  └──────────┘              │
+│       ▲                                                 │
+│       └── 当前选中                                      │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  [帖子列表...]                                          │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+| Tab | 内容 |
+|-----|------|
+| 推荐 | 算法推荐的混合信息流（文豪+用户） |
+| 关注 | 仅显示关注用户的帖子 |
+| 文豪说 | 仅显示文豪金句帖子 |
+
+---
+
+### 13.9 用户互动与社交
+
+#### 关注系统
+
+```
+关注关系
+├── 用户 A 关注 用户 B  →  A 可在"关注"Tab看到 B 的帖子
+├── 用户 B 关注 用户 A  →  互相关注（好友）
+└── 互相关注的用户可看到"仅好友可见"的帖子
+```
+
+#### 互动通知
+
+| 事件 | 通知内容 | 推送策略 |
+|------|----------|----------|
+| 被点赞 | "小明 赞了你的帖子" | 实时推送 |
+| 被评论 | "小红 评论了你的帖子" | 实时推送 |
+| 被关注 | "读书人 关注了你" | 实时推送 |
+| 评论被回复 | "小明 回复了你的评论" | 实时推送 |
+| 帖子被分享 | "你的帖子被分享了 5 次" | 每日汇总 |
+
+---
+
+### 13.10 内容审核与安全
+
+#### 发布前检查
+
+```
+内容发布流程
+     │
+     ▼
+┌──────────────┐
+│  敏感词过滤   │ ──→ 命中敏感词 ──→ 提示修改
+└──────┬───────┘
+       │ 通过
+       ▼
+┌──────────────┐
+│  内容长度检查 │ ──→ 超长 ──→ 提示裁剪
+└──────┬───────┘
+       │ 通过
+       ▼
+┌──────────────┐
+│  图片安全检测 │ ──→ 违规 ──→ 拒绝发布
+└──────┬───────┘
+       │ 通过
+       ▼
+┌──────────────┐
+│   发布成功    │
+└──────────────┘
+```
+
+#### 举报处理
+
+| 举报类型 | 处理方式 |
+|----------|----------|
+| 垃圾广告 | 自动下架 + 人工复核 |
+| 不实信息 | 人工复核 |
+| 侵权内容 | 立即下架 + 通知用户 |
+| 违法违规 | 立即下架 + 账号处罚 |
+
+---
+
+### 13.11 草稿与编辑
+
+#### 草稿功能
+
+| 功能 | 说明 |
+|------|------|
+| 自动保存 | 编辑过程中每30秒自动保存草稿 |
+| 草稿列表 | 在个人主页可查看所有草稿 |
+| 草稿恢复 | 异常退出后可恢复草稿 |
+| 草稿删除 | 发布成功后自动删除草稿 |
+
+#### 编辑限制
+
+| 场景 | 限制 |
+|------|------|
+| 编辑时间窗口 | 发布后24小时内可编辑 |
+| 可编辑内容 | 感悟文字、话题标签、可见范围 |
+| 不可编辑内容 | 引用的划线原文 |
+| 编辑记录 | 显示"已编辑"标记 |
+
+---
+
+### 13.12 实现优先级
+
+#### Phase 1: 基础发帖（MVP）
+
+1. 发帖入口（导航栏按钮）
+2. 从划线分享流程
+3. 自由创作流程
+4. 用户帖子卡片展示
+5. 信息流融合（简单时间排序）
+
+#### Phase 2: 增强体验
+
+1. 话题标签系统
+2. 可见范围控制
+3. 草稿自动保存
+4. 编辑与删除功能
+5. 从笔记分享流程
+
+#### Phase 3: 社交增强
+
+1. 关注系统
+2. "关注"Tab
+3. 互动通知推送
+4. 用户主页
+
+#### Phase 4: 运营支持
+
+1. 热门话题榜
+2. 精选帖子推荐
+3. 内容审核系统
+4. 数据统计面板
+
+---
+
+### 13.13 文件结构扩展
+
+```
+ios/Readmigo/Features/Agora/
+├── ...（现有文件）
+├── Compose/                          # 发帖相关
+│   ├── ComposePostView.swift         # 发帖主界面
+│   ├── HighlightPickerView.swift     # 划线选择器
+│   ├── BookSearchView.swift          # 书籍搜索
+│   ├── TagPickerView.swift           # 标签选择器
+│   ├── VisibilityPickerView.swift    # 可见范围选择
+│   └── ComposeViewModel.swift        # 发帖业务逻辑
+├── Components/
+│   ├── ...（现有组件）
+│   └── UserPostCard.swift            # 用户帖子卡片
+├── Profile/
+│   ├── UserProfileView.swift         # 用户主页
+│   ├── UserPostsListView.swift       # 用户帖子列表
+│   └── DraftsListView.swift          # 草稿列表
+└── Models/
+    ├── UserPost.swift                # 用户帖子模型
+    └── Tag.swift                     # 话题标签模型
+
+ios/Readmigo/Core/Models/
+├── ...（现有模型）
+└── UserProfile.swift                 # 用户资料模型
+```
+
+---
+
+## 附录：设计参考
+
+### 微信朋友圈设计要点
+1. 卡片式布局，清晰分隔
+2. 评论紧贴内容下方
+3. 互动操作区域明显
+4. 时间显示采用相对时间
+5. 支持双击快速点赞
+
+### 小红书发帖设计要点
+1. 多入口触发（首页+个人页+阅读页）
+2. 分步骤引导（选择内容→编辑→发布）
+3. 话题标签推荐
+4. 草稿自动保存
+5. 发布后可编辑
+
+### 豆瓣读书设计要点
+1. 关联书籍的笔记分享
+2. 引用+感悟的组合形式
+3. 书籍社区氛围
+4. 读书动态信息流

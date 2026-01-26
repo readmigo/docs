@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Classic Literature/Books Icon -->
+  <defs>
+    <linearGradient id="booksGradient" x1="60" y1="0" x2="60" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8BB9FF"/>
+      <stop offset="100%" stop-color="#7C8DF5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Circle Background -->
+  <circle cx="60" cy="60" r="60" fill="url(#booksGradient)"/>
+
+  <!-- Books Stack -->
+  <g transform="translate(25, 30)">
+    <!-- Book 1 (bottom) -->
+    <rect x="5" y="50" width="60" height="12" rx="2" fill="white"/>
+    <rect x="8" y="52" width="2" height="8" fill="#8BB9FF" opacity="0.5"/>
+
+    <!-- Book 2 -->
+    <rect x="0" y="36" width="60" height="12" rx="2" fill="white"/>
+    <rect x="3" y="38" width="2" height="8" fill="#8BB9FF" opacity="0.5"/>
+
+    <!-- Book 3 -->
+    <rect x="8" y="22" width="55" height="12" rx="2" fill="white"/>
+    <rect x="11" y="24" width="2" height="8" fill="#8BB9FF" opacity="0.5"/>
+
+    <!-- Open Book (top) -->
+    <path d="M20 18 C20 8 35 5 35 5 C35 5 50 8 50 18 L50 22 L35 20 L20 22 Z" fill="white"/>
+    <line x1="35" y1="5" x2="35" y2="20" stroke="#8BB9FF" stroke-width="1" opacity="0.5"/>
+  </g>
+</svg>

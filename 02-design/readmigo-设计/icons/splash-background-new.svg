@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1242" height="2688" viewBox="0 0 1242 2688" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Splash Background with Blue-Purple-Pink Gradient (Updated Colors) -->
+  <defs>
+    <linearGradient id="splashGradient" x1="0" y1="0" x2="1242" y2="2688" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8BB9FF"/>
+      <stop offset="50%" stop-color="#B9B3F5"/>
+      <stop offset="100%" stop-color="#F6B6E8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1242" height="2688" fill="url(#splashGradient)"/>
+</svg>

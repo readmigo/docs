@@ -1,0 +1,374 @@
+# 城邦评论功能设计文档
+
+## 1. 功能概述
+
+城邦(Agora)评论功能允许用户对帖子进行评论互动，支持一级评论和二级回复（@某人），以及评论点赞。
+
+### 1.1 核心功能
+| 功能 | 状态 | 说明 |
+|-----|------|------|
+| 发表评论 | ✅ 已实现 | 登录用户可发表评论，最大2000字 |
+| 查看评论 | ✅ 已实现 | 游客/登录用户均可查看 |
+| 回复评论 | ✅ 已实现 | 二级评论，显示 @用户名 |
+| 点赞评论 | ✅ 已实现 | 登录用户可点赞/取消 |
+| 删除评论 | ✅ 已实现 | 仅评论所有者可删除 |
+| 字数限制 | ✅ 已实现 | 前后端均校验，最大2000字 |
+| 评论详情页 | ❌ 未实现 | 当前无独立详情页 |
+
+---
+
+## 2. 数据模型
+
+### 2.1 数据库表结构
+
+```prisma
+model AgoraComment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      AgoraPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  content   String   @db.Text
+  replyToId String?
+  replyTo   AgoraComment? @relation("CommentReplies", fields: [replyToId], references: [id])
+  replies   AgoraComment[] @relation("CommentReplies")
+  likeCount Int      @default(0)
+  likes     AgoraCommentLike[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+  @@index([userId])
+  @@map("agora_comments")
+}
+
+model AgoraCommentLike {
+  id        String   @id @default(uuid())
+  userId    String
+  commentId String
+  comment   AgoraComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId])
+  @@map("agora_comment_likes")
+}
+```
+
+### 2.2 存储位置
+- **数据库**: PostgreSQL (Fly.io 托管)
+- **表名**: `agora_comments`, `agora_comment_likes`
+- **关联**: 评论通过 `postId` 关联帖子，通过 `userId` 关联用户
+
+---
+
+## 3. API 设计
+
+### 3.1 端点列表
+
+| 端点 | 方法 | 认证 | 描述 |
+|-----|------|------|------|
+| `/agora/posts/:id/comments` | GET | 可选 | 获取评论列表(分页) |
+| `/agora/posts/:id/comments` | POST | 必需 | 发表评论(最大2000字) |
+| `/agora/comments/:id` | DELETE | 必需 | 删除评论(仅所有者) |
+| `/agora/comments/:id/like` | POST | 必需 | 点赞评论 |
+| `/agora/comments/:id/like` | DELETE | 必需 | 取消点赞 |
+
+### 3.2 请求/响应格式
+
+**发表评论请求**
+```json
+POST /agora/posts/{postId}/comments
+{
+  "content": "评论内容",
+  "replyTo": "目标评论ID(可选)"
+}
+```
+
+**评论列表响应**
+```json
+{
+  "data": [
+    {
+      "id": "comment-uuid",
+      "userId": "user-uuid",
+      "userName": "用户昵称",
+      "userAvatar": "https://...",
+      "content": "评论内容",
+      "replyToId": null,
+      "replyToUserName": null,
+      "likeCount": 5,
+      "isLiked": false,
+      "createdAt": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "total": 100,
+  "page": 1,
+  "limit": 20,
+  "hasMore": true
+}
+```
+
+---
+
+## 4. 前端交互设计
+
+### 4.1 当前实现
+
+```
+┌─────────────────────────────────────┐
+│           AgoraPostCard             │
+├─────────────────────────────────────┤
+│  [帖子内容...]                       │
+│                                     │
+│  ── 评论区 ──                        │
+│                                     │
+│  ┌─ CommentCell ──────────────────┐ │
+│  │ 👤 用户A · 2分钟前              │ │
+│  │ 这是一条评论内容                 │ │
+│  │           ♡ 3  💬 回复          │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  ┌─ CommentCell ──────────────────┐ │
+│  │ 👤 用户B · 5分钟前              │ │
+│  │ @用户A 这是回复内容              │ │
+│  │           ♡ 1  💬 回复          │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  📝 查看全部 28 条评论 >            │ │
+│                                     │
+│  ┌────────────────────────┬──────┐ │
+│  │ 写评论...              │ 发送 │ │
+│  └────────────────────────┴──────┘ │
+└─────────────────────────────────────┘
+```
+
+### 4.2 交互流程
+
+**发表评论**
+1. 用户在输入框输入内容
+2. 点击发送按钮
+3. 乐观更新：立即在列表顶部显示新评论
+4. 后台发送 API 请求
+5. 成功：清空输入框
+6. 失败：回滚本地更新，显示错误提示
+
+**回复评论**
+1. 用户点击某条评论的"回复"按钮
+2. 输入框自动填充 "@用户名 "
+3. 用户输入回复内容并发送
+4. 新评论带有 `replyTo` 字段
+5. 显示时在内容前加 "@用户名"
+
+**点赞评论**
+1. 用户点击心形图标
+2. 立即切换状态并更新计数
+3. 后台发送 API 请求
+4. 失败时回滚状态
+
+---
+
+## 5. 数据流程图
+
+### 5.1 发表评论流程
+
+```
+用户输入评论
+     │
+     ▼
+┌─────────────┐
+│ 点击发送    │
+└─────────────┘
+     │
+     ▼
+┌─────────────────────────────────┐
+│ AgoraManager.addComment()       │
+│ ├─ 创建临时 Comment 对象         │
+│ ├─ 插入 posts[].comments 顶部   │
+│ └─ commentCount++               │
+└─────────────────────────────────┘
+     │
+     ▼ (同时)
+┌─────────────────────────────────┐
+│ POST /agora/posts/:id/comments  │
+│ Body: { content, replyTo? }     │
+└─────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────┐
+│ Backend AgoraService            │
+│ ├─ 验证帖子存在                  │
+│ ├─ 创建 AgoraComment 记录        │
+│ ├─ 事务: commentCount++         │
+│ └─ 返回 CommentResponse         │
+└─────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────┐
+│ PostgreSQL                      │
+│ ├─ INSERT agora_comments        │
+│ └─ UPDATE agora_posts           │
+└─────────────────────────────────┘
+```
+
+### 5.2 获取评论流程
+
+```
+页面加载 / 下拉刷新
+     │
+     ▼
+GET /agora/posts/:id/comments?page=1&limit=20
+     │
+     ▼
+┌─────────────────────────────────┐
+│ Backend Service                 │
+│ ├─ 查询 AgoraComment (分页)      │
+│ ├─ 关联查询用户信息              │
+│ ├─ 查询 isLiked (如已登录)       │
+│ └─ 构建响应                      │
+└─────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────┐
+│ iOS AgoraManager                │
+│ └─ 映射为 [Comment] 数组         │
+└─────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────┐
+│ UI 渲染                          │
+│ ├─ 默认显示前 3 条               │
+│ └─ "查看全部" 展开更多            │
+└─────────────────────────────────┘
+```
+
+---
+
+## 6. 评论详情页设计（待实现）
+
+### 6.1 当前状态
+**无独立评论详情页**。评论直接在帖子卡片内展示，点击"查看全部"会在当前卡片内展开所有评论。
+
+### 6.2 是否需要评论详情页？
+
+| 场景 | 建议 |
+|-----|------|
+| 评论数量少（<50） | 不需要，当前内嵌展示足够 |
+| 评论数量多 | 可考虑独立页面，支持无限滚动 |
+| 需要深层回复 | 需要，便于展示回复链 |
+| 需要评论搜索/筛选 | 需要 |
+
+### 6.3 评论详情页设计方案（如需实现）
+
+```
+┌─────────────────────────────────────┐
+│ ← 返回        评论 (128)            │
+├─────────────────────────────────────┤
+│                                     │
+│  ┌─ 原帖摘要 ────────────────────┐  │
+│  │ "名言内容..."                  │  │
+│  │ —— 作者名                      │  │
+│  └────────────────────────────────┘  │
+│                                     │
+│  ── 排序: 最新 / 最热 ──            │
+│                                     │
+│  ┌─ CommentCell ──────────────────┐ │
+│  │ 👤 用户A · 2分钟前              │ │
+│  │ 评论内容...                     │ │
+│  │           ♡ 3  💬 回复 (5)      │ │
+│  │  ┌─ 回复预览 ────────────────┐  │ │
+│  │  │ 👤 用户B: @用户A 回复...   │  │ │
+│  │  │ 查看全部 5 条回复 >        │  │ │
+│  │  └────────────────────────────┘  │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  [加载更多...]                       │
+│                                     │
+├─────────────────────────────────────┤
+│  ┌────────────────────────┬──────┐ │
+│  │ 写评论...              │ 发送 │ │
+│  └────────────────────────┴──────┘ │
+└─────────────────────────────────────┘
+```
+
+---
+
+## 7. 待完善功能
+
+### 7.1 优先级 P0（已完成）
+- [x] 删除评论（用户删除自己的评论）
+- [x] 评论字数限制（前后端校验，最大2000字）
+- [ ] 敏感词过滤（不需要该功能）
+
+### 7.2 优先级 P1（可选实现）
+- [ ] 评论详情页（评论数量多时）
+- [ ] 评论排序（最新/最热）
+- [ ] 评论举报功能
+
+### 7.3 优先级 P2（远期考虑）
+- [ ] 评论编辑
+- [ ] 评论搜索
+- [ ] 评论通知（被回复时推送）
+- [ ] 不允许支持多级嵌套回复（仅支持二级）
+
+---
+
+## 8. 技术实现要点
+
+### 8.1 乐观更新策略
+前端采用乐观更新，用户操作后立即反馈，API 失败时回滚：
+```swift
+// 乐观插入
+posts[index].comments?.insert(newComment, at: 0)
+posts[index].commentCount += 1
+
+// API 失败时回滚
+catch {
+    posts[index].comments?.removeFirst()
+    posts[index].commentCount -= 1
+}
+```
+
+### 8.2 事务保证
+后端使用 Prisma 事务确保数据一致性：
+```typescript
+await this.prisma.$transaction([
+    this.prisma.agoraComment.create({ data: {...} }),
+    this.prisma.agoraPost.update({
+        where: { id: postId },
+        data: { commentCount: { increment: 1 } }
+    })
+]);
+```
+
+### 8.3 游客模式处理
+- 游客可查看评论
+- 游客发表评论时显示登录提示
+- `isLiked` 对游客始终返回 `false`
+
+---
+
+## 9. 问题与建议
+
+### 9.1 当前问题
+1. ~~**无评论删除功能**：用户发错评论无法删除~~ ✅ 已解决
+2. ~~**无字数限制**：可能出现超长评论~~ ✅ 已解决（2000字限制）
+3. **无敏感词过滤**：存在内容风险
+
+### 9.2 建议
+1. ~~优先实现删除评论功能~~ ✅ 已完成
+2. ~~添加评论字数限制~~ ✅ 已完成（2000字）
+3. 接入敏感词过滤服务
+4. 评论详情页可延后，当前内嵌展示对于初期足够
+
+---
+
+## 10. 相关文件
+
+**后端**
+- `apps/backend/src/modules/agora/agora.controller.ts`
+- `apps/backend/src/modules/agora/agora.service.ts`
+- `packages/database/prisma/schema.prisma`
+
+**iOS**
+- `ios/Readmigo/Features/Agora/AgoraManager.swift`
+- `ios/Readmigo/Features/Agora/AgoraPostCard.swift`
+- `ios/Readmigo/Core/Models/Comment.swift`

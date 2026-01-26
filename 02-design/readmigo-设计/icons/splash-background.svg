@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1242" height="2688" viewBox="0 0 1242 2688" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- iPhone Pro Max resolution background with brand gradient -->
+  <defs>
+    <linearGradient id="splashGradient" x1="621" y1="0" x2="621" y2="2688" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="50%" stop-color="#E9D5FF"/>
+      <stop offset="100%" stop-color="#FBCFE8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1242" height="2688" fill="url(#splashGradient)"/>
+</svg>

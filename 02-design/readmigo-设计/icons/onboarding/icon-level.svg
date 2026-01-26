@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Level/Graduation Cap Icon -->
+  <defs>
+    <linearGradient id="levelGradient" x1="60" y1="0" x2="60" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8BB9FF"/>
+      <stop offset="100%" stop-color="#7C8DF5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Circle Background -->
+  <circle cx="60" cy="60" r="60" fill="url(#levelGradient)"/>
+
+  <!-- Graduation Cap -->
+  <g transform="translate(22, 30)">
+    <!-- Cap top (diamond shape) -->
+    <path d="M38 10 L70 25 L38 40 L6 25 Z" fill="white"/>
+    <!-- Cap band -->
+    <path d="M15 28 L15 50 C15 55 25 60 38 60 C51 60 61 55 61 50 L61 28" fill="white" opacity="0.9"/>
+    <!-- Button on top -->
+    <circle cx="38" cy="25" r="4" fill="#FBBF24"/>
+    <!-- Tassel -->
+    <line x1="65" y1="25" x2="70" y2="45" stroke="#FBBF24" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="70" cy="48" r="4" fill="#FBBF24"/>
+    <!-- Decorative lines on cap -->
+    <line x1="38" y1="32" x2="38" y2="55" stroke="#8BB9FF" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Favicon - 32x32 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="16" y1="0" x2="16" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="50%" stop-color="#E9D5FF"/>
+      <stop offset="100%" stop-color="#FBCFE8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="url(#bgGradient)"/>
+
+  <!-- Book Icon - Simplified for small size -->
+  <g transform="translate(6, 8)">
+    <!-- Left page -->
+    <rect x="0" y="0" width="9" height="16" rx="1" fill="white"/>
+    <!-- Right page -->
+    <rect x="11" y="0" width="9" height="16" rx="1" fill="white"/>
+  </g>
+</svg>
