@@ -2,7 +2,7 @@
 
 发布与版本管理文档：版本路线图、发布历史、版本说明。
 
-> 📊 **文档数量**: 9 个文件
+> 📊 **文档数量**: 11 个文件
 
 ---
 
@@ -27,6 +27,7 @@
 | [version-management-design.md](./roadmap/version-management-design.md) | 版本管理设计规范 |
 | [r2-versioning-strategy.md](./roadmap/r2-versioning-strategy.md) | R2存储版本管理策略 |
 | [v1-fullstack-release-plan.md](./roadmap/v1-fullstack-release-plan.md) | V1全栈发布计划 |
+| [v2-fullstack-release-plan.md](./roadmap/v2-fullstack-release-plan.md) | V2全栈发布计划（100% SE + Android） |
 | [v1-staging-execution-plan.md](./roadmap/v1-staging-execution-plan.md) | V1测试环境执行计划 |
 | [version-migration-guide.md](./version-migration-guide.md) | 多版本共存与迁移指南 |
 
@@ -38,7 +39,8 @@
 ### notes/
 | 文档 | 描述 |
 |------|------|
-| [v1.0.0.md](./notes/v1.0.0.md) | V1.0.0 版本发布说明（2024-12-21） |
+| [v1.0.0.md](./notes/v1.0.0.md) | V1.0.0 版本发布说明 |
+| [v2.0.0.md](./notes/v2.0.0.md) | V2.0.0 版本发布说明（100% SE + 有声书 + Android） |
 
 ---
 

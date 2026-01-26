@@ -2,7 +2,7 @@
 
 数据处理流水线文档：书籍导入、双语处理、自动化流水线与执行记录。
 
-> **文档数量**: 15 个文件
+> **文档数量**: 16 个文件
 
 ---
 
@@ -11,7 +11,7 @@
 | 子目录 | 说明 | 文件数 |
 |--------|------|--------|
 | [bilingual/](./bilingual/) | 双语处理流水线 | 6 |
-| [execution-logs/](./execution-logs/) | Pipeline 执行记录 | 5 |
+| [execution-logs/](./execution-logs/) | Pipeline 执行记录 | 6 |
 | [design/](./design/) | 流水线设计文档 | 1 |
 | [automation/](./automation/) | 环境自动化 | 1 |
 
@@ -48,6 +48,7 @@
 | [P003-environment-integrity-check.md](./execution-logs/P003-environment-integrity-check.md) | 环境完整性检查 |
 | [P004-fullstack-release.md](./execution-logs/P004-fullstack-release.md) | 全栈发布流程 |
 | [P005-staging-data-cleanup.md](./execution-logs/P005-staging-data-cleanup.md) | Staging 数据清理 |
+| [P006-v2-data-cleanup.md](./execution-logs/P006-v2-data-cleanup.md) | V2.0 数据清洗（100% SE） |
 
 ---
 
