@@ -1,0 +1,31 @@
+{
+  "name": "@readmigo/docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Readmigo 项目文档",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "epub": "tsx scripts/build-epub.ts"
+  },
+  "keywords": [
+    "readmigo",
+    "documentation",
+    "vitepress"
+  ],
+  "author": "Readmigo Team",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@9.14.2",
+  "devDependencies": {
+    "epub-gen-memory": "^1.1.2",
+    "marked": "^17.0.1",
+    "tsx": "^4.21.0",
+    "vitepress": "^1.6.4",
+    "vitepress-sidebar": "^1.33.1",
+    "vue": "^3.5.27"
+  }
+}

@@ -5,8 +5,11 @@ export default defineConfig({
   title: 'Readmigo Docs',
   description: 'Readmigo 项目文档中心',
 
-  // 输出目录（相对于 docs 目录）
-  outDir: '../.vitepress-dist',
+  // 文档源目录（根目录）
+  srcDir: '.',
+
+  // 输出目录
+  outDir: 'dist',
 
   // 主题配置
   themeConfig: {
@@ -24,13 +27,13 @@ export default defineConfig({
 
     // 使用 vitepress-sidebar 自动生成侧边栏
     sidebar: generateSidebar({
-      documentRootPath: '/docs',
+      documentRootPath: '.',
       collapseDepth: 2,
       useTitleFromFileHeading: true,
       useTitleFromFrontmatter: true,
       sortMenusByFrontmatterOrder: true,
       excludeFiles: ['README.md'],
-      excludeFolders: ['node_modules', '.git', '.vitepress'],
+      excludeFolders: ['node_modules', '.git', '.vitepress', 'scripts'],
       capitalizeFirst: true,
       hyphenToSpace: true,
       underscoreToSpace: true,
@@ -59,7 +62,7 @@ export default defineConfig({
 
     // 社交链接
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/nicepkg/readmigo' }
+      { icon: 'github', link: 'https://github.com/readmigo/docs' }
     ],
 
     // 页脚
@@ -79,7 +82,7 @@ export default defineConfig({
 
     // 编辑链接
     editLink: {
-      pattern: 'https://github.com/nicepkg/readmigo/edit/main/docs/:path',
+      pattern: 'https://github.com/readmigo/docs/edit/main/:path',
       text: '在 GitHub 上编辑此页'
     },
 
@@ -105,7 +108,7 @@ export default defineConfig({
     }
   },
 
-  // Vue 配置 - 忽略自定义元素，避免 HTML 标签解析错误
+  // Vue 配置 - 忽略自定义元素
   vue: {
     template: {
       compilerOptions: {

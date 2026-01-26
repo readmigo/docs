@@ -1,34 +1,43 @@
 # Readmigo Docs
 
-按使用者角色/场景分组（`00-10`），旧版总览已归档到 `09-reference/meta/docs-architecture-2025.md`。
+Readmigo 项目文档中心，使用 VitePress 构建。
 
-## 快速入口
+## 本地开发
 
-- [快速开始](./QUICK-START.md)
-- [产品与规划](./01-product/README.md)
-- [市场与增长](./00-market/README.md)
-- [架构](./03-architecture/README.md)
-- [开发](./04-development/README.md)
-- [运维](./05-operations/README.md)
-- [Pipeline](./10-pipeline/README.md)
+```bash
+# 安装依赖
+pnpm install
 
-## 目录
+# 启动开发服务器
+pnpm dev
 
-| 目录 | 说明 |
+# 构建静态站点
+pnpm build
+
+# 预览构建结果
+pnpm preview
+
+# 生成 EPUB 电子书
+pnpm epub
+```
+
+## 目录结构
+
+| 目录 | 内容 |
 |------|------|
-| [00-market](./00-market/README.md) | 市场分析与增长策略 |
-| [01-product](./01-product/README.md) | 产品需求与功能规划 |
-| [02-design](./02-design/README.md) | 设计系统与交互规范 |
-| [03-architecture](./03-architecture/README.md) | 系统架构与技术方案 |
-| [04-development](./04-development/README.md) | 开发文档（后端/客户端） |
-| [05-operations](./05-operations/README.md) | 运维部署与监控 |
-| [06-content](./06-content/README.md) | 内容运营与数据源 |
-| [07-modules](./07-modules/README.md) | 功能模块详细设计 |
-| [08-releases](./08-releases/README.md) | 版本发布与路线图 |
-| [09-reference](./09-reference/README.md) | 参考资料与归档 |
-| [10-pipeline](./10-pipeline/README.md) | 数据处理流水线 |
+| `00-market` | 市场分析 |
+| `01-product` | 产品文档 |
+| `02-design` | 设计规范 |
+| `03-architecture` | 架构设计 |
+| `04-development` | 开发指南 |
+| `05-operations` | 运维文档 |
+| `06-content` | 内容管理 |
+| `07-modules` | 模块文档 |
+| `08-releases` | 发布记录 |
+| `09-reference` | 参考资料 |
+| `10-pipeline` | 流水线 |
+| `99-research` | 研究归档 |
 
-## 规划与记录
+## 部署
 
-- [docs-reorganization-2026](./09-reference/meta/docs-reorganization-2026.md)
-- [docs-restructure-plan](./09-reference/meta/docs-restructure-plan.md)
+推送到 `main` 分支后，GitHub Actions 会自动构建并部署到 GitHub Pages。

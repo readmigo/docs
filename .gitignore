@@ -1,15 +1,18 @@
 # Dependencies
 node_modules/
 
-# VitePress
+# Build output
+dist/
 .vitepress/cache/
-.vitepress/dist/
 
-# OS
+# Generated files
+*.epub
+
+# OS files
 .DS_Store
 Thumbs.db
 
-# Editor
+# IDE
 .idea/
 .vscode/
 *.swp
@@ -17,3 +20,8 @@ Thumbs.db
 
 # Logs
 *.log
+npm-debug.log*
+
+# Environment
+.env
+.env.*
