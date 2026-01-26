@@ -1,5 +1,9 @@
 # AI服务架构
 
+> ⚠️ **DEPRECATED**: 本文档描述的 AI 服务已于 2026-01 决定 100% 废弃。详见 [基础设施改造计划](../../plans/2026-01-26-infrastructure-overhaul.md) 和 [AI 服务废弃迁移指南](../../09-reference/deprecated/ai-services-migration.md)。
+
+---
+
 ### 5.1 AI服务分层
 
 ```
