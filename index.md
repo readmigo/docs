@@ -6,7 +6,7 @@ titleTemplate: 项目文档中心
 hero:
   name: Readmigo Docs
   text: 项目文档中心
-  tagline: 587+ 篇文档，全面覆盖市场、产品、设计、开发、运维
+  tagline: 500+ 篇文档，全面覆盖市场、产品、设计、开发、运维
   actions:
     - theme: brand
       text: 快速开始
