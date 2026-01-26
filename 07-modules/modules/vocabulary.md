@@ -282,7 +282,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [learning/README.md](../learning/README.md) | 学习系统概览 |
+| [learning/README.md](../learning/) | 学习系统概览 |
 | [modules/subscriptions.md](subscriptions.md) | 订阅权限说明 |
 | [modules/medals.md](medals.md) | 勋章系统 |
 

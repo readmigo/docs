@@ -60,7 +60,7 @@
 
 ## 后端服务
 
-> 详细后端文档: [backend/README.md](../backend/README.md)
+> 详细后端文档: [backend/README.md](../backend/)
 
 ### 模块架构 (37+ 模块)
 

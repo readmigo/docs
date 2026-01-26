@@ -10,10 +10,10 @@
 
 | 子目录 | 说明 | 文件数 |
 |--------|------|--------|
-| [deployment/](./deployment/README.md) | 部署与环境管理 | 25+ |
-| [infrastructure/](./infrastructure/README.md) | 基础设施（数据库、存储、域名） | 7 |
-| [monitoring/](./monitoring/README.md) | 监控与可观测性 | 8 |
-| [runbooks/](./runbooks/README.md) | 操作手册 | 2 |
+| [deployment/](./deployment/) | 部署与环境管理 | 25+ |
+| [infrastructure/](./infrastructure/) | 基础设施（数据库、存储、域名） | 7 |
+| [monitoring/](./monitoring/) | 监控与可观测性 | 8 |
+| [runbooks/](./runbooks/) | 操作手册 | 2 |
 | [automation/](./automation/) | 自动化与工作流 | 2 |
 
 ---

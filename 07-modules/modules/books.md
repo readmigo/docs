@@ -310,7 +310,7 @@
 | [sources/README.md](../sources/) | 数据来源概览 |
 | [content/classification-system.md](../content/classification-system.md) | 分类系统 |
 | [modules/recommendation.md](recommendation.md) | 推荐算法 |
-| [reader/README.md](../reader/README.md) | 阅读器模块 |
+| [reader/README.md](../reader/) | 阅读器模块 |
 
 ---
 

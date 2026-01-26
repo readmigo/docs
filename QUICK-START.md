@@ -409,7 +409,7 @@ docs/
 
 - [ ] 阅读本文档了解项目全貌
 - [ ] 阅读 [01-product/prd.md](01-product/prd.md) 了解产品愿景
-- [ ] 阅读 [03-architecture/README.md](03-architecture/README.md) 了解架构与技术选型
+- [ ] 阅读 [03-architecture/README.md](03-architecture/) 了解架构与技术选型
 - [ ] 根据角色阅读对应平台文档 (ios/android/api)
 
 ### 环境配置

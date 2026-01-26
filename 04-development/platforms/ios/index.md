@@ -213,7 +213,7 @@ ios/Readmigo/
 | 全局架构 | [architecture/client-architecture.md](../architecture/client-architecture.md) |
 | 设计系统 | [design/design-system.md](../design/design-system.md) |
 | API 规范 | [api/api-design.md](../api/api-design.md) |
-| 跨平台共享 | [shared/README.md](../shared/README.md) |
+| 跨平台共享 | [shared/README.md](../shared/) |
 
 ---
 

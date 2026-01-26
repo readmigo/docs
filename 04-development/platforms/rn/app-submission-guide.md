@@ -881,7 +881,7 @@ eas update:rollback --channel production
 
 - [client-implementation-plan.md](./client-implementation-plan.md) - 客户端实现计划
 - [design-system-implementation.md](./design-system-implementation.md) - 设计系统实现
-- [modules/README.md](./modules/README.md) - 模块规范总览
+- [modules/README.md](./modules/) - 模块规范总览
 
 ---
 

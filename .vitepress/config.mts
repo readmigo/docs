@@ -16,8 +16,6 @@ export default defineConfig({
 
   // 主题配置
   themeConfig: {
-    logo: '/logo.svg',
-
     nav: [
       { text: '首页', link: '/' },
       { text: '市场', link: '/00-market/' },
@@ -35,7 +33,7 @@ export default defineConfig({
       useTitleFromFileHeading: true,
       useTitleFromFrontmatter: true,
       sortMenusByFrontmatterOrder: true,
-      excludeFiles: ['README.md'],
+      excludeFiles: ['README.md', 'index.md'],
       excludeFolders: ['node_modules', '.git', '.vitepress', 'scripts'],
       capitalizeFirst: true,
       hyphenToSpace: true,
@@ -129,6 +127,6 @@ export default defineConfig({
   // 清理 URL
   cleanUrls: true,
 
-  // 忽略死链接
+  // 忽略死链接（仍有386个需修复）
   ignoreDeadLinks: true
 })

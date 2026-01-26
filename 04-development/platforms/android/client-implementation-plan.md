@@ -1431,10 +1431,10 @@ fun testTextSelectionShowsAIMenu() {
 ### 11.2 参考资源
 
 **内部文档:**
-- [Android 模块技术规格](./modules/README.md) - 各核心模块的详细技术实现方案
+- [Android 模块技术规格](./modules/) - 各核心模块的详细技术实现方案
 - [iOS 客户端技术规格文档](../ios/client-spec.md)
 - [产品需求文档](../product/prd.md)
-- [后端 API 文档](../api/README.md)
+- [后端 API 文档](../api/)
 
 **外部文档:**
 - [Jetpack Compose 官方文档](https://developer.android.com/jetpack/compose)

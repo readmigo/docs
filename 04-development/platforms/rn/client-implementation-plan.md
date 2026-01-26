@@ -1348,7 +1348,7 @@ const animatedStyle = useAnimatedStyle(() => ({
 
 ## 相关文档
 
-- [modules/README.md](./modules/README.md) - 模块规范目录
+- [modules/README.md](./modules/) - 模块规范目录
 - [design-system-implementation.md](./design-system-implementation.md) - 设计系统实现
 - [app-submission-guide.md](./app-submission-guide.md) - 应用商店提交指南
 

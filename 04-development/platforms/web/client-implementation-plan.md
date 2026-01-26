@@ -1435,7 +1435,7 @@ describe('Button', () => {
 
 ## 相关文档
 
-- [modules/README.md](./modules/README.md) - 模块规范目录
+- [modules/README.md](./modules/) - 模块规范目录
 - [design-system-implementation.md](./design-system-implementation.md) - 设计系统实现
 - [web-deployment.md](../../../05-operations/deployment/platforms/web-deployment.md) - 部署指南
 

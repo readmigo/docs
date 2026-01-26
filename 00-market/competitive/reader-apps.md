@@ -82,7 +82,7 @@ AI 特色功能:     ████████████░░░░ 75%
 
 ## 相关文档
 
-- [竞品分析索引](./README.md) - 竞品分析总览
+- [竞品分析索引](./) - 竞品分析总览
 - [技术方案对比](./technical-solutions.md) - 排版引擎技术选型
 - [格式支持](../../07-modules/reader/format-support.md) - 支持的电子书格式
 - [渲染引擎](../../07-modules/reader/rendering-engine.md) - 多格式渲染引擎设计

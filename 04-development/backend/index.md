@@ -375,7 +375,7 @@ docs/04-development/backend/
 | 数据库设计 | [database-design.md](../../03-architecture/api/database-design.md) |
 | 环境配置 | [environments.md](../../05-operations/deployment/environments.md) |
 | AI 架构 | [ai-services-architecture.md](../../07-modules/ai/ai-services-architecture.md) |
-| 全栈架构 | [03-architecture/README.md](../../03-architecture/README.md) |
+| 全栈架构 | [03-architecture/README.md](../../03-architecture/) |
 
 ### 9.2 基础设施文档
 

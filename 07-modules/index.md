@@ -11,11 +11,11 @@
 
 原则：**允许重叠，但避免重复粘贴**；在两侧互相链接，保持单点事实来源。
 
-- [模块总览](./modules/README.md)
-- [Reader](./reader/README.md)
-- [Audiobook](./audiobook/README.md)
-- [Learning](./learning/README.md)
-- [Author](./author/README.md)
+- [模块总览](./modules/)
+- [Reader](./reader/)
+- [Audiobook](./audiobook/)
+- [Learning](./learning/)
+- [Author](./author/)
 - [AI](./ai/ai-services-architecture.md)
 - [Account](./account/system-design.md)
 - [Agora](./agora/feature-design.md)

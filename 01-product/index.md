@@ -15,7 +15,7 @@
 
 - [PRD](./prd.md)
 - [Roadmap](./roadmap.md)
-- [功能设计（按模块分类）](./features/README.md)
+- [功能设计（按模块分类）](./features/)
 - [订阅设计](./subscription-design.md)
 - [v1 决策记录](./v1-release-decisions.md)
 
@@ -37,4 +37,4 @@
 
 ## 模块视角入口
 
-- [跨平台模块与系统设计（07-modules）](../07-modules/README.md)
+- [跨平台模块与系统设计（07-modules）](../07-modules/)

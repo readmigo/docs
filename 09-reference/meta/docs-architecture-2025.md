@@ -230,7 +230,7 @@ sources/gutenberg/
 
 | 文档 | 内容 | 状态 |
 |------|------|------|
-| [README.md](competitive/README.md) | 竞品分析索引 | ✅ 已完成 |
+| [README.md](competitive/) | 竞品分析索引 | ✅ 已完成 |
 | [reader-apps.md](competitive/reader-apps.md) | 阅读器产品对比（Apple Books、Kindle、微信读书等） | ✅ 已完成 |
 | [technical-solutions.md](competitive/technical-solutions.md) | 技术方案对比（排版引擎、渲染方案） | ✅ 已完成 |
 | [data-sources.md](competitive/data-sources.md) | 数据源对比（Feedbooks、ManyBooks、WikiSource 等） | ✅ 已完成 |
@@ -273,7 +273,7 @@ sources/gutenberg/
 
 | 文档 | 状态 | 进度 | 说明 |
 |------|------|------|------|
-| [README.md](reader/README.md) | ✅ | 100% | 阅读器模块索引 |
+| [README.md](reader/) | ✅ | 100% | 阅读器模块索引 |
 | [architecture.md](reader/architecture.md) | ✅ | 95% | 阅读器核心架构 |
 | [format-support.md](reader/format-support.md) | ✅ | 100% | 电子书格式支持 |
 | [竞品分析](competitive/reader-apps.md) | ✅ | 100% | 阅读器竞品分析 - 已移至竞品分析目录 |
@@ -334,7 +334,7 @@ sources/gutenberg/
 
 | 文档 | 状态 | 进度 | 说明 |
 |------|------|------|------|
-| [README.md](learning/README.md) | ✅ | 100% | 学习模块索引 |
+| [README.md](learning/) | ✅ | 100% | 学习模块索引 |
 
 **实施状态**:
 - ✅ 生词本功能完成
@@ -343,7 +343,7 @@ sources/gutenberg/
 
 #### 🎧 有声书系统 (70% | 🚧 进行中)
 
-**📁 模块索引**: [audiobook/README.md](audiobook/README.md)
+**📁 模块索引**: [audiobook/README.md](audiobook/)
 
 | 文档 | 状态 | 进度 | 说明 |
 |------|------|------|------|
@@ -371,7 +371,7 @@ sources/gutenberg/
 
 #### ✍️ 作者系统 (90% | ✅ 基本完成)
 
-**📁 模块索引**: [author/README.md](author/README.md)
+**📁 模块索引**: [author/README.md](author/)
 
 | 文档 | 状态 | 进度 | 说明 |
 |------|------|------|------|
@@ -402,7 +402,7 @@ sources/gutenberg/
 
 #### 📐 算法系统 (80% | ✅ 基本完成)
 
-**📁 模块索引**: [algorithm/README.md](algorithm/README.md)
+**📁 模块索引**: [algorithm/README.md](algorithm/)
 
 | 文档 | 状态 | 进度 | 说明 |
 |------|------|------|------|
@@ -416,7 +416,7 @@ sources/gutenberg/
 
 #### 🎖️ 特色功能 (60% | 🚧 进行中)
 
-**📁 模块索引**: [features/README.md](features/README.md)
+**📁 模块索引**: [features/README.md](features/)
 
 | 文档 | 状态 | 进度 | 说明 |
 |------|------|------|------|
