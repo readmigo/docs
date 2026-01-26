@@ -65,9 +65,3 @@ features:
 | [08-releases](/08-releases/) | 版本发布与路线图 |
 | [09-reference](/09-reference/) | 参考资料与归档 |
 | [10-pipeline](/10-pipeline/) | 数据处理流水线 |
-| [99-research](/99-research/) | 书籍源深度研究 |
-
-## 规划与记录
-
-- [docs-reorganization-2026](/09-reference/meta/docs-reorganization-2026)
-- [docs-restructure-plan](/09-reference/meta/docs-restructure-plan)
