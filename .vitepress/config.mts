@@ -5,6 +5,9 @@ export default defineConfig({
   title: 'Readmigo Docs',
   description: 'Readmigo 项目文档中心',
 
+  // GitHub Pages 部署路径
+  base: '/docs/',
+
   // 文档源目录（根目录）
   srcDir: '.',
 
