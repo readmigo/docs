@@ -23,6 +23,14 @@
 | 格式 | 严格遵循 EPUB3 标准 |
 | 许可 | CC0（完全免费商用） |
 
+**详细文档**:
+
+| 文档 | 说明 |
+|------|------|
+| [data-inventory.md](standard-ebooks/data-inventory.md) | SE 数据盘点与获取渠道 |
+| [global-copyright-safety.md](standard-ebooks/global-copyright-safety.md) | 全球版权安全评估与书单 |
+| [content-value-analysis.md](standard-ebooks/content-value-analysis.md) | 内容价值分析 |
+
 ---
 
 ## 研究数据源
