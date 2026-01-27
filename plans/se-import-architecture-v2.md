@@ -314,7 +314,7 @@ pm2 start se-downloader.ts --name "se-download"
 Dashboard 操作:
 1. 进入 Pipeline 管理页面
 2. 选择 "SE 增量导入" 任务
-3. 选择目标环境 (Production / Staging)
+3. 选择目标环境 (Production / Local)
 4. 点击 "执行"
 5. 监控进度
 
@@ -439,7 +439,7 @@ Node 4 (Discover Tab)
 | 改造项 | 说明 |
 |--------|------|
 | 移除书单选择 | SE 增量导入不再需要手动选择书单 |
-| 新增环境选择 | 下拉选择 Production / Staging |
+| 新增环境选择 | 下拉选择 Production / Local |
 | 简化 UI | 仅保留：环境选择 + 执行按钮 + 进度监控 |
 
 ### 6.3 关键改造点
