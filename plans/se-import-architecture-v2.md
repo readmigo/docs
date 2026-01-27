@@ -534,5 +534,22 @@ Dashboard 现有 Pipeline (8 阶段) 继续保留，用于：
 | 组件 | 状态 | 说明 |
 |------|------|------|
 | API 后端 | ✅ 已完成 | `se-incremental.service.ts` + Controller 端点 |
-| Droplet 下载器 | ⏳ 待改造 | 简化为仅下载职责 |
+| Droplet 下载器 | ✅ 已完成 | `se-raw-downloader.ts` + PM2 配置 |
 | Dashboard UI | ⏳ 待实现 | 仅环境选择 + 执行按钮 |
+
+### Droplet 下载器部署
+
+```bash
+# 在 Droplet 上启动下载器
+cd /home/readmigo/projects/readmigo/apps/backend
+pm2 start ecosystem.se-downloader.config.js
+
+# 查看日志
+pm2 logs se-downloader
+
+# 停止下载器
+pm2 stop se-downloader
+
+# 进度文件位置
+cat se-download-progress.json
+```
