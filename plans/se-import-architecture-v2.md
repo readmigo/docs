@@ -429,10 +429,20 @@ Node 4 (Discover Tab)
 
 | Node | 实现文件 | 状态 |
 |------|----------|------|
-| Node 1 | `pipeline/nodes/incremental-calc.ts` | 新建 |
-| Node 2 | `pipeline/nodes/epub-parse.ts` | 改造现有 |
-| Node 3 | `pipeline/nodes/data-populate.ts` | 改造现有 |
-| Node 4 | `pipeline/nodes/discover-tab.ts` | 新建 |
+| Node 1-4 | `pipeline/services/se-incremental.service.ts` | ✅ 已完成 |
+
+**API 端点：**
+
+| 端点 | 方法 | 说明 | 状态 |
+|------|------|------|------|
+| `/admin/pipeline/se-incremental` | POST | 启动 SE 增量导入 | ✅ 已实现 |
+| `/admin/pipeline/se-incremental/:runId/status` | GET | 获取执行状态 | ✅ 已实现 |
+
+**实现说明：**
+- 4 个 Node 合并到单一 Service 中实现
+- 使用 StorageService 操作 R2 存储
+- 内联 EPUB 解析逻辑 (不复用 EpubParserService，因为后者会写入 htmlContent 到 DB)
+- 章节内容仅存储到 R2，DB 仅存储 contentV2Url
 
 ### 6.4 Dashboard 改造
 
@@ -515,10 +525,14 @@ Dashboard 现有 Pipeline (8 阶段) 继续保留，用于：
 ---
 
 *文档创建日期: 2026-01-27*
-*最后更新: 2026-01-27 (新增 Node 4: Discover Tab)*
+*最后更新: 2026-01-27 (API 实现完成)*
 
 ---
 
-**请输入 1 或 2：**
-- **1**: 确认方案，继续实现
-- **2**: 驳回，需要修改
+## 十、实现状态
+
+| 组件 | 状态 | 说明 |
+|------|------|------|
+| API 后端 | ✅ 已完成 | `se-incremental.service.ts` + Controller 端点 |
+| Droplet 下载器 | ⏳ 待改造 | 简化为仅下载职责 |
+| Dashboard UI | ⏳ 待实现 | 仅环境选择 + 执行按钮 |
