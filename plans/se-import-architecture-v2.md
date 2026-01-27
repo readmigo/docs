@@ -525,7 +525,7 @@ Dashboard 现有 Pipeline (8 阶段) 继续保留，用于：
 ---
 
 *文档创建日期: 2026-01-27*
-*最后更新: 2026-01-27 (API 实现完成)*
+*最后更新: 2026-01-27 (全部实现完成)*
 
 ---
 
@@ -535,7 +535,7 @@ Dashboard 现有 Pipeline (8 阶段) 继续保留，用于：
 |------|------|------|
 | API 后端 | ✅ 已完成 | `se-incremental.service.ts` + Controller 端点 |
 | Droplet 下载器 | ✅ 已完成 | `se-raw-downloader.ts` + PM2 配置 |
-| Dashboard UI | ⏳ 待实现 | 仅环境选择 + 执行按钮 |
+| Dashboard UI | ✅ 已完成 | SEIncrementalImport.tsx + 菜单集成 |
 
 ### Droplet 下载器部署
 
