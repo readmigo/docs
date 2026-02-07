@@ -16,30 +16,12 @@ Highlights, notes, and bookmarks management module.
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                       iOS Reader                              │
-│  Text Selection → Highlight → Annotation → Bookmark           │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                  Annotations Controller                       │
-├──────────────────────────────────────────────────────────────┤
-│  /highlights/*  │  /annotations/*  │  /bookmarks/*           │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                  Annotations Service                          │
-│   CRUD operations, sync, access control                       │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│              Database (Prisma)                                │
-│  Highlight │ Annotation │ Bookmark                            │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Reader["iOS Reader<br>Text Selection -> Highlight -> Annotation -> Bookmark"]
+    Reader --> Controller["Annotations Controller<br>/highlights/* | /annotations/* | /bookmarks/*"]
+    Controller --> Service["Annotations Service<br>CRUD operations, sync, access control"]
+    Service --> DB["Database (Prisma)<br>Highlight | Annotation | Bookmark"]
 ```
 
 ---

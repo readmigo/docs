@@ -132,21 +132,13 @@ interface NotificationPreference {
 
 ### 4.1 状态机设计
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Onboarding 状态流转                                │
-│   ┌───────────┐    ┌───────────┐    ┌───────────┐    ┌───────────┐     │
-│   │  Welcome  │───▶│ Assessment│───▶│   Goal    │───▶│ Interests │     │
-│   │   Step    │    │   Step    │    │   Step    │    │   Step    │     │
-│   └───────────┘    └───────────┘    └───────────┘    └───────────┘     │
-│        │                                                    │           │
-│        └────────────────────────────────────────────────────┘           │
-│                               ▼                                         │
-│                        ┌───────────┐                                    │
-│                        │ First Book│───▶ Complete                       │
-│                        │   Step    │                                    │
-│                        └───────────┘                                    │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    Welcome["Welcome<br>Step"] --> Assessment["Assessment<br>Step"]
+    Assessment --> Goal["Goal<br>Step"]
+    Goal --> Interests["Interests<br>Step"]
+    Interests --> FirstBook["First Book<br>Step"]
+    FirstBook --> Complete
 ```
 
 ### 4.2 ViewModel

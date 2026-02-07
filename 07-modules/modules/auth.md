@@ -111,32 +111,30 @@ interface RefreshTokenRequest {
 
 ### 4.1 架构
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        UI Layer                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │ AuthScreen  │  │LoginPrompt  │  │ AccountLinkingScreen│  │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
-└─────────┼────────────────┼────────────────────┼──────────────┘
-          └────────────────┼────────────────────┘
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    ViewModel Layer                           │
-│                 ┌────────────────────┐                       │
-│                 │   AuthViewModel    │                       │
-│                 └─────────┬──────────┘                       │
-└───────────────────────────┼──────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Data Layer                              │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │                   AuthRepository                        │ │
-│  │  ┌──────────────┐ ┌──────────────┐ ┌────────────────┐  │ │
-│  │  │   AuthApi    │ │ TokenManager │ │CredentialManager│ │ │
-│  │  │  (Retrofit)  │ │  (DataStore) │ │ (Google/Apple) │  │ │
-│  │  └──────────────┘ └──────────────┘ └────────────────┘  │ │
-│  └────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph UI["UI Layer"]
+        AuthScreen["AuthScreen"]
+        LoginPrompt["LoginPrompt"]
+        AccountLinking["AccountLinkingScreen"]
+    end
+
+    subgraph VM["ViewModel Layer"]
+        AuthVM["AuthViewModel"]
+    end
+
+    subgraph Data["Data Layer"]
+        subgraph Repo["AuthRepository"]
+            AuthApi["AuthApi<br>(Retrofit)"]
+            TokenMgr["TokenManager<br>(DataStore)"]
+            CredMgr["CredentialManager<br>(Google/Apple)"]
+        end
+    end
+
+    AuthScreen --> AuthVM
+    LoginPrompt --> AuthVM
+    AccountLinking --> AuthVM
+    AuthVM --> Repo
 ```
 
 ### 4.2 Token Manager

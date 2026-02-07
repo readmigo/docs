@@ -701,145 +701,44 @@ class ContentCache {
 
 ### 6.1 书籍导入流程
 
-```
-┌─────────────────┐
-│   书籍来源网站    │
-│  (Standard Ebooks│
-│   / Gutenberg)   │
-└────────┬────────┘
-         │ 1. 爬取/API请求
-         ▼
-┌─────────────────┐
-│   元数据提取      │
-│  (title, author, │
-│   description)   │
-└────────┬────────┘
-         │ 2. 下载 EPUB
-         ▼
-┌─────────────────┐
-│   本地临时存储    │
-│ downloads/xxx/   │
-│   *.epub         │
-└────────┬────────┘
-         │ 3. 解析 EPUB
-         ▼
-┌─────────────────┐
-│   EpubParser     │
-│  - 解压 ZIP      │
-│  - 解析 OPF      │
-│  - 提取章节      │
-│  - 提取封面      │
-└────────┬────────┘
-         │ 4. 难度分析
-         ▼
-┌─────────────────┐
-│ DifficultyAnalyzer│
-│  - Flesch Score  │
-│  - 难度评分 1-10  │
-└────────┬────────┘
-         │ 5. 上传到 R2
-         ▼
-┌─────────────────┐
-│  Cloudflare R2   │
-│  - EPUB 文件     │
-│  - 封面图片      │
-└────────┬────────┘
-         │ 6. 写入数据库
-         ▼
-┌─────────────────┐
-│   PostgreSQL     │
-│  - Book 记录     │
-│  - Chapter 记录  │
-│  (含 content)    │
-└─────────────────┘
+```mermaid
+flowchart TD
+    Source["书籍来源网站<br>(Standard Ebooks / Gutenberg)"] -->|"1. 爬取/API请求"| Meta["元数据提取<br>(title, author, description)"]
+    Meta -->|"2. 下载 EPUB"| Local["本地临时存储<br>downloads/xxx/*.epub"]
+    Local -->|"3. 解析 EPUB"| Parser["EpubParser<br>解压ZIP / 解析OPF / 提取章节 / 提取封面"]
+    Parser -->|"4. 难度分析"| Analyzer["DifficultyAnalyzer<br>Flesch Score / 难度评分 1-10"]
+    Analyzer -->|"5. 上传到 R2"| R2["Cloudflare R2<br>EPUB 文件 / 封面图片"]
+    R2 -->|"6. 写入数据库"| DB["PostgreSQL<br>Book 记录 / Chapter 记录"]
 ```
 
 ### 6.2 阅读流程
 
-```
-┌─────────────────┐
-│   iOS 客户端     │
-│  LibraryView     │
-└────────┬────────┘
-         │ 1. GET /api/v1/books
-         ▼
-┌─────────────────┐
-│   书籍列表展示    │
-│  (封面、标题、   │
-│   难度等)        │
-└────────┬────────┘
-         │ 2. 用户选择书籍
-         │ GET /api/v1/books/:id
-         ▼
-┌─────────────────┐
-│   BookDetailView │
-│  - 书籍信息      │
-│  - 章节列表      │
-└────────┬────────┘
-         │ 3. 开始阅读
-         │ GET /api/v1/books/:id/content/:chapterId
-         ▼
-┌─────────────────┐
-│   ReaderView     │
-│  - 加载章节内容   │
-│  - WKWebView渲染 │
-└────────┬────────┘
-         │ 4. 用户交互
-         ▼
-┌─────────────────────────────────────┐
-│              用户操作                │
-├─────────────┬─────────────┬─────────┤
-│   滚动阅读   │   选择文本   │  切换章节 │
-│     │       │     │       │    │    │
-│     ▼       │     ▼       │    ▼    │
-│  更新进度    │  AI 面板    │ 加载下一章│
-│  保存到服务器 │  词汇查询   │          │
-└─────────────┴─────────────┴─────────┘
+```mermaid
+flowchart TD
+    Library["iOS 客户端<br>LibraryView"] -->|"1. GET /api/v1/books"| BookList["书籍列表展示<br>(封面、标题、难度等)"]
+    BookList -->|"2. 用户选择书籍<br>GET /api/v1/books/:id"| Detail["BookDetailView<br>书籍信息 / 章节列表"]
+    Detail -->|"3. 开始阅读<br>GET .../content/:chapterId"| ReaderV["ReaderView<br>加载章节内容 / WKWebView渲染"]
+    ReaderV -->|"4. 用户交互"| Actions
+
+    subgraph Actions["用户操作"]
+        Scroll["滚动阅读"] --> Progress["更新进度<br>保存到服务器"]
+        Select["选择文本"] --> AI["AI 面板<br>词汇查询"]
+        Switch["切换章节"] --> NextCh["加载下一章"]
+    end
 ```
 
 ### 6.3 缓存流程
 
-```
-┌─────────────────┐
-│  客户端请求章节   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  检查本地缓存    │◄──── ContentCache
-│  (离线可用)      │
-└────────┬────────┘
-         │ 命中?
-    ┌────┴────┐
-    │ Yes     │ No
-    ▼         ▼
-┌───────┐ ┌─────────────────┐
-│ 返回   │ │   请求 API       │
-│ 缓存   │ └────────┬────────┘
-└───────┘          │
-                   ▼
-          ┌─────────────────┐
-          │  检查 Redis 缓存 │◄──── 服务端缓存
-          └────────┬────────┘
-                   │ 命中?
-              ┌────┴────┐
-              │ Yes     │ No
-              ▼         ▼
-          ┌───────┐ ┌─────────────────┐
-          │ 返回   │ │   查询数据库     │
-          │ 缓存   │ └────────┬────────┘
-          └───────┘          │
-                             ▼
-                    ┌─────────────────┐
-                    │   写入 Redis    │
-                    │   TTL: 1 小时   │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │   返回客户端     │
-                    │   + 本地缓存     │
-                    └─────────────────┘
+```mermaid
+flowchart TD
+    Req["客户端请求章节"] --> LocalCheck{"检查本地缓存<br>(ContentCache)"}
+    LocalCheck -->|"命中"| ReturnLocal["返回缓存"]
+    LocalCheck -->|"未命中"| API["请求 API"]
+    API --> RedisCheck{"检查 Redis 缓存<br>(服务端缓存)"}
+    RedisCheck -->|"命中"| ReturnRedis["返回缓存"]
+    RedisCheck -->|"未命中"| DB["查询数据库"]
+    DB --> WriteRedis["写入 Redis<br>TTL: 1 小时"]
+    WriteRedis --> ReturnClient["返回客户端 + 本地缓存"]
 ```
 
 ---

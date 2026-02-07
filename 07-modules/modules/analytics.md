@@ -16,29 +16,11 @@ User analytics and reading statistics module.
 
 ## Architecture
 
-```
-┌────────────────────────────────────────────────────────┐
-│                    iOS/Android App                      │
-│  Stats View │ Reading Insights │ Progress Dashboard     │
-└────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌────────────────────────────────────────────────────────┐
-│                  Analytics Controller                   │
-│                    /analytics/*                         │
-├────────────────────────────────────────────────────────┤
-│  Overview │ Daily Stats │ Reading Trend │ Vocabulary   │
-└────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌────────────────────────────────────────────────────────┐
-│                  Analytics Service                      │
-│   Aggregates data from:                                │
-│   - ReadingSession                                     │
-│   - UserVocabulary                                     │
-│   - UserBook                                           │
-│   - DailyReading                                       │
-└────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    App["iOS/Android App<br>Stats View | Reading Insights | Progress Dashboard"]
+    App --> Controller["Analytics Controller<br>/analytics/*<br>Overview | Daily Stats | Reading Trend | Vocabulary"]
+    Controller --> Service["Analytics Service<br>Aggregates data from:<br>ReadingSession / UserVocabulary<br>UserBook / DailyReading"]
 ```
 
 ---
@@ -190,26 +172,16 @@ interface ReadingProgressDto {
 
 ## Data Flow
 
-```
-User Reading Session
-        │
-        ▼
-┌───────────────────┐
-│  ReadingSession   │ ──────┐
-│  (raw events)     │       │
-└───────────────────┘       │
-        │                   │
-        ▼                   │
-┌───────────────────┐       │     ┌─────────────────┐
-│   DailyReading    │ ──────┼────▶│   Analytics     │
-│  (daily rollup)   │       │     │   Service       │
-└───────────────────┘       │     └─────────────────┘
-        │                   │              │
-        ▼                   │              ▼
-┌───────────────────┐       │     ┌─────────────────┐
-│    UserBook       │ ──────┘     │  Response DTOs  │
-│  (progress)       │             └─────────────────┘
-└───────────────────┘
+```mermaid
+flowchart TD
+    Session["User Reading Session"]
+    Session --> RS["ReadingSession<br>(raw events)"]
+    RS --> DR["DailyReading<br>(daily rollup)"]
+    DR --> UB["UserBook<br>(progress)"]
+    RS --> Analytics["Analytics Service"]
+    DR --> Analytics
+    UB --> Analytics
+    Analytics --> DTOs["Response DTOs"]
 ```
 
 ---

@@ -210,40 +210,25 @@ interface LibraryFilters {
 
 ### 4.1 数据流架构
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Library 模块数据流                                │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                        Remote Data                               │   │
-│   │   ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐   │   │
-│   │   │ Books API │  │BookLists  │  │Categories │  │ Discover  │   │   │
-│   │   │           │  │  API      │  │   API     │  │   API     │   │   │
-│   │   └─────┬─────┘  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘   │   │
-│   └─────────┼──────────────┼──────────────┼──────────────┼──────────┘   │
-│             │              │              │              │               │
-│             └──────────────┴──────────────┴──────────────┘               │
-│                                    │                                     │
-│                                    ▼                                     │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                      BookRepository                              │   │
-│   │  ┌─────────────────────────────────────────────────────────┐    │   │
-│   │  │  • getBooks()          • getBookDetail()                │    │   │
-│   │  │  • getBookLists()      • addToLibrary()                 │    │   │
-│   │  │  • getCategories()     • removeFromLibrary()            │    │   │
-│   │  │  • searchBooks()       • getLibraryBooks()              │    │   │
-│   │  └─────────────────────────────────────────────────────────┘    │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-│                                    │                                     │
-│             ┌──────────────────────┼──────────────────────┐              │
-│             ▼                      ▼                      ▼              │
-│   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐     │
-│   │  Local Cache    │    │  Memory Cache   │    │   UI State      │     │
-│   │  (Room DB)      │    │  (in-memory)    │    │   (StateFlow)   │     │
-│   └─────────────────┘    └─────────────────┘    └─────────────────┘     │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Remote["Remote Data"]
+        BooksAPI["Books API"]
+        BookListsAPI["BookLists API"]
+        CategoriesAPI["Categories API"]
+        DiscoverAPI["Discover API"]
+    end
+
+    BooksAPI --> Repo
+    BookListsAPI --> Repo
+    CategoriesAPI --> Repo
+    DiscoverAPI --> Repo
+
+    Repo["BookRepository<br>getBooks / getBookLists<br>getCategories / searchBooks<br>getBookDetail / addToLibrary<br>removeFromLibrary / getLibraryBooks"]
+
+    Repo --> LocalCache["Local Cache<br>(Room DB)"]
+    Repo --> MemCache["Memory Cache<br>(in-memory)"]
+    Repo --> UIState["UI State<br>(StateFlow)"]
 ```
 
 ### 4.2 Repository

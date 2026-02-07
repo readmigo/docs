@@ -109,35 +109,13 @@
 
 ### 4.1 阅读会话流程
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    阅读会话流程                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  用户开始阅读                                               │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐                                           │
-│  │ 创建会话    │                                           │
-│  │ POST /sessions                                          │
-│  └──────┬──────┘                                           │
-│         │                                                   │
-│         ├────────────────────────────────────┐              │
-│         │                                    │              │
-│         ▼                                    ▼              │
-│  ┌─────────────┐                    ┌─────────────┐        │
-│  │ 更新日统计  │                    │ 触发勋章检查│        │
-│  │ (异步)      │                    │ (异步)      │        │
-│  └─────────────┘                    └─────────────┘        │
-│                                                             │
-│         │                                                   │
-│         ▼                                                   │
-│  ┌─────────────┐                                           │
-│  │ 更新书籍统计│                                           │
-│  │ (Recommendation)                                        │
-│  └─────────────┘                                           │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["用户开始阅读"] --> B["创建会话<br>POST /sessions"]
+    B --> C["更新日统计<br>(异步)"]
+    B --> D["触发勋章检查<br>(异步)"]
+    C --> E["更新书籍统计<br>(Recommendation)"]
+    D --> E
 ```
 
 ### 4.2 连续阅读天数计算
@@ -201,21 +179,19 @@
 
 ### 6.1 与推荐模块交互
 
-```
-Reading Module                    Recommendation Module
-      │                                    │
-      │  addToLibrary()                    │
-      ├──────────────────────────────────→ │
-      │                 incrementBookshelf()
-      │                                    │
-      │  createSession()                   │
-      ├──────────────────────────────────→ │
-      │                 addReadingMinutes()
-      │                                    │
-      │  updateProgress() (完成时)          │
-      ├──────────────────────────────────→ │
-      │                 incrementReadComplete()
-      │                                    │
+```mermaid
+sequenceDiagram
+    participant R as Reading Module
+    participant Rec as Recommendation Module
+
+    R->>Rec: addToLibrary()
+    Note right of Rec: incrementBookshelf()
+
+    R->>Rec: createSession()
+    Note right of Rec: addReadingMinutes()
+
+    R->>Rec: updateProgress() (完成时)
+    Note right of Rec: incrementReadComplete()
 ```
 
 ### 6.2 与勋章模块交互

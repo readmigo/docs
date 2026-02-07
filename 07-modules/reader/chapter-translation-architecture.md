@@ -2,63 +2,23 @@
 
 ## 整体数据流
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              iOS Client                                      │
-│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────────────────┐     │
-│  │ 阅读器界面   │───▶│ 长按段落触发  │───▶│ 调用翻译API获取单段翻译      │     │
-│  └─────────────┘    └──────────────┘    └─────────────────────────────┘     │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼ HTTP Request
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         Backend API (NestJS)                                 │
-│                         readmigo-api.fly.dev                                 │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │ books.controller.ts                                                     │ │
-│  │  GET /api/v1/books/:id/chapters/:chapterId/translations/:locale/metadata│ │
-│  │  GET /api/v1/books/:id/chapters/:chapterId/translations/:locale/        │ │
-│  │      paragraphs/:index                                                  │ │
-│  │  GET /api/v1/books/:id/chapters/:chapterId/translations/:locale/        │ │
-│  │      paragraphs?indices=0,1,2                                           │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-│                                    │                                         │
-│                                    ▼                                         │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │ books.service.ts                                                        │ │
-│  │  - getChapterTranslationMetadata() → 查询DB获取元数据                    │ │
-│  │  - getParagraphTranslation() → 从R2获取JSON，返回指定段落               │ │
-│  │  - getTranslationFromR2() → 私有方法，下载并解析翻译JSON                │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
-          │                                           │
-          ▼ Prisma ORM                                ▼ S3 SDK
-┌─────────────────────────┐              ┌─────────────────────────────────────┐
-│   PostgreSQL (Neon)     │              │        Cloudflare R2                │
-│   db-production         │              │   cdn.readmigo.app                  │
-├─────────────────────────┤              ├─────────────────────────────────────┤
-│ chapter_translations    │              │ 翻译JSON文件存储结构:                │
-│ ┌─────────────────────┐ │              │                                     │
-│ │ id                  │ │              │ books/                              │
-│ │ chapter_id (FK)     │─┼──────┐       │   └── {bookId}/                     │
-│ │ locale              │ │      │       │       └── translations/             │
-│ │ content_url ────────┼─┼──────┼──────▶│           └── zh-Hans/              │
-│ │ paragraph_count     │ │      │       │               └── chapters/         │
-│ │ source              │ │      │       │                   └── {chapterId}.json
-│ │ status              │ │      │       │                                     │
-│ │ translated_at       │ │      │       │                                     │
-│ └─────────────────────┘ │      │       │                                     │
-│                         │      │       │                                     │
-│ chapters                │      │       │                                     │
-│ ┌─────────────────────┐ │      │       │                                     │
-│ │ id ◀────────────────┼─┼──────┘       │                                     │
-│ │ book_id (FK)        │ │              │                                     │
-│ │ title               │ │              │                                     │
-│ │ order               │ │              │                                     │
-│ │ content_v2_url      │ │              │                                     │
-│ │ word_count          │ │              │                                     │
-│ └─────────────────────┘ │              │                                     │
-└─────────────────────────┘              └─────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph iOS["iOS Client"]
+        Reader["阅读器界面"] --> LongPress["长按段落触发"] --> CallAPI["调用翻译API获取单段翻译"]
+    end
+
+    iOS -->|"HTTP Request"| Backend
+
+    subgraph Backend["Backend API (NestJS)<br>readmigo-api.fly.dev"]
+        Controller["books.controller.ts<br>GET .../translations/:locale/metadata<br>GET .../paragraphs/:index<br>GET .../paragraphs?indices=0,1,2"]
+        Controller --> Service["books.service.ts<br>getChapterTranslationMetadata()<br>getParagraphTranslation()<br>getTranslationFromR2()"]
+    end
+
+    Service -->|"Prisma ORM"| DB["PostgreSQL (Neon)<br>db-production<br>chapter_translations / chapters"]
+    Service -->|"S3 SDK"| R2["Cloudflare R2<br>cdn.readmigo.app<br>books/{bookId}/translations/{locale}/chapters/{chapterId}.json"]
+    DB -- "chapter_id FK" --> DB
+    DB -- "content_url" --> R2
 ```
 
 ## 组件关系
@@ -73,20 +33,13 @@
 
 ## 数据关系
 
-```
-Book (1) ───────┬───────▶ (N) Chapter
-                │              │
-                │              │ 1:N
-                │              ▼
-                │         ChapterTranslation
-                │              │
-                │              │ content_url
-                │              ▼
-                └────────▶ R2 Translation JSON
-                              │
-                              │ paragraphs[]
-                              ▼
-                         段落级翻译数据
+```mermaid
+flowchart TD
+    Book["Book (1)"] -->|"1:N"| Chapter["Chapter (N)"]
+    Chapter -->|"1:N"| CT["ChapterTranslation"]
+    CT -->|"content_url"| R2["R2 Translation JSON"]
+    Book --> R2
+    R2 -->|"paragraphs[]"| Paragraphs["段落级翻译数据"]
 ```
 
 ## 数据库模型
@@ -200,16 +153,11 @@ Response:
 
 ## 翻译工作流
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   提取段落    │────▶│   API翻译    │────▶│  保存JSON    │────▶│   上传R2     │
-│              │     │  (Niutrans)  │     │              │     │  + 创建记录   │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
-       │                    │                    │                    │
-       ▼                    ▼                    ▼                    ▼
-  translate-         batch-translate-      temp-translations/    upload-translation.ts
-  chapter.ts         chapters.ts           {bookId}/
-                                           chapter-{n}.json
+```mermaid
+flowchart LR
+    Extract["提取段落<br>translate-chapter.ts"] --> Translate["API翻译<br>(Niutrans)<br>batch-translate-chapters.ts"]
+    Translate --> Save["保存JSON<br>temp-translations/{bookId}/chapter-{n}.json"]
+    Save --> Upload["上传R2 + 创建记录<br>upload-translation.ts"]
 ```
 
 ## 相关文件

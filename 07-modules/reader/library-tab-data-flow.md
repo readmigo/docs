@@ -254,50 +254,20 @@ struct UserLibraryResponse: Codable {
 
 ## 8. 数据流图
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        用户打开 Library Tab                      │
-└─────────────────────────────┬───────────────────────────────────┘
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   检查 userBooks.isEmpty                         │
-└─────────────────────────────┬───────────────────────────────────┘
-                              ▼
-                    ┌─────────┴─────────┐
-                    │                   │
-                  是 ▼                 否 ▼
-        ┌──────────────────┐    ┌──────────────────┐
-        │ fetchUserLibrary │    │    直接显示 UI    │
-        └────────┬─────────┘    └──────────────────┘
-                 ▼
-        ┌──────────────────┐
-        │   检查 L2 缓存    │
-        │ (ResponseCache)  │
-        └────────┬─────────┘
-                 ▼
-        ┌────────┴────────┐
-        │                 │
-      命中 ▼            未命中 ▼
-  ┌───────────┐    ┌───────────────┐
-  │ 检查 TTL  │    │  API 请求      │
-  │ (5分钟)   │    │/reading/library│
-  └─────┬─────┘    └───────┬───────┘
-        ▼                  ▼
-  ┌─────┴─────┐      ┌───────────┐
-  │           │      │ 更新缓存   │
-过期 ▼       有效 ▼   └─────┬─────┘
-┌───────┐  ┌──────┐        ▼
-│API请求│  │返回   │  ┌───────────┐
-└───────┘  │缓存   │  │ 更新      │
-           └──────┘  │ userBooks │
-                     └─────┬─────┘
-                           ▼
-              ┌────────────────────────┐
-              │      UI 渲染更新        │
-              │ • Continue Reading     │
-              │ • Filter Tabs          │
-              │ • Books Grid           │
-              └────────────────────────┘
+```mermaid
+flowchart TD
+    Open["用户打开 Library Tab"] --> Check{"检查 userBooks.isEmpty"}
+    Check -->|"否"| ShowUI["直接显示 UI"]
+    Check -->|"是"| Fetch["fetchUserLibrary"]
+    Fetch --> L2{"检查 L2 缓存<br>(ResponseCache)"}
+    L2 -->|"命中"| TTL{"检查 TTL (5分钟)"}
+    L2 -->|"未命中"| APIReq["API 请求<br>/reading/library"]
+    TTL -->|"有效"| ReturnCache["返回缓存"]
+    TTL -->|"过期"| APIReq2["API 请求"]
+    APIReq --> UpdateCache["更新缓存"]
+    APIReq2 --> UpdateCache
+    UpdateCache --> UpdateBooks["更新 userBooks"]
+    UpdateBooks --> Render["UI 渲染更新<br>Continue Reading / Filter Tabs / Books Grid"]
 ```
 
 ---

@@ -83,25 +83,13 @@ interface Highlight {
 
 ## 3. 架构设计
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                     Reader Module                           │
-├────────────────────────────────────────────────────────────┤
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                   UI Layer                            │  │
-│  │  ReaderScreen → ReaderWebView → Overlays (Toolbar)   │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                           │                                 │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                 ViewModel Layer                       │  │
-│  │  ReaderViewModel (State, Settings, Progress)         │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                           │                                 │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                   Core Services                       │  │
-│  │  JS Bridge ↔ EPUB.js | ReadingTimeTracker | TTS      │  │
-│  └──────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Reader["Reader Module"]
+        UI["UI Layer<br>ReaderScreen -> ReaderWebView -> Overlays (Toolbar)"]
+        UI --> VM["ViewModel Layer<br>ReaderViewModel (State, Settings, Progress)"]
+        VM --> Core["Core Services<br>JS Bridge / EPUB.js | ReadingTimeTracker | TTS"]
+    end
 ```
 
 ---

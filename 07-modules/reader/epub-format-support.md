@@ -414,44 +414,19 @@ my-book.epub (ZIP Archive)
 
 ### 5.1 整体架构
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           EpubParser                                     │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌────────────────┐   ┌────────────────┐   ┌────────────────┐          │
-│  │  ZipExtractor  │   │ ContainerParser│   │   OpfParser    │          │
-│  │                │──>│                │──>│                │          │
-│  │  - AdmZip      │   │  - container   │   │  - metadata    │          │
-│  │  - validation  │   │    .xml        │   │  - manifest    │          │
-│  │  - streaming   │   │  - rootfile    │   │  - spine       │          │
-│  └────────────────┘   └────────────────┘   └────────────────┘          │
-│           │                                        │                    │
-│           ▼                                        ▼                    │
-│  ┌────────────────┐   ┌────────────────┐   ┌────────────────┐          │
-│  │ MetadataExtract│   │  TocParser     │   │ ChapterParser  │          │
-│  │                │   │                │   │                │          │
-│  │  - DC elements │   │  - NCX (epub2) │   │  - XHTML parse │          │
-│  │  - refines     │   │  - NAV (epub3) │   │  - content     │          │
-│  │  - cover meta  │   │  - landmarks   │   │  - word count  │          │
-│  └────────────────┘   └────────────────┘   └────────────────┘          │
-│           │                   │                    │                    │
-│           └───────────────────┴────────────────────┘                    │
-│                               │                                         │
-│                               ▼                                         │
-│                     ┌────────────────┐                                  │
-│                     │  CoverExtract  │                                  │
-│                     │                │                                  │
-│                     │  - meta cover  │                                  │
-│                     │  - properties  │                                  │
-│                     │  - fallback    │                                  │
-│                     └────────────────┘                                  │
-│                               │                                         │
-│                               ▼                                         │
-│                     ┌────────────────┐                                  │
-│                     │   ParsedBook   │                                  │
-│                     └────────────────┘                                  │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph EP["EpubParser"]
+        Zip["ZipExtractor<br>AdmZip / validation / streaming"] --> Container["ContainerParser<br>container.xml / rootfile"]
+        Container --> Opf["OpfParser<br>metadata / manifest / spine"]
+        Zip --> Meta["MetadataExtract<br>DC elements / refines / cover meta"]
+        Opf --> Toc["TocParser<br>NCX (epub2) / NAV (epub3) / landmarks"]
+        Opf --> Chapter["ChapterParser<br>XHTML parse / content / word count"]
+        Meta --> Cover["CoverExtract<br>meta cover / properties / fallback"]
+        Toc --> Cover
+        Chapter --> Cover
+        Cover --> Result["ParsedBook"]
+    end
 ```
 
 ### 5.2 核心接口定义
@@ -582,62 +557,21 @@ class EpubParser {
 
 ### 5.4 解析流程状态机
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          解析状态机                                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   [初始化]                                                               │
-│      │                                                                   │
-│      ▼                                                                   │
-│   ┌───────────────┐                                                      │
-│   │ VALIDATING    │──── 验证失败 ────> [ERROR: Invalid EPUB]            │
-│   │ - mimetype    │                                                      │
-│   │ - container   │                                                      │
-│   └───────┬───────┘                                                      │
-│           │ 验证通过                                                     │
-│           ▼                                                              │
-│   ┌───────────────┐                                                      │
-│   │ LOADING_OPF   │──── 加载失败 ────> [ERROR: Missing OPF]             │
-│   │ - find opf    │                                                      │
-│   │ - parse xml   │                                                      │
-│   └───────┬───────┘                                                      │
-│           │ 加载成功                                                     │
-│           ▼                                                              │
-│   ┌───────────────┐                                                      │
-│   │ PARSING_META  │──── 元数据不完整 ──> [WARN: 使用默认值]             │
-│   │ - metadata    │                                                      │
-│   │ - version     │                                                      │
-│   └───────┬───────┘                                                      │
-│           │                                                              │
-│           ▼                                                              │
-│   ┌───────────────┐                                                      │
-│   │ BUILDING_TOC  │──── NCX/NAV 缺失 ──> [WARN: 使用 spine 顺序]        │
-│   │ - ncx parse   │                                                      │
-│   │ - nav parse   │                                                      │
-│   └───────┬───────┘                                                      │
-│           │                                                              │
-│           ▼                                                              │
-│   ┌───────────────┐                                                      │
-│   │ LOADING_CHAPS │──── 部分章节失败 ──> [WARN: 跳过损坏章节]           │
-│   │ - spine iter  │                                                      │
-│   │ - content     │                                                      │
-│   └───────┬───────┘                                                      │
-│           │                                                              │
-│           ▼                                                              │
-│   ┌───────────────┐                                                      │
-│   │ EXTRACT_COVER │──── 封面未找到 ──> [INFO: 生成默认封面]             │
-│   │ - meta cover  │                                                      │
-│   │ - properties  │                                                      │
-│   │ - fallback    │                                                      │
-│   └───────┬───────┘                                                      │
-│           │                                                              │
-│           ▼                                                              │
-│   ┌───────────────┐                                                      │
-│   │ COMPLETED     │                                                      │
-│   └───────────────┘                                                      │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Init["初始化"] --> VALIDATING["VALIDATING<br>mimetype / container"]
+    VALIDATING -->|"验证失败"| ERR1["ERROR: Invalid EPUB"]
+    VALIDATING -->|"验证通过"| LOADING_OPF["LOADING_OPF<br>find opf / parse xml"]
+    LOADING_OPF -->|"加载失败"| ERR2["ERROR: Missing OPF"]
+    LOADING_OPF -->|"加载成功"| PARSING_META["PARSING_META<br>metadata / version"]
+    PARSING_META -->|"元数据不完整"| WARN1["WARN: 使用默认值"]
+    PARSING_META --> BUILDING_TOC["BUILDING_TOC<br>ncx parse / nav parse"]
+    BUILDING_TOC -->|"NCX/NAV 缺失"| WARN2["WARN: 使用 spine 顺序"]
+    BUILDING_TOC --> LOADING_CHAPS["LOADING_CHAPS<br>spine iter / content"]
+    LOADING_CHAPS -->|"部分章节失败"| WARN3["WARN: 跳过损坏章节"]
+    LOADING_CHAPS --> EXTRACT_COVER["EXTRACT_COVER<br>meta cover / properties / fallback"]
+    EXTRACT_COVER -->|"封面未找到"| INFO1["INFO: 生成默认封面"]
+    EXTRACT_COVER --> COMPLETED["COMPLETED"]
 ```
 
 ---

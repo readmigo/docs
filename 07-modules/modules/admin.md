@@ -16,25 +16,11 @@ Backend administration module for content and user management.
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    Admin Dashboard (Web)                      │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                     Admin Controller                          │
-│  /admin/*                                                     │
-├──────────────────────────────────────────────────────────────┤
-│  Books │ Users │ Categories │ BookLists │ Quotes │ Authors   │
-│  Postcards │ Templates │ Analytics │ Transactions │ Agora    │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                      Admin Service                            │
-│  Database operations, business logic, data aggregation       │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Dashboard["Admin Dashboard (Web)"]
+    Dashboard --> Controller["Admin Controller /admin/*<br>Books | Users | Categories | BookLists | Quotes | Authors<br>Postcards | Templates | Analytics | Transactions | Agora"]
+    Controller --> Service["Admin Service<br>Database operations, business logic, data aggregation"]
 ```
 
 ---
