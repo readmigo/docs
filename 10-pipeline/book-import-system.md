@@ -31,44 +31,32 @@
 
 ### 1.3 在系统中的定位
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Readmigo Content Pipeline                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌─────────────────────────────────────────────────────────────────────┐│
-│  │                     External Book Sources                            ││
-│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌────────────┐ ││
-│  │  │  Standard    │ │   Project    │ │    CTEXT     │ │ Wikisource ││
-│  │  │  Ebooks      │ │  Gutenberg   │ │  (古典文献)   │ │    (ZH)    ││
-│  │  │  ~1,000本    │ │  ~70,000本   │ │              │ │            ││
-│  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └─────┬──────┘ ││
-│  └─────────┼────────────────┼────────────────┼───────────────┼────────┘│
-│            └────────────────┼────────────────┼───────────────┘          │
-│                             ▼                ▼                          │
-│  ┌─────────────────────────────────────────────────────────────────────┐│
-│  │                    ★ Book Import System ★                           ││
-│  │                                                                      ││
-│  │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           ││
-│  │   │  Source  │  │   EPUB   │  │ Difficulty│  │  Cover   │           ││
-│  │   │  Fetcher │─▶│  Parser  │─▶│ Analyzer │─▶│ Processor│           ││
-│  │   └──────────┘  └──────────┘  └──────────┘  └──────────┘           ││
-│  │         │              │              │              │              ││
-│  │         ▼              ▼              ▼              ▼              ││
-│  │   ┌─────────────────────────────────────────────────────────────┐  ││
-│  │   │                  Import Pipeline Manager                     │  ││
-│  │   │  • 任务调度  • 进度追踪  • 错误处理  • 批次管理              │  ││
-│  │   └──────────────────────────┬──────────────────────────────────┘  ││
-│  └──────────────────────────────│──────────────────────────────────────┘│
-│                                 │                                        │
-│            ┌────────────────────┼────────────────────┐                  │
-│            ▼                    ▼                    ▼                  │
-│     ┌─────────────┐      ┌─────────────┐      ┌─────────────┐          │
-│     │ PostgreSQL  │      │ Cloudflare  │      │    Redis    │          │
-│     │   (Books)   │      │  R2 (Files) │      │   (Queue)   │          │
-│     └─────────────┘      └─────────────┘      └─────────────┘          │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Sources["External Book Sources"]
+        SE["Standard Ebooks<br>~1,000本"]
+        PG["Project Gutenberg<br>~70,000本"]
+        CT["CTEXT<br>(古典文献)"]
+        WS["Wikisource<br>(ZH)"]
+    end
+
+    SE --> BIS
+    PG --> BIS
+    CT --> BIS
+    WS --> BIS
+
+    subgraph BIS["Book Import System"]
+        SF["Source Fetcher"] --> EP["EPUB Parser"] --> DA["Difficulty Analyzer"] --> CP["Cover Processor"]
+        SF --> IPM
+        EP --> IPM
+        DA --> IPM
+        CP --> IPM
+        IPM["Import Pipeline Manager<br>- 任务调度 - 进度追踪<br>- 错误处理 - 批次管理"]
+    end
+
+    IPM --> DB["PostgreSQL<br>(Books)"]
+    IPM --> R2["Cloudflare R2<br>(Files)"]
+    IPM --> RD["Redis<br>(Queue)"]
 ```
 
 ---
@@ -77,127 +65,60 @@
 
 ### 2.1 整体架构
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Book Import System Architecture                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                      CLI / Script Layer                            │  │
-│  │                                                                    │  │
-│  │   book-import.sh                                                   │  │
-│  │   ├── --env=local|staging|production                              │  │
-│  │   ├── --source=standard|gutenberg|chinese|all                     │  │
-│  │   ├── --limit=N                                                   │  │
-│  │   └── --dry-run                                                   │  │
-│  │                                                                    │  │
-│  └────────────────────────────┬──────────────────────────────────────┘  │
-│                               │                                          │
-│                               ▼                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                      Source Adapters Layer                         │  │
-│  │                                                                    │  │
-│  │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │  │
-│  │   │  Standard   │  │  Gutenberg  │  │   Chinese   │              │  │
-│  │   │  Ebooks     │  │   Adapter   │  │   Sources   │              │  │
-│  │   │  Adapter    │  │             │  │   Adapter   │              │  │
-│  │   └──────┬──────┘  └──────┬──────┘  └──────┬──────┘              │  │
-│  │          │                │                │                      │  │
-│  │          └────────────────┼────────────────┘                      │  │
-│  │                           │                                        │  │
-│  │   Interface: BookSourceAdapter                                    │  │
-│  │   ├── fetchBookList(): BookMeta[]                                 │  │
-│  │   ├── fetchBookContent(id): EPUB                                  │  │
-│  │   └── fetchCover(id): Buffer                                      │  │
-│  │                                                                    │  │
-│  └───────────────────────────┬───────────────────────────────────────┘  │
-│                              │                                           │
-│                              ▼                                           │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                      Processing Layer                              │  │
-│  │                                                                    │  │
-│  │   ┌─────────────────────────────────────────────────────────────┐ │  │
-│  │   │                   Import Pipeline                            │ │  │
-│  │   │                                                              │ │  │
-│  │   │   1. Fetch    2. Parse     3. Analyze    4. Upload          │ │  │
-│  │   │   ┌─────┐    ┌─────┐      ┌─────┐       ┌─────┐            │ │  │
-│  │   │   │ Get │───▶│EPUB │───▶  │Diff │───▶   │ R2  │            │ │  │
-│  │   │   │Meta │    │Parse│      │Score│       │Store│            │ │  │
-│  │   │   └─────┘    └─────┘      └─────┘       └─────┘            │ │  │
-│  │   │      │           │            │             │               │ │  │
-│  │   │      ▼           ▼            ▼             ▼               │ │  │
-│  │   │   ┌─────┐    ┌─────┐      ┌─────┐       ┌─────┐            │ │  │
-│  │   │   │Dedup│    │Clean│      │CEFR │       │Thumb│            │ │  │
-│  │   │   │Check│    │ HTML│      │Level│       │ Gen │            │ │  │
-│  │   │   └─────┘    └─────┘      └─────┘       └─────┘            │ │  │
-│  │   │                                                              │ │  │
-│  │   └─────────────────────────────────────────────────────────────┘ │  │
-│  │                                                                    │  │
-│  │   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │  │
-│  │   │ EPUB Parser  │  │  Difficulty  │  │    Cover     │           │  │
-│  │   │              │  │   Analyzer   │  │   Processor  │           │  │
-│  │   │ • Metadata   │  │              │  │              │           │  │
-│  │   │ • Chapters   │  │ • Flesch     │  │ • Download   │           │  │
-│  │   │ • Content    │  │ • Syllables  │  │ • Resize     │           │  │
-│  │   │ • ToC        │  │ • CEFR Map   │  │ • Compress   │           │  │
-│  │   └──────────────┘  └──────────────┘  └──────────────┘           │  │
-│  │                                                                    │  │
-│  └───────────────────────────┬───────────────────────────────────────┘  │
-│                              │                                           │
-│                              ▼                                           │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                      Storage Layer                                 │  │
-│  │                                                                    │  │
-│  │   ┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐ │  │
-│  │   │   PostgreSQL     │  │  Cloudflare R2   │  │     Redis      │ │  │
-│  │   │                  │  │                  │  │                │ │  │
-│  │   │  • Book          │  │  • EPUB Files    │  │  • Job Queue   │ │  │
-│  │   │  • Chapter       │  │  • Cover Images  │  │  • Progress    │ │  │
-│  │   │  • Author        │  │  • Thumbnails    │  │  • Dedup Cache │ │  │
-│  │   │  • ImportBatch   │  │                  │  │                │ │  │
-│  │   └──────────────────┘  └──────────────────┘  └────────────────┘ │  │
-│  │                                                                    │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph CLI["CLI / Script Layer"]
+        SH["book-import.sh<br>--env=local|staging|production<br>--source=standard|gutenberg|chinese|all<br>--limit=N / --dry-run"]
+    end
+
+    SH --> SAL
+
+    subgraph SAL["Source Adapters Layer"]
+        SEA["Standard Ebooks<br>Adapter"]
+        GA["Gutenberg<br>Adapter"]
+        CSA["Chinese Sources<br>Adapter"]
+        BSI["Interface: BookSourceAdapter<br>fetchBookList / fetchBookContent / fetchCover"]
+        SEA --> BSI
+        GA --> BSI
+        CSA --> BSI
+    end
+
+    BSI --> PL
+
+    subgraph PL["Processing Layer"]
+        subgraph IP["Import Pipeline"]
+            GM["1. Get Meta"] --> EP2["2. EPUB Parse"] --> DS["3. Diff Score"] --> R2S["4. R2 Store"]
+            GM --> DC["Dedup Check"]
+            EP2 --> CH["Clean HTML"]
+            DS --> CL["CEFR Level"]
+            R2S --> TG["Thumb Gen"]
+        end
+        EPP["EPUB Parser<br>Metadata / Chapters<br>Content / ToC"]
+        DAN["Difficulty Analyzer<br>Flesch / Syllables<br>CEFR Map"]
+        CVP["Cover Processor<br>Download / Resize<br>Compress"]
+    end
+
+    PL --> SL
+
+    subgraph SL["Storage Layer"]
+        PGS["PostgreSQL<br>Book / Chapter<br>Author / ImportBatch"]
+        CFR["Cloudflare R2<br>EPUB Files<br>Cover Images / Thumbnails"]
+        RED["Redis<br>Job Queue / Progress<br>Dedup Cache"]
+    end
 ```
 
 ### 2.2 多环境架构
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      Multi-Environment Architecture                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                    Environment Configuration                     │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-│                                                                          │
-│   ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐        │
-│   │     LOCAL       │  │     STAGING     │  │   PRODUCTION    │        │
-│   │                 │  │                 │  │                 │        │
-│   │ DB: localhost   │  │ DB: staging-db  │  │ DB: prod-db     │        │
-│   │     :5432       │  │     .readmigo   │  │     .readmigo   │        │
-│   │                 │  │     .com:5432   │  │     .com:5432   │        │
-│   │ R2: readmigo    │  │ R2: readmigo    │  │ R2: readmigo    │        │
-│   │     -dev        │  │     -staging    │  │     -prod       │        │
-│   │                 │  │                 │  │                 │        │
-│   │ 用途:           │  │ 用途:           │  │ 用途:           │        │
-│   │ • 本地开发      │  │ • 预发布测试    │  │ • 真实用户      │        │
-│   │ • 功能测试      │  │ • 数据验证      │  │ • 正式数据      │        │
-│   │ • 快速迭代      │  │ • 性能测试      │  │ • 需审批        │        │
-│   │                 │  │                 │  │                 │        │
-│   │ 权限: 开发者    │  │ 权限: 运营+开发 │  │ 权限: 仅管理员  │        │
-│   │                 │  │                 │  │                 │        │
-│   │ 确认: 无        │  │ 确认: 单次      │  │ 确认: 二次      │        │
-│   └─────────────────┘  └─────────────────┘  └─────────────────┘        │
-│                                                                          │
-│   环境变量配置:                                                          │
-│   ├── .env.local         (本地环境，默认)                               │
-│   ├── .env.staging       (Staging 环境)                                 │
-│   └── .env.production    (生产环境，敏感信息通过 secrets 管理)           │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph ENV["Multi-Environment Architecture"]
+        direction LR
+        LOCAL["LOCAL<br>DB: localhost:5432<br>R2: readmigo-dev<br><br>用途:<br>本地开发 / 功能测试 / 快速迭代<br>权限: 开发者<br>确认: 无"]
+        STAGING["STAGING<br>DB: staging-db.readmigo.com:5432<br>R2: readmigo-staging<br><br>用途:<br>预发布测试 / 数据验证 / 性能测试<br>权限: 运营+开发<br>确认: 单次"]
+        PRODUCTION["PRODUCTION<br>DB: prod-db.readmigo.com:5432<br>R2: readmigo-prod<br><br>用途:<br>真实用户 / 正式数据 / 需审批<br>权限: 仅管理员<br>确认: 二次"]
+    end
+
+    LOCAL -.->|隔离| STAGING -.->|隔离| PRODUCTION
 ```
 
 ---
@@ -493,104 +414,59 @@ export class GutenbergAdapter implements BookSourceAdapter {
 
 ### 4.1 导入流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Book Import Pipeline                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   1. FETCH PHASE (获取阶段)                                              │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                                                                  │   │
-│   │   Source Adapter                                                 │   │
-│   │        │                                                         │   │
-│   │        ▼                                                         │   │
-│   │   ┌─────────┐    ┌─────────┐    ┌─────────┐                     │   │
-│   │   │  Fetch  │───▶│  Dedup  │───▶│  Queue  │                     │   │
-│   │   │  Meta   │    │  Check  │    │  Book   │                     │   │
-│   │   └─────────┘    └─────────┘    └─────────┘                     │   │
-│   │                       │                                          │   │
-│   │                       ▼                                          │   │
-│   │                  Skip if exists                                  │   │
-│   │                                                                  │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                           │
-│                              ▼                                           │
-│   2. DOWNLOAD PHASE (下载阶段)                                           │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                                                                  │   │
-│   │   ┌─────────┐    ┌─────────┐    ┌─────────┐                     │   │
-│   │   │Download │───▶│Download │───▶│  Temp   │                     │   │
-│   │   │  EPUB   │    │  Cover  │    │ Storage │                     │   │
-│   │   └─────────┘    └─────────┘    └─────────┘                     │   │
-│   │        │              │                                          │   │
-│   │        ▼              ▼                                          │   │
-│   │   Retry on        Generate                                       │   │
-│   │   failure        placeholder                                     │   │
-│   │                  if missing                                      │   │
-│   │                                                                  │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                           │
-│                              ▼                                           │
-│   3. PARSE PHASE (解析阶段)                                              │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                                                                  │   │
-│   │   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐     │   │
-│   │   │  Parse  │───▶│ Extract │───▶│  Clean  │───▶│ Extract │     │   │
-│   │   │  EPUB   │    │ Chapters│    │  HTML   │    │   ToC   │     │   │
-│   │   └─────────┘    └─────────┘    └─────────┘    └─────────┘     │   │
-│   │        │              │              │              │           │   │
-│   │        ▼              ▼              ▼              ▼           │   │
-│   │   Metadata      Chapter[]       Clean Text      Navigation      │   │
-│   │   validation    extraction      content         structure       │   │
-│   │                                                                  │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                           │
-│                              ▼                                           │
-│   4. ANALYZE PHASE (分析阶段)                                            │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                                                                  │   │
-│   │   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐     │   │
-│   │   │ Count   │───▶│ Flesch  │───▶│  CEFR   │───▶│  Auto   │     │   │
-│   │   │ Words   │    │  Score  │    │  Level  │    │Category │     │   │
-│   │   └─────────┘    └─────────┘    └─────────┘    └─────────┘     │   │
-│   │        │              │              │              │           │   │
-│   │        ▼              ▼              ▼              ▼           │   │
-│   │   wordCount    difficultyScore  cefrLevel    categories[]       │   │
-│   │   charCount       (0-100)        (A1-C2)                        │   │
-│   │                                                                  │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                           │
-│                              ▼                                           │
-│   5. UPLOAD PHASE (上传阶段)                                             │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                                                                  │   │
-│   │   ┌─────────┐    ┌─────────┐    ┌─────────┐                     │   │
-│   │   │ Upload  │───▶│ Upload  │───▶│Generate │                     │   │
-│   │   │  EPUB   │    │  Cover  │    │ Thumb   │                     │   │
-│   │   └─────────┘    └─────────┘    └─────────┘                     │   │
-│   │        │              │              │                           │   │
-│   │        ▼              ▼              ▼                           │   │
-│   │   R2: /books/    R2: /covers/   R2: /thumbs/                    │   │
-│   │   {id}.epub      {id}.jpg       {id}.jpg                        │   │
-│   │                                                                  │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                           │
-│                              ▼                                           │
-│   6. SAVE PHASE (保存阶段)                                               │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                                                                  │   │
-│   │   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐     │   │
-│   │   │ Create  │───▶│ Create  │───▶│  Link   │───▶│  Log    │     │   │
-│   │   │  Book   │    │Chapters │    │Category │    │ Import  │     │   │
-│   │   └─────────┘    └─────────┘    └─────────┘    └─────────┘     │   │
-│   │        │              │              │              │           │   │
-│   │        ▼              ▼              ▼              ▼           │   │
-│   │   PostgreSQL    PostgreSQL    BookCategory    ImportLog         │   │
-│   │   Book table    Chapter tbl   join table                        │   │
-│   │                                                                  │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph P1["1. FETCH PHASE (获取阶段)"]
+        SA["Source Adapter"] --> FM["Fetch Meta"] --> DDC["Dedup Check"] --> QB["Queue Book"]
+        DDC --> SKIP["Skip if exists"]
+    end
+
+    P1 --> P2
+
+    subgraph P2["2. DOWNLOAD PHASE (下载阶段)"]
+        DE["Download EPUB"] --> DC["Download Cover"] --> TS["Temp Storage"]
+        DE --> RETRY["Retry on failure"]
+        DC --> PLACEHOLDER["Generate placeholder<br>if missing"]
+    end
+
+    P2 --> P3
+
+    subgraph P3["3. PARSE PHASE (解析阶段)"]
+        PE["Parse EPUB"] --> EC["Extract Chapters"] --> CHTML["Clean HTML"] --> ET["Extract ToC"]
+        PE --> META["Metadata validation"]
+        EC --> CHEXT["Chapter[] extraction"]
+        CHTML --> CLEAN["Clean Text content"]
+        ET --> NAV["Navigation structure"]
+    end
+
+    P3 --> P4
+
+    subgraph P4["4. ANALYZE PHASE (分析阶段)"]
+        CW["Count Words"] --> FS["Flesch Score"] --> CEFR["CEFR Level"] --> AC["Auto Category"]
+        CW --> WC["wordCount / charCount"]
+        FS --> DIFF["difficultyScore (0-100)"]
+        CEFR --> LEVEL["cefrLevel (A1-C2)"]
+        AC --> CATS["categories[]"]
+    end
+
+    P4 --> P5
+
+    subgraph P5["5. UPLOAD PHASE (上传阶段)"]
+        UE["Upload EPUB"] --> UC["Upload Cover"] --> GT["Generate Thumb"]
+        UE --> R2B["R2: /books/{id}.epub"]
+        UC --> R2C["R2: /covers/{id}.jpg"]
+        GT --> R2T["R2: /thumbs/{id}.jpg"]
+    end
+
+    P5 --> P6
+
+    subgraph P6["6. SAVE PHASE (保存阶段)"]
+        CB["Create Book"] --> CC["Create Chapters"] --> LC["Link Category"] --> LI["Log Import"]
+        CB --> PGB["PostgreSQL Book table"]
+        CC --> PGC["PostgreSQL Chapter tbl"]
+        LC --> BCJ["BookCategory join table"]
+        LI --> IML["ImportLog"]
+    end
 ```
 
 ### 4.2 导入任务管理
@@ -1399,28 +1275,12 @@ interface ImportLogEntry {
 
 ### 9.1 环境隔离
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          Security Boundaries                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   LOCAL                    STAGING                  PRODUCTION          │
-│   ┌─────────────┐         ┌─────────────┐         ┌─────────────┐      │
-│   │ 开发者机器   │         │ 内部服务器   │         │ 云服务器     │      │
-│   │             │         │             │         │             │      │
-│   │ ✅ 无限制   │ ──X──▶ │ ✅ VPN访问  │ ──X──▶ │ ✅ 需审批   │      │
-│   │             │         │ ✅ 日志记录 │         │ ✅ MFA验证  │      │
-│   │             │         │             │         │ ✅ 审计日志 │      │
-│   └─────────────┘         └─────────────┘         └─────────────┘      │
-│                                                                          │
-│   防护措施:                                                              │
-│   ├── 环境变量不含敏感信息 (通过 secrets 注入)                            │
-│   ├── 生产环境需要 2FA 和明确授权                                        │
-│   ├── 所有导入操作记录到审计日志                                         │
-│   ├── 支持批次回滚                                                       │
-│   └── 自动备份导入前的数据库快照                                          │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    LOCAL["LOCAL<br>开发者机器<br>无限制"] -->|隔离| STAGING["STAGING<br>内部服务器<br>VPN访问 / 日志记录"]
+    STAGING -->|隔离| PROD["PRODUCTION<br>云服务器<br>需审批 / MFA验证 / 审计日志"]
+
+    PROD --> MEASURES["防护措施:<br>- 环境变量不含敏感信息 (secrets 注入)<br>- 生产环境需要 2FA 和明确授权<br>- 所有导入操作记录到审计日志<br>- 支持批次回滚<br>- 自动备份导入前的数据库快照"]
 ```
 
 ### 9.2 访问控制

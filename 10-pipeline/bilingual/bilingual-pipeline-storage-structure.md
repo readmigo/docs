@@ -91,54 +91,32 @@ readmigo-production (R2 Bucket)
 
 ## 五、数据流图
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                       双语管线数据流                              │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph 输入
+        IN1["R2: books/{book-id}/book.epub (英文)"]
+        IN2["本地: ~/pipeline/epubs/zh/ (中文)"]
+    end
 
-输入:
-  R2: books/{book-id}/book.epub (英文)
-  本地: ~/pipeline/epubs/zh/ (中文)
-       │
-       ▼
-┌─────────────────┐     ┌─────────────────┐
-│  EPUB 解析器     │     │  EPUB 解析器     │
-│  (英文)          │     │  (中文-好读格式)  │
-└────────┬────────┘     └────────┬────────┘
-         │                       │
-         ▼                       ▼
-    EpubChapter[]           EpubChapter[]
-         │                       │
-         └──────────┬────────────┘
-                    ▼
-         ┌─────────────────────┐
-         │   语义对齐器         │
-         │  (NLP Service)      │
-         │  - 嵌入向量计算      │
-         │  - 余弦相似度       │
-         │  - 贪心匹配         │
-         └──────────┬──────────┘
-                    ▼
-            AlignedParagraph[]
-                    │
-         ┌──────────┴──────────┐
-         ▼                     ▼
-┌─────────────────┐   ┌─────────────────┐
-│    分词器       │   │   词汇关联器     │
-│ (SpaCy via NLP) │   │  (Vocabulary)   │
-└────────┬────────┘   └────────┬────────┘
-         │                     │
-         ▼                     ▼
-  ParagraphToken[]      TokenVocabulary[]
-         │                     │
-         └──────────┬──────────┘
-                    ▼
-输出:
-  Neon PostgreSQL:
-  ├── BilingualBook (1 条记录)
-  ├── BilingualParagraph (~500-15000 条)
-  ├── ParagraphToken (~20000-600000 条)
-  └── _ParagraphTokenToVocabulary (关联)
+    IN1 --> EP1["EPUB 解析器<br>(英文)"]
+    IN2 --> EP2["EPUB 解析器<br>(中文-好读格式)"]
+
+    EP1 --> EC1["EpubChapter[]"]
+    EP2 --> EC2["EpubChapter[]"]
+
+    EC1 --> ALIGN["语义对齐器<br>(NLP Service)<br>- 嵌入向量计算<br>- 余弦相似度<br>- 贪心匹配"]
+    EC2 --> ALIGN
+
+    ALIGN --> AP["AlignedParagraph[]"]
+
+    AP --> TOK["分词器<br>(SpaCy via NLP)"]
+    AP --> VOC["词汇关联器<br>(Vocabulary)"]
+
+    TOK --> PT["ParagraphToken[]"]
+    VOC --> TV["TokenVocabulary[]"]
+
+    PT --> OUTPUT["输出: Neon PostgreSQL<br>- BilingualBook (1 条记录)<br>- BilingualParagraph (~500-15000 条)<br>- ParagraphToken (~20000-600000 条)<br>- _ParagraphTokenToVocabulary (关联)"]
+    TV --> OUTPUT
 ```
 
 ---

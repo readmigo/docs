@@ -17,16 +17,12 @@
 
 ### 数据库表关系
 
-```
-┌──────────────┐      ┌──────────────┐      ┌────────────────────┐
-│    books     │──1:N─│   chapters   │──1:1─│ audiobook_chapters │
-└──────────────┘      └──────────────┘      └────────────────────┘
-       │                                              │
-       │                                              N
-       1                                              │
-       │              ┌──────────────┐                │
-       └──────────────│  audiobooks  │────────────────┘
-                      └──────────────┘
+```mermaid
+erDiagram
+    books ||--o{ chapters : "1:N"
+    chapters ||--o| audiobook_chapters : "1:1"
+    books ||--o| audiobooks : "1"
+    audiobooks ||--o{ audiobook_chapters : "N"
 ```
 
 ### 关键表结构
@@ -75,22 +71,16 @@
 
 ## 完整工作流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            HIGHLIGHT SYNC PIPELINE                           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌───────────┐  │
-│  │   Step 1     │───▶│   Step 2     │───▶│   Step 3     │───▶│  Step 4   │  │
-│  │  EPUB 内容   │    │ 有声书-电子书 │    │  章节级别    │    │ 时间戳   │  │
-│  │    提取      │    │    匹配      │    │    匹配      │    │   生成    │  │
-│  └──────────────┘    └──────────────┘    └──────────────┘    └───────────┘  │
-│         │                   │                   │                   │        │
-│         ▼                   ▼                   ▼                   ▼        │
-│  chapters.content    audiobooks.book_id   audiobook_chapters   timestamps   │
-│                                           .book_chapter_id      (JSONB)     │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    S1["Step 1<br>EPUB 内容<br>提取"] --> S2["Step 2<br>有声书-电子书<br>匹配"]
+    S2 --> S3["Step 3<br>章节级别<br>匹配"]
+    S3 --> S4["Step 4<br>时间戳<br>生成"]
+
+    S1 --> O1["chapters.content"]
+    S2 --> O2["audiobooks.book_id"]
+    S3 --> O3["audiobook_chapters<br>.book_chapter_id"]
+    S4 --> O4["timestamps<br>(JSONB)"]
 ```
 
 ---
@@ -343,16 +333,14 @@ interface WordTimestamp {
 
 ### 处理流程
 
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  Download   │───▶│  Whisper    │───▶│   Text      │───▶│   Save to   │
-│   Audio     │    │ Transcribe  │    │  Alignment  │    │   Database  │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-     │                   │                   │                   │
-     ▼                   ▼                   ▼                   ▼
-  Buffer            WhisperResult      ChapterTimestamps      JSONB
-  (~50MB)           (segments +        (with charStart/      (stored)
-                     words)             charEnd)
+```mermaid
+flowchart LR
+    DA["Download<br>Audio"] --> WT["Whisper<br>Transcribe"] --> TA["Text<br>Alignment"] --> SD["Save to<br>Database"]
+
+    DA --> B["Buffer<br>(~50MB)"]
+    WT --> WR["WhisperResult<br>(segments + words)"]
+    TA --> CT["ChapterTimestamps<br>(with charStart/charEnd)"]
+    SD --> JB["JSONB<br>(stored)"]
 ```
 
 ### Whisper 服务
@@ -424,10 +412,11 @@ class TextAligner {
 
 ## 依赖关系
 
-```
-Step 1 (EPUB 提取)  ─────────────────────────────────┐
-                                                      ▼
-Step 2 (有声书匹配) ──────▶ Step 3 (章节匹配) ──────▶ Step 4 (时间戳生成)
+```mermaid
+flowchart LR
+    S1["Step 1<br>(EPUB 提取)"] --> S4["Step 4<br>(时间戳生成)"]
+    S2["Step 2<br>(有声书匹配)"] --> S3["Step 3<br>(章节匹配)"]
+    S3 --> S4
 ```
 
 ### 前置条件检查
