@@ -1,7 +1,8 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 import { generateSidebar } from 'vitepress-sidebar'
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   title: 'Readmigo Docs',
   description: 'Readmigo 项目文档中心',
 
@@ -127,6 +128,9 @@ export default defineConfig({
   // 清理 URL
   cleanUrls: true,
 
+  // Mermaid 配置
+  mermaid: {},
+
   // 忽略死链接（仍有386个需修复）
   ignoreDeadLinks: true
-})
+}))
