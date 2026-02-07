@@ -6,48 +6,23 @@ The Android subscription module integrates Google Play Billing Library to handle
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              UI Layer                                    │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │  SubscriptionScreen    SubscriptionViewModel                     │    │
-│  │  ├── PlanCard                                                    │    │
-│  │  ├── PaywallSheet                                                │    │
-│  │  └── PaywallBanner                                               │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-└────────────────────────────────┬────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           Domain Layer                                   │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │  SubscriptionManager                                             │    │
-│  │  ├── initialize()         - Setup billing client                 │    │
-│  │  ├── launchPurchase()     - Start purchase flow                  │    │
-│  │  ├── restorePurchases()   - Restore previous purchases           │    │
-│  │  ├── refreshStatus()      - Sync with backend                    │    │
-│  │  └── hasPremiumFeatures() - Check access                         │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-└────────────────────────────────┬────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                            Data Layer                                    │
-│  ┌──────────────────────────────┐  ┌──────────────────────────────┐     │
-│  │  BillingClientWrapper        │  │  SubscriptionRepository      │     │
-│  │  ├── connect()               │  │  ├── getStatus()             │     │
-│  │  ├── queryProducts()         │  │  ├── verifyPurchase()        │     │
-│  │  ├── launchPurchaseFlow()    │  │  ├── restorePurchases()      │     │
-│  │  ├── queryPurchases()        │  │  └── acknowledgePurchase()   │     │
-│  │  └── acknowledgePurchase()   │  │                              │     │
-│  └──────────────────────────────┘  └──────────────────────────────┘     │
-└─────────────────┬───────────────────────────────┬───────────────────────┘
-                  │                               │
-                  ▼                               ▼
-        ┌─────────────────┐             ┌─────────────────┐
-        │  Google Play    │             │  Backend API    │
-        │  Billing        │             │                 │
-        └─────────────────┘             └─────────────────┘
+```mermaid
+graph TD
+    subgraph UILayer["UI Layer"]
+        Screen["SubscriptionScreen<br>SubscriptionViewModel<br>(PlanCard, PaywallSheet, PaywallBanner)"]
+    end
+    subgraph DomainLayer["Domain Layer"]
+        Manager["SubscriptionManager<br>(initialize, launchPurchase,<br>restorePurchases, refreshStatus,<br>hasPremiumFeatures)"]
+    end
+    subgraph DataLayer["Data Layer"]
+        Billing["BillingClientWrapper<br>(connect, queryProducts,<br>launchPurchaseFlow, queryPurchases)"]
+        Repo["SubscriptionRepository<br>(getStatus, verifyPurchase,<br>restorePurchases, acknowledgePurchase)"]
+    end
+    Screen --> Manager
+    Manager --> Billing
+    Manager --> Repo
+    Billing --> PlayStore["Google Play<br>Billing"]
+    Repo --> Backend["Backend API"]
 ```
 
 ## Component Responsibilities
@@ -62,106 +37,34 @@ The Android subscription module integrates Google Play Billing Library to handle
 
 ## Purchase Flow
 
-```
-┌─────────────────┐
-│  User Views     │
-│  Subscription   │
-│  Screen         │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Products       │
-│  Loaded from    │
-│  Play Store     │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  User Selects   │
-│  Plan           │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  User Taps      │
-│  "Subscribe"    │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  ViewModel      │
-│  calls          │
-│  launchPurchase │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  BillingClient  │
-│  shows          │
-│  Purchase UI    │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│        Purchase Completed?          │
-├─────────────────┬───────────────────┤
-│      YES        │        NO         │
-│                 │                   │
-▼                 ▼                   │
-┌─────────────┐  ┌─────────────┐      │
-│ Verify with │  │ Show Cancel │      │
-│ Backend     │  │ Message     │      │
-└──────┬──────┘  └─────────────┘      │
-       │                              │
-       ▼                              │
-┌─────────────────────────────────────┤
-│       Verification Passed?          │
-├─────────────────┬───────────────────┤
-│      YES        │        NO         │
-│                 │                   │
-▼                 ▼                   │
-┌─────────────┐  ┌─────────────┐      │
-│ Acknowledge │  │ Show Error  │      │
-│ Purchase    │  │             │      │
-└──────┬──────┘  └─────────────┘      │
-       │                              │
-       ▼                              │
-┌─────────────────┐                   │
-│  Update Local   │                   │
-│  State          │                   │
-└────────┬────────┘                   │
-         │                            │
-         ▼                            │
-┌─────────────────┐                   │
-│  Show Success   │                   │
-│  Dialog         │                   │
-└─────────────────┘                   │
+```mermaid
+graph TD
+    A["User Views Subscription Screen"] --> B["Products Loaded from Play Store"]
+    B --> C["User Selects Plan"]
+    C --> D["User Taps Subscribe"]
+    D --> E["ViewModel calls launchPurchase"]
+    E --> F["BillingClient shows Purchase UI"]
+    F --> G{"Purchase Completed?"}
+    G -->|"YES"| H["Verify with Backend"]
+    G -->|"NO"| I["Show Cancel Message"]
+    H --> J{"Verification Passed?"}
+    J -->|"YES"| K["Acknowledge Purchase"]
+    J -->|"NO"| L["Show Error"]
+    K --> M["Update Local State"]
+    M --> N["Show Success Dialog"]
 ```
 
 ## State Management
 
 ### SubscriptionState
 
-```
-                    ┌─────────────────┐
-                    │    Loading      │
-                    └────────┬────────┘
-                             │
-          ┌──────────────────┼──────────────────┐
-          │                  │                  │
-          ▼                  ▼                  ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│    Active       │ │   Purchasing    │ │     Error       │
-│ (subscription)  │ │                 │ │   (message)     │
-└────────┬────────┘ └────────┬────────┘ └─────────────────┘
-         │                   │
-         │                   ▼
-         │          ┌─────────────────┐
-         │          │   Verifying     │
-         │          └────────┬────────┘
-         │                   │
-         └───────────────────┘
+```mermaid
+stateDiagram-v2
+    Loading --> Active
+    Loading --> Purchasing
+    Loading --> Error
+    Purchasing --> Verifying
+    Verifying --> Active
 ```
 
 ### State Descriptions
@@ -335,39 +238,12 @@ Same as production - use test accounts for testing.
 
 ### Connection Management
 
-```
-App Launch
-    │
-    ▼
-┌─────────────────┐
-│  connect()      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Query Products │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Refresh Status │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Check Pending  │
-│  Purchases      │
-└─────────────────┘
-         │
-         │  (App running)
-         │
-         ▼
-┌─────────────────┐
-│  App Terminate  │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  endConnection()│
-└─────────────────┘
+```mermaid
+graph TD
+    A["App Launch"] --> B["connect()"]
+    B --> C["Query Products"]
+    C --> D["Refresh Status"]
+    D --> E["Check Pending Purchases"]
+    E -->|"App running"| F["App Terminate"]
+    F --> G["endConnection()"]
 ```

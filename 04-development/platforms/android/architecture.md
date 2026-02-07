@@ -6,36 +6,28 @@
 
 ## 1. 架构概览
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Clean Architecture 分层                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    Presentation Layer                    │    │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐           │    │
-│  │  │  Screen   │  │ ViewModel │  │   State   │           │    │
-│  │  │ (Compose) │  │   (MVI)   │  │   Holder  │           │    │
-│  │  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘           │    │
-│  └────────┼──────────────┼──────────────┼──────────────────┘    │
-│           │              │              │                        │
-│  ┌────────┴──────────────┴──────────────┴──────────────────┐    │
-│  │                    Domain Layer                          │    │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐           │    │
-│  │  │  UseCase  │  │Repository │  │  Entity   │           │    │
-│  │  │           │  │ Interface │  │           │           │    │
-│  │  └─────┬─────┘  └─────┬─────┘  └───────────┘           │    │
-│  └────────┼──────────────┼──────────────────────────────────┘    │
-│           │              │                                       │
-│  ┌────────┴──────────────┴──────────────────────────────────┐    │
-│  │                    Data Layer                            │    │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐           │    │
-│  │  │Repository │  │   Remote  │  │   Local   │           │    │
-│  │  │   Impl    │  │DataSource │  │DataSource │           │    │
-│  │  └───────────┘  └───────────┘  └───────────┘           │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Presentation["Presentation Layer"]
+        Screen["Screen<br>(Compose)"]
+        ViewModel["ViewModel<br>(MVI)"]
+        StateHolder["State<br>Holder"]
+    end
+
+    subgraph Domain["Domain Layer"]
+        UseCase["UseCase"]
+        RepoInterface["Repository<br>Interface"]
+        Entity["Entity"]
+    end
+
+    subgraph Data["Data Layer"]
+        RepoImpl["Repository<br>Impl"]
+        RemoteDS["Remote<br>DataSource"]
+        LocalDS["Local<br>DataSource"]
+    end
+
+    Presentation --> Domain
+    Domain --> Data
 ```
 
 ---
@@ -81,39 +73,14 @@ feature/{module}/
 
 ### 3.1 状态流转
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    MVI 数据流                                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  User                                                           │
-│   │                                                              │
-│   │ Intent (用户意图)                                            │
-│   ▼                                                              │
-│  ┌─────────────┐                                                │
-│  │   Screen    │                                                │
-│  │  (Compose)  │                                                │
-│  └──────┬──────┘                                                │
-│         │                                                        │
-│         │ Action                                                │
-│         ▼                                                        │
-│  ┌─────────────┐        ┌─────────────┐                        │
-│  │  ViewModel  │───────▶│   UseCase   │                        │
-│  │             │◀───────│             │                        │
-│  └──────┬──────┘        └─────────────┘                        │
-│         │                                                        │
-│         │ State                                                 │
-│         ▼                                                        │
-│  ┌─────────────┐                                                │
-│  │  UI State   │                                                │
-│  │  (StateFlow)│                                                │
-│  └──────┬──────┘                                                │
-│         │                                                        │
-│         │ Render                                                │
-│         ▼                                                        │
-│      Screen                                                     │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    User["User"] -->|"Intent (用户意图)"| Screen["Screen<br>(Compose)"]
+    Screen -->|"Action"| ViewModel["ViewModel"]
+    ViewModel -->|"调用"| UseCase["UseCase"]
+    UseCase -->|"返回"| ViewModel
+    ViewModel -->|"State"| UiState["UI State<br>(StateFlow)"]
+    UiState -->|"Render"| Screen
 ```
 
 ### 3.2 State 设计
@@ -205,42 +172,14 @@ feature/{module}/
 
 ### 6.1 单向数据流
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    数据流向                                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  远程数据                                                        │
-│       │                                                          │
-│       ▼                                                          │
-│  ┌─────────────┐                                                │
-│  │   Remote    │                                                │
-│  │ DataSource  │                                                │
-│  └──────┬──────┘                                                │
-│         │                                                        │
-│         ▼                                                        │
-│  ┌─────────────┐        ┌─────────────┐                        │
-│  │ Repository  │───────▶│   Local     │                        │
-│  │             │◀───────│ DataSource  │                        │
-│  └──────┬──────┘        └─────────────┘                        │
-│         │                                                        │
-│         │ Flow<Domain Model>                                    │
-│         ▼                                                        │
-│  ┌─────────────┐                                                │
-│  │   UseCase   │                                                │
-│  └──────┬──────┘                                                │
-│         │                                                        │
-│         │ Flow<Result>                                          │
-│         ▼                                                        │
-│  ┌─────────────┐                                                │
-│  │  ViewModel  │                                                │
-│  └──────┬──────┘                                                │
-│         │                                                        │
-│         │ StateFlow<UiState>                                    │
-│         ▼                                                        │
-│      Screen                                                     │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    Remote["Remote<br>DataSource"] --> Repository["Repository"]
+    Repository -->|"读写"| Local["Local<br>DataSource"]
+    Local -->|"读写"| Repository
+    Repository -->|"Flow&lt;Domain Model&gt;"| UseCase["UseCase"]
+    UseCase -->|"Flow&lt;Result&gt;"| ViewModel["ViewModel"]
+    ViewModel -->|"StateFlow&lt;UiState&gt;"| Screen["Screen"]
 ```
 
 ### 6.2 缓存策略
