@@ -21,38 +21,6 @@
 
 ### 2.1 数据库表结构
 
-```prisma
-model AgoraComment {
-  id        String   @id @default(uuid())
-  postId    String
-  post      AgoraPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId    String
-  content   String   @db.Text
-  replyToId String?
-  replyTo   AgoraComment? @relation("CommentReplies", fields: [replyToId], references: [id])
-  replies   AgoraComment[] @relation("CommentReplies")
-  likeCount Int      @default(0)
-  likes     AgoraCommentLike[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([postId])
-  @@index([userId])
-  @@map("agora_comments")
-}
-
-model AgoraCommentLike {
-  id        String   @id @default(uuid())
-  userId    String
-  commentId String
-  comment   AgoraComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([userId, commentId])
-  @@map("agora_comment_likes")
-}
-```
-
 ### 2.2 存储位置
 - **数据库**: PostgreSQL (Fly.io 托管)
 - **表名**: `agora_comments`, `agora_comment_likes`
@@ -75,37 +43,8 @@ model AgoraCommentLike {
 ### 3.2 请求/响应格式
 
 **发表评论请求**
-```json
-POST /agora/posts/{postId}/comments
-{
-  "content": "评论内容",
-  "replyTo": "目标评论ID(可选)"
-}
-```
 
 **评论列表响应**
-```json
-{
-  "data": [
-    {
-      "id": "comment-uuid",
-      "userId": "user-uuid",
-      "userName": "用户昵称",
-      "userAvatar": "https://...",
-      "content": "评论内容",
-      "replyToId": null,
-      "replyToUserName": null,
-      "likeCount": 5,
-      "isLiked": false,
-      "createdAt": "2024-01-01T00:00:00Z"
-    }
-  ],
-  "total": 100,
-  "page": 1,
-  "limit": 20,
-  "hasMore": true
-}
-```
 
 ---
 
@@ -315,29 +254,9 @@ GET /agora/posts/:id/comments?page=1&limit=20
 
 ### 8.1 乐观更新策略
 前端采用乐观更新，用户操作后立即反馈，API 失败时回滚：
-```swift
-// 乐观插入
-posts[index].comments?.insert(newComment, at: 0)
-posts[index].commentCount += 1
-
-// API 失败时回滚
-catch {
-    posts[index].comments?.removeFirst()
-    posts[index].commentCount -= 1
-}
-```
 
 ### 8.2 事务保证
 后端使用 Prisma 事务确保数据一致性：
-```typescript
-await this.prisma.$transaction([
-    this.prisma.agoraComment.create({ data: {...} }),
-    this.prisma.agoraPost.update({
-        where: { id: postId },
-        data: { commentCount: { increment: 1 } }
-    })
-]);
-```
 
 ### 8.3 游客模式处理
 - 游客可查看评论
@@ -364,8 +283,8 @@ await this.prisma.$transaction([
 ## 10. 相关文件
 
 **后端**
-- `apps/backend/src/modules/agora/agora.controller.ts`
-- `apps/backend/src/modules/agora/agora.service.ts`
+- `src/modules/agora/agora.controller.ts`
+- `src/modules/agora/agora.service.ts`
 - `packages/database/prisma/schema.prisma`
 
 **iOS**

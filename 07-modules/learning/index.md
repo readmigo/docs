@@ -17,7 +17,7 @@ Learning 模块是 Readmigo 的核心学习功能，包含：
 ## 实现状态
 
 ### 后端模块
-- ✅ `apps/backend/src/modules/vocabulary/` - 词汇管理服务
+- ✅ `src/modules/vocabulary/` - 词汇管理服务
 
 ### iOS 客户端
 - ✅ `ios/Readmigo/Features/Learning/` - 学习功能 UI

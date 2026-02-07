@@ -30,7 +30,7 @@ iOS 端:
 └── ios/Readmigo/Features/Reader/EnhancedReaderView.swift # 阅读器集成
 
 后端:
-├── apps/backend/src/modules/books/books.service.ts  # 书籍服务(含 getBookAudio 预留接口)
+├── src/modules/books/books.service.ts  # 书籍服务(含 getBookAudio 预留接口)
 └── packages/database/prisma/schema.prisma           # 数据模型(暂无 Audiobook)
 
 文档:
@@ -87,144 +87,6 @@ iOS 端:
 ### 3.1 有声书与电子书关联
 
 #### 3.1.1 数据模型设计
-
-```prisma
-// schema.prisma 新增
-
-model Audiobook {
-  id            String   @id @default(uuid()) @db.Uuid
-
-  // 关联电子书（可选，有些有声书可能独立存在）
-  bookId        String?  @map("book_id") @db.Uuid
-  book          Book?    @relation(fields: [bookId], references: [id], onDelete: SetNull)
-
-  // 基础信息
-  title         String   @db.VarChar(500)
-  author        String   @db.VarChar(255)
-  narrator      String?  @db.VarChar(255)   // 朗读者
-  description   String?  @db.Text
-  coverUrl      String?  @map("cover_url") @db.VarChar(500)
-
-  // 时长信息
-  totalDuration Int      @map("total_duration")  // 总时长（秒）
-
-  // 音频来源
-  source        AudiobookSource @default(LIBRIVOX)
-  sourceId      String   @map("source_id") @db.VarChar(255)
-  sourceUrl     String?  @map("source_url") @db.VarChar(500)
-  archiveUrl    String?  @map("archive_url") @db.VarChar(500)
-  zipUrl        String?  @map("zip_url") @db.VarChar(500)
-  rssUrl        String?  @map("rss_url") @db.VarChar(500)
-
-  // 质量信息
-  quality       AudioQuality @default(STANDARD)
-  language      String   @default("en") @db.VarChar(10)
-
-  // 元数据
-  genres        String[] @default([])
-  publishYear   String?  @map("publish_year") @db.VarChar(10)
-
-  // 状态
-  status        AudiobookStatus @default(ACTIVE)
-
-  // 时间戳
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  // 关联
-  chapters      AudiobookChapter[]
-  userProgress  UserAudiobookProgress[]
-
-  @@index([bookId])
-  @@index([sourceId])
-  @@index([status])
-  @@map("audiobooks")
-}
-
-model AudiobookChapter {
-  id            String     @id @default(uuid()) @db.Uuid
-  audiobookId   String     @map("audiobook_id") @db.Uuid
-  audiobook     Audiobook  @relation(fields: [audiobookId], references: [id], onDelete: Cascade)
-
-  // 关联电子书章节（用于听读同步）
-  bookChapterId String?    @map("book_chapter_id") @db.Uuid
-  bookChapter   Chapter?   @relation(fields: [bookChapterId], references: [id], onDelete: SetNull)
-
-  // 章节信息
-  chapterNumber Int        @map("chapter_number")
-  title         String     @db.VarChar(500)
-  duration      Int        // 时长（秒）
-
-  // 音频文件
-  audioUrl      String     @map("audio_url") @db.VarChar(500)
-  fileName      String?    @map("file_name") @db.VarChar(255)
-
-  // 朗读者（可能每章不同）
-  readerName    String?    @map("reader_name") @db.VarChar(255)
-
-  // 时间戳同步（用于 Whispersync）
-  timestamps    Json?      // [{time: 0, text: "...", charOffset: 0}, ...]
-
-  createdAt     DateTime   @default(now()) @map("created_at")
-
-  @@unique([audiobookId, chapterNumber])
-  @@index([audiobookId])
-  @@index([bookChapterId])
-  @@map("audiobook_chapters")
-}
-
-model UserAudiobookProgress {
-  id              String    @id @default(uuid()) @db.Uuid
-  userId          String    @map("user_id") @db.Uuid
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  audiobookId     String    @map("audiobook_id") @db.Uuid
-  audiobook       Audiobook @relation(fields: [audiobookId], references: [id], onDelete: Cascade)
-
-  // 播放进度
-  currentChapter  Int       @default(0) @map("current_chapter")
-  currentPosition Int       @default(0) @map("current_position")  // 当前章节秒数
-  totalListened   Int       @default(0) @map("total_listened")    // 总收听秒数
-
-  // 播放设置
-  playbackSpeed   Float     @default(1.0) @map("playback_speed")
-
-  // 状态
-  status          ListeningStatus @default(IN_PROGRESS)
-  startedAt       DateTime  @default(now()) @map("started_at")
-  lastListenedAt  DateTime  @default(now()) @map("last_listened_at")
-  completedAt     DateTime? @map("completed_at")
-
-  @@unique([userId, audiobookId])
-  @@index([userId])
-  @@index([audiobookId])
-  @@map("user_audiobook_progress")
-}
-
-enum AudiobookSource {
-  LIBRIVOX
-  INTERNET_ARCHIVE
-  USER_UPLOAD
-  PREMIUM
-}
-
-enum AudioQuality {
-  LOW       // 64kbps
-  STANDARD  // 128kbps
-  HIGH      // VBR/256kbps
-}
-
-enum AudiobookStatus {
-  PENDING
-  ACTIVE
-  INACTIVE
-}
-
-enum ListeningStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
-}
-```
 
 #### 3.1.2 关联策略
 
@@ -495,118 +357,7 @@ enum ListeningStatus {
 
 ### 4.1 后端 API 设计
 
-```typescript
-// audiobook.controller.ts
-
-// 获取有声书列表
-GET /api/audiobooks
-  ?bookId=xxx          // 关联的电子书ID（可选）
-  ?hasBookSync=true    // 仅返回有电子书关联的
-  &page=1&limit=20
-
-// 获取有声书详情
-GET /api/audiobooks/:id
-  Response: {
-    id, title, author, narrator,
-    totalDuration, coverUrl, quality,
-    book: { id, title, epubUrl },  // 关联电子书
-    chapters: [
-      { id, title, duration, audioUrl, bookChapterId }
-    ]
-  }
-
-// 获取章节音频流
-GET /api/audiobooks/:id/chapters/:chapterId/stream
-  Response: Audio stream (MP3)
-
-// 保存播放进度
-POST /api/audiobooks/:id/progress
-  Body: {
-    chapterIndex: 3,
-    positionSeconds: 423,
-    playbackSpeed: 1.25
-  }
-
-// 获取播放进度
-GET /api/audiobooks/:id/progress
-
-// Whispersync: 统一进度
-GET /api/sync/progress?bookId=xxx
-  Response: {
-    bookProgress: { ... },
-    audiobookProgress: { ... },
-    recommendation: "listening",  // 建议从哪里继续
-    lastUpdated: "..."
-  }
-
-POST /api/sync/progress
-  Body: {
-    bookId: "xxx",
-    mode: "reading" | "listening",
-    position: { ... }
-  }
-```
-
 ### 4.2 iOS 实现结构
-
-```swift
-// AudiobookPlayer.swift - 核心播放器
-
-class AudiobookPlayer: ObservableObject {
-    // 播放状态
-    @Published var state: PlaybackState = .idle
-    @Published var currentChapter: Int = 0
-    @Published var currentPosition: TimeInterval = 0
-    @Published var duration: TimeInterval = 0
-    @Published var playbackRate: Float = 1.0
-
-    // 音频播放器
-    private var audioPlayer: AVPlayer?
-    private var timeObserver: Any?
-
-    // 章节列表
-    var chapters: [AudiobookChapter] = []
-
-    // 播放控制
-    func play(chapter: Int, at position: TimeInterval = 0)
-    func pause()
-    func resume()
-    func seekTo(_ position: TimeInterval)
-    func skipForward(_ seconds: TimeInterval = 15)
-    func skipBackward(_ seconds: TimeInterval = 15)
-    func nextChapter()
-    func previousChapter()
-
-    // 语速控制
-    func setPlaybackRate(_ rate: Float) // 0.5 - 3.5
-
-    // 睡眠定时
-    func setSleepTimer(_ option: SleepTimerOption)
-
-    // 远程控制
-    private func setupRemoteCommands()
-    private func updateNowPlayingInfo()
-
-    // 进度同步
-    func syncProgress() async
-}
-
-// WhispersyncManager.swift - 听读同步
-
-class WhispersyncManager: ObservableObject {
-    // 将阅读位置转为音频位置
-    func audioPositionFor(readingPosition: ReadingPosition) -> AudioPosition?
-
-    // 将音频位置转为阅读位置
-    func readingPositionFor(audioPosition: AudioPosition) -> ReadingPosition?
-
-    // 同步进度到服务器
-    func syncProgress(mode: SyncMode, position: Any) async
-
-    // 获取建议继续位置
-    func getRecommendedPosition() async -> RecommendedPosition
-}
-```
 
 ### 4.3 数据导入流程
 
@@ -711,20 +462,6 @@ class WhispersyncManager: ObservableObject {
 ## 8. 附录
 
 ### 8.1 LibriVox API 速查
-
-```bash
-# 获取有声书列表
-curl "https://librivox.org/api/feed/audiobooks/?format=json&limit=50"
-
-# 获取详情（含章节）
-curl "https://librivox.org/api/feed/audiobooks/?id=52&extended=1&format=json"
-
-# 搜索作者
-curl "https://librivox.org/api/feed/audiobooks/author/Austen?format=json"
-
-# 增量更新
-curl "https://librivox.org/api/feed/audiobooks/?since=1704067200&format=json"
-```
 
 ### 8.2 参考竞品
 

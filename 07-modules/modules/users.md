@@ -170,17 +170,15 @@ flowchart TD
 
 ### 7.2 导出格式
 
-```
-{
-  "user": { ... },
-  "books": [ ... ],
-  "vocabulary": [ ... ],
-  "highlights": [ ... ],
-  "sessions": [ ... ],
-  "subscription": { ... },
-  "exportedAt": "2025-12-31T00:00:00Z"
-}
-```
+| 顶级字段 | 类型 | 说明 |
+|----------|------|------|
+| `user` | object | 用户个人信息 |
+| `books` | array | 书架和阅读进度 |
+| `vocabulary` | array | 词汇本数据 |
+| `highlights` | array | 高亮和笔记 |
+| `sessions` | array | 阅读会话记录 |
+| `subscription` | object | 订阅状态 |
+| `exportedAt` | ISO 8601 string | 导出时间戳 |
 
 ---
 
@@ -204,11 +202,11 @@ flowchart TD
 
 | 组件 | 路径 |
 |------|------|
-| **模块** | `apps/backend/src/modules/users/users.module.ts` |
-| **服务** | `apps/backend/src/modules/users/users.service.ts` |
-| **控制器** | `apps/backend/src/modules/users/users.controller.ts` |
-| **DTO** | `apps/backend/src/modules/users/dto/` |
-| **AccountIdService** | `apps/backend/src/common/services/account-id.service.ts` |
+| **模块** | `src/modules/users/users.module.ts` |
+| **服务** | `src/modules/users/users.service.ts` |
+| **控制器** | `src/modules/users/users.controller.ts` |
+| **DTO** | `src/modules/users/dto/` |
+| **AccountIdService** | `src/common/services/account-id.service.ts` |
 
 ---
 

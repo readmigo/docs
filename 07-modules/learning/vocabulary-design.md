@@ -635,19 +635,6 @@ Response 200:
 
 ### 7.1 数据库索引
 
-```sql
--- 复合索引优化查询
-CREATE INDEX idx_user_vocab_review
-ON user_vocabulary(user_id, status, next_review_at);
-
-CREATE INDEX idx_user_vocab_book
-ON user_vocabulary(user_id, source_book_id);
-
--- 唯一约束
-CREATE UNIQUE INDEX idx_user_vocab_unique
-ON user_vocabulary(user_id, vocabulary_id);
-```
-
 ### 7.2 缓存策略
 
 | 数据类型 | 缓存位置 | TTL | 失效条件 |
@@ -681,8 +668,8 @@ ON user_vocabulary(user_id, vocabulary_id);
 
 | 模块 | 路径 |
 |------|------|
-| 后端 Controller | `apps/backend/src/modules/vocabulary/vocabulary.controller.ts` |
-| 后端 Service | `apps/backend/src/modules/vocabulary/vocabulary.service.ts` |
+| 后端 Controller | `src/modules/vocabulary/vocabulary.controller.ts` |
+| 后端 Service | `src/modules/vocabulary/vocabulary.service.ts` |
 | iOS Manager | `ios/Readmigo/Features/Learning/VocabularyManager.swift` |
 | iOS View | `ios/Readmigo/Features/Learning/VocabularyView.swift` |
 | Android ViewModel | `android/app/.../features/vocabulary/presentation/VocabularyViewModel.kt` |

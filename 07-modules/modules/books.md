@@ -296,10 +296,10 @@
 
 | 组件 | 路径 |
 |------|------|
-| **模块** | `apps/backend/src/modules/books/books.module.ts` |
-| **服务** | `apps/backend/src/modules/books/books.service.ts` |
-| **控制器** | `apps/backend/src/modules/books/books.controller.ts` |
-| **DTO** | `apps/backend/src/modules/books/dto/` |
+| **模块** | `src/modules/books/books.module.ts` |
+| **服务** | `src/modules/books/books.service.ts` |
+| **控制器** | `src/modules/books/books.controller.ts` |
+| **DTO** | `src/modules/books/dto/` |
 
 ---
 

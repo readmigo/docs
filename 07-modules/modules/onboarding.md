@@ -33,88 +33,6 @@
 
 ## 2. 数据模型
 
-```typescript
-// 引导状态
-interface OnboardingState {
-  currentStep: OnboardingStep;
-  isCompleted: boolean;
-  level: ReadingLevel | null;
-  dailyGoalMinutes: number;
-  interests: string[];
-  selectedLanguage: string | null;
-  recommendedBooks: Book[];
-  selectedBookId: string | null;
-}
-
-type OnboardingStep =
-  | 'welcome'
-  | 'features'
-  | 'assessment'
-  | 'goal'
-  | 'interests'
-  | 'notifications'
-  | 'first-book'
-  | 'complete';
-
-// 阅读水平
-type ReadingLevel = 'beginner' | 'intermediate' | 'advanced';
-
-// 书籍类型
-type Genre =
-  | 'fiction' | 'classic' | 'mystery' | 'romance'
-  | 'scifi' | 'fantasy' | 'biography' | 'history'
-  | 'philosophy' | 'self-help' | 'business' | 'science';
-
-// 评估问题
-interface AssessmentQuestion {
-  id: string;
-  text: string;
-  options: AssessmentOption[];
-  difficulty: 1 | 2 | 3 | 4;
-}
-
-interface AssessmentOption {
-  id: string;
-  text: string;
-  isCorrect: boolean;
-}
-
-// 评估结果
-interface AssessmentResult {
-  correctCount: number;
-  totalQuestions: number;
-  recommendedLevel: ReadingLevel;
-  confidence: number;
-}
-
-// 用户偏好
-interface UserPreferences {
-  language: LanguagePreference;
-  reading: ReadingPreference;
-  notifications: NotificationPreference;
-}
-
-interface LanguagePreference {
-  native: string;
-  learning: string[];
-  proficiency: ReadingLevel;
-}
-
-interface ReadingPreference {
-  genres: string[];
-  dailyGoal: number;
-  readingTime: 'morning' | 'afternoon' | 'evening' | 'night';
-}
-
-interface NotificationPreference {
-  enabled: boolean;
-  dailyReminder: boolean;
-  reminderTime: string;
-  newBooks: boolean;
-  learningReminder: boolean;
-}
-```
-
 ---
 
 ## 3. API 接口
@@ -143,85 +61,7 @@ flowchart LR
 
 ### 4.2 ViewModel
 
-```kotlin
-@HiltViewModel
-class OnboardingViewModel @Inject constructor(
-    private val userRepository: UserRepository,
-    private val bookRepository: BookRepository,
-    private val assessmentRepository: AssessmentRepository
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(OnboardingState())
-    val state: StateFlow<OnboardingState> = _state.asStateFlow()
-
-    fun nextStep() {
-        _state.update { it.copy(currentStep = it.currentStep.next()) }
-    }
-
-    fun setDailyGoal(minutes: Int) {
-        _state.update { it.copy(dailyGoalMinutes = minutes) }
-        nextStep()
-    }
-
-    fun toggleInterest(genre: Genre) {
-        _state.update { current ->
-            val newInterests = if (genre in current.interests) {
-                current.interests - genre
-            } else {
-                current.interests + genre
-            }
-            current.copy(interests = newInterests)
-        }
-    }
-
-    fun completeOnboarding() {
-        viewModelScope.launch {
-            userRepository.setOnboardingCompleted(true)
-            _state.update { it.copy(currentStep = OnboardingStep.COMPLETE) }
-        }
-    }
-}
-```
-
 ### 4.3 UI 组件
-
-```kotlin
-@Composable
-fun OnboardingScreen(
-    onComplete: () -> Unit,
-    viewModel: OnboardingViewModel = hiltViewModel()
-) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-
-    LaunchedEffect(state.currentStep) {
-        if (state.currentStep == OnboardingStep.COMPLETE) {
-            onComplete()
-        }
-    }
-
-    Scaffold { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            // 进度指示器
-            OnboardingProgressBar(
-                currentStep = state.currentStep.index,
-                totalSteps = OnboardingStep.entries.size - 1
-            )
-
-            // 步骤内容
-            AnimatedContent(targetState = state.currentStep) { step ->
-                when (step) {
-                    OnboardingStep.WELCOME -> WelcomeStep(onNext = { viewModel.nextStep() })
-                    OnboardingStep.ASSESSMENT -> AssessmentStep(...)
-                    OnboardingStep.GOAL -> GoalStep(onSelect = { viewModel.setDailyGoal(it) })
-                    OnboardingStep.INTERESTS -> InterestsStep(...)
-                    OnboardingStep.FIRST_BOOK -> FirstBookStep(...)
-                    else -> {}
-                }
-            }
-        }
-    }
-}
-```
 
 ---
 
@@ -229,91 +69,9 @@ fun OnboardingScreen(
 
 ### 5.1 Zustand Store
 
-```typescript
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
-  persist(
-    immer((set) => ({
-      hasCompletedOnboarding: false,
-      currentPageIndex: 0,
-      selectedLanguage: null,
-      readingGoal: 30,
-      interests: [],
-      notificationPermission: 'undetermined',
-
-      nextPage: () => set((state) => { state.currentPageIndex += 1; }),
-      setSelectedLanguage: (language) => set((state) => { state.selectedLanguage = language; }),
-      setReadingGoal: (minutes) => set((state) => { state.readingGoal = minutes; }),
-      toggleInterest: (interest) => set((state) => {
-        const index = state.interests.indexOf(interest);
-        if (index >= 0) {
-          state.interests.splice(index, 1);
-        } else {
-          state.interests.push(interest);
-        }
-      }),
-      completeOnboarding: () => set((state) => { state.hasCompletedOnboarding = true; }),
-    })),
-    { name: 'onboarding-storage', storage: createJSONStorage(() => AsyncStorage) }
-  )
-);
-```
-
 ### 5.2 页面容器
 
-```typescript
-export function OnboardingScreen() {
-  const scrollX = useSharedValue(0);
-  const { currentPageIndex, completeOnboarding } = useOnboardingStore();
-
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => { scrollX.value = event.contentOffset.x; },
-  });
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <Animated.ScrollView
-        horizontal
-        pagingEnabled
-        onScroll={scrollHandler}
-      >
-        {ONBOARDING_PAGES.map((page, index) => (
-          <OnboardingPageView key={page.id} page={page} index={index} scrollX={scrollX} />
-        ))}
-      </Animated.ScrollView>
-
-      <PageIndicator totalPages={ONBOARDING_PAGES.length} scrollX={scrollX} />
-    </SafeAreaView>
-  );
-}
-```
-
 ### 5.3 权限请求 (iOS ATT)
-
-```typescript
-import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
-import * as Notifications from 'expo-notifications';
-
-export function PermissionRequest({ onComplete }: Props) {
-  const requestNotificationPermission = async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (Platform.OS === 'ios') {
-      await requestTrackingPermissionsAsync();
-    }
-    onComplete();
-  };
-
-  return (
-    <View>
-      <Button title="开启通知" onPress={requestNotificationPermission} />
-      <Button title="稍后再说" onPress={onComplete} variant="secondary" />
-    </View>
-  );
-}
-```
 
 ---
 
@@ -321,69 +79,9 @@ export function PermissionRequest({ onComplete }: Props) {
 
 ### 6.1 Zustand Store
 
-```typescript
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
-  persist(
-    (set, get) => ({
-      isCompleted: false,
-      currentStep: 'welcome',
-      preferences: {},
-
-      nextStep: () => {
-        const { currentStepIndex } = get();
-        set({ currentStep: STEPS[currentStepIndex + 1] });
-      },
-      skipOnboarding: () => set({ isCompleted: true }),
-      completeOnboarding: () => set({ isCompleted: true, currentStep: 'complete' }),
-    }),
-    { name: 'onboarding-storage', partialize: (state) => ({ isCompleted: state.isCompleted }) }
-  )
-);
-```
-
 ### 6.2 引导流程组件
 
-```tsx
-export function OnboardingFlow() {
-  const { currentStep, previousStep, handleSkip } = useOnboarding();
-
-  return (
-    <div className="fixed inset-0 bg-background flex flex-col">
-      <header className="flex items-center justify-between p-4">
-        <button onClick={previousStep}><ChevronLeft /></button>
-        <ProgressDots current={progress.current} total={progress.total} />
-        <button onClick={handleSkip}><X /></button>
-      </header>
-
-      <main className="flex-1 overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div key={currentStep} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            {renderStep()}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-    </div>
-  );
-}
-```
-
 ### 6.3 路由守卫
-
-```typescript
-// middleware.ts
-export function middleware(request: NextRequest) {
-  const onboardingCompleted = request.cookies.get('onboarding-completed');
-  const isOnboardingPage = request.nextUrl.pathname.startsWith('/onboarding');
-
-  if (!onboardingCompleted && !isOnboardingPage) {
-    return NextResponse.redirect(new URL('/onboarding', request.url));
-  }
-  return NextResponse.next();
-}
-```
 
 ---
 
@@ -399,47 +97,9 @@ export function middleware(request: NextRequest) {
 
 ### 7.2 性能优化
 
-```typescript
-// 图片预加载 (React Native)
-import { Asset } from 'expo-asset';
-
-async function preloadOnboardingAssets() {
-  const images = ONBOARDING_PAGES.map(page => page.image);
-  await Asset.loadAsync(images);
-}
-```
-
 ---
 
 ## 8. 测试用例
-
-```typescript
-describe('OnboardingStore', () => {
-  beforeEach(() => {
-    useOnboardingStore.setState({ isCompleted: false, currentStep: 'welcome' });
-  });
-
-  it('should navigate to next step', () => {
-    const { nextStep, currentStep } = useOnboardingStore.getState();
-    nextStep();
-    expect(useOnboardingStore.getState().currentStep).toBe('features');
-  });
-
-  it('should complete onboarding', () => {
-    const { completeOnboarding } = useOnboardingStore.getState();
-    completeOnboarding();
-    expect(useOnboardingStore.getState().isCompleted).toBe(true);
-  });
-
-  it('should toggle interests', () => {
-    const { toggleInterest } = useOnboardingStore.getState();
-    toggleInterest('fiction');
-    expect(useOnboardingStore.getState().interests).toContain('fiction');
-    toggleInterest('fiction');
-    expect(useOnboardingStore.getState().interests).not.toContain('fiction');
-  });
-});
-```
 
 ---
 

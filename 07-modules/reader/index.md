@@ -49,8 +49,8 @@
   - `ChapterRenderer.swift` - 章节渲染
 
 ### 后端服务
-- `apps/backend/src/modules/books/` - 书籍服务
-- `apps/backend/src/modules/reading-progress/` - 阅读进度
+- `src/modules/books/` - 书籍服务
+- `src/modules/reading-progress/` - 阅读进度
 
 ---
 

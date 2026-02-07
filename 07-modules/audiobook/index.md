@@ -56,7 +56,7 @@ Audiobook 模块提供有声书播放和管理功能，包含：
   - `AudioPlayerManager.swift` - 音频管理
 
 ### 后端服务
-- `apps/backend/src/modules/audiobooks/` - 有声书服务
+- `src/modules/audiobooks/` - 有声书服务
 
 ---
 

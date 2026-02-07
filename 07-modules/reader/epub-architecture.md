@@ -107,69 +107,10 @@ book.epub (ZIP 压缩包)
 ### 2.2 关键文件解析
 
 #### container.xml
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>
-```
 
 #### content.opf (核心元数据)
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="3.0">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:title>Pride and Prejudice</dc:title>
-    <dc:creator>Jane Austen</dc:creator>
-    <dc:language>en</dc:language>
-    <dc:description>A classic novel...</dc:description>
-    <dc:date>1813-01-28</dc:date>
-    <dc:subject>Fiction</dc:subject>
-    <meta property="dcterms:modified">2023-01-01T00:00:00Z</meta>
-  </metadata>
-
-  <manifest>
-    <item id="cover" href="images/cover.jpg" media-type="image/jpeg"/>
-    <item id="ch1" href="text/chapter-1.xhtml" media-type="application/xhtml+xml"/>
-    <item id="ch2" href="text/chapter-2.xhtml" media-type="application/xhtml+xml"/>
-    <!-- ... -->
-  </manifest>
-
-  <spine>
-    <itemref idref="ch1"/>
-    <itemref idref="ch2"/>
-    <!-- 阅读顺序 -->
-  </spine>
-</package>
-```
 
 ### 2.3 解析器实现 (EpubParser)
-
-```typescript
-// scripts/book-ingestion/processors/epub-parser.ts
-
-interface ParsedBook {
-  title: string;
-  author: string;
-  description: string;
-  language: string;
-  publishedYear: number;
-  chapters: ParsedChapter[];
-  coverImage: Buffer;
-  coverMimeType: string;
-  totalWordCount: number;
-}
-
-interface ParsedChapter {
-  title: string;
-  content: string;      // HTML 内容
-  orderIndex: number;
-  wordCount: number;
-  href: string;         // EPUB 内部路径
-}
-```
 
 **解析流程:**
 1. 解压 ZIP → 读取 `META-INF/container.xml`
@@ -187,95 +128,8 @@ interface ParsedChapter {
 ### 3.1 数据库模型 (Prisma)
 
 #### Book 表
-```prisma
-model Book {
-  id                      String    @id @default(uuid())
-
-  // 基础信息
-  title                   String
-  author                  String
-  description             String?
-  language                String    @default("en")
-  languageVariant         String?   // zh-Hans, zh-Hant
-
-  // 资源 URL (Cloudflare R2)
-  epubUrl                 String?
-  coverUrl                String?
-  coverThumbUrl           String?
-
-  // 统计信息
-  wordCount               Int?
-  chapterCount            Int?
-  estimatedReadingMinutes Int?
-  characterCount          Int?      // 中文专用
-
-  // 难度分析
-  difficultyScore         Float?    // 1-10 标准化分数
-  fleschScore             Float?    // Flesch Reading Ease (英文)
-  hskLevel                Int?      // HSK 等级 1-9 (中文)
-  avgStrokeCount          Float?    // 平均笔画数 (中文)
-  cefrLevel               String?   // CEFR A1-C2 (英文)
-
-  // 来源追踪
-  source                  BookSource
-  sourceId                String?   // 原始 ID
-  sourceUrl               String?   // 原始 URL
-
-  // 分类
-  subjects                String[]
-  genres                  String[]
-  dynasty                 String?   // 中文古籍朝代
-
-  // 状态
-  status                  BookStatus @default(PENDING)
-  publishedAt             DateTime?
-  createdAt               DateTime   @default(now())
-  updatedAt               DateTime   @updatedAt
-
-  // 关联
-  chapters                Chapter[]
-  userBooks               UserBook[]
-
-  @@unique([source, sourceId])
-}
-
-enum BookSource {
-  STANDARD_EBOOKS
-  GUTENBERG
-  GUTENBERG_ZH
-  CTEXT
-  WIKISOURCE_ZH
-  SHUGE
-  USER_UPLOAD
-}
-
-enum BookStatus {
-  PENDING
-  PROCESSING
-  ACTIVE
-  INACTIVE
-  ERROR
-}
-```
 
 #### Chapter 表
-```prisma
-model Chapter {
-  id          String  @id @default(uuid())
-  bookId      String
-  book        Book    @relation(fields: [bookId], references: [id])
-
-  order       Int                 // 章节顺序 (0-based)
-  title       String
-  href        String?             // EPUB 内部路径
-
-  content     String?  @db.Text   // 纯文本内容
-  htmlContent String?  @db.Text   // HTML 原始内容
-  wordCount   Int?
-
-  @@unique([bookId, order])
-}
-```
 
 ### 3.2 对象存储 (Cloudflare R2)
 
@@ -307,16 +161,6 @@ R2 Bucket: readmigo
 ```
 
 **R2 配置:**
-```typescript
-const r2 = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-  },
-});
-```
 
 ### 3.3 缓存策略 (Redis)
 
@@ -432,89 +276,11 @@ Response:
 
 ### 4.3 移动端过滤逻辑
 
-```typescript
-// 识别移动客户端
-const isMobileClient = req.headers['x-client-type'] === 'ios'
-                    || req.headers['x-client-type'] === 'android';
-
-// 中文内容过滤 (移动端暂不支持)
-const CHINESE_LANGUAGES = ['zh', 'zh-Hans', 'zh-Hant', 'zh-CN', 'zh-TW'];
-const CHINESE_SOURCES = ['CTEXT', 'WIKISOURCE_ZH', 'GUTENBERG_ZH', 'SHUGE'];
-
-if (isMobileClient) {
-  query.where.NOT = {
-    OR: [
-      { language: { in: CHINESE_LANGUAGES } },
-      { source: { in: CHINESE_SOURCES } }
-    ]
-  };
-}
-```
-
 ---
 
 ## 5. 客户端实现
 
 ### 5.1 数据模型 (Swift)
-
-```swift
-// Book.swift
-struct Book: Codable, Identifiable {
-    let id: String
-    let title: String
-    let author: String
-    let description: String?
-    let coverUrl: String?
-    let coverThumbUrl: String?
-    let subjects: [String]?
-    let genres: [String]
-    let difficultyScore: Int?
-    let fleschScore: Float?
-    let wordCount: Int?
-    let chapterCount: Int?
-    let source: String
-    let status: String
-    let publishedAt: String?
-
-    var displayCoverUrl: String? {
-        coverThumbUrl ?? coverUrl
-    }
-
-    var difficultyLevel: DifficultyLevel {
-        guard let score = difficultyScore else { return .medium }
-        switch score {
-        case 0..<30: return .easy
-        case 30..<50: return .medium
-        case 50..<70: return .challenging
-        default: return .advanced
-        }
-    }
-}
-
-struct BookDetail: Codable {
-    let book: Book
-    let chapters: [Chapter]
-    let userProgress: UserProgress?
-}
-
-struct Chapter: Codable, Identifiable {
-    let id: String
-    let title: String
-    let order: Int
-    let wordCount: Int?
-}
-
-struct ChapterContent: Codable {
-    let id: String
-    let title: String
-    let order: Int
-    let content: String       // 纯文本
-    let htmlContent: String?  // HTML
-    let wordCount: Int
-    let previousChapterId: String?
-    let nextChapterId: String?
-}
-```
 
 ### 5.2 阅读器架构
 
@@ -543,157 +309,9 @@ ReaderView (主容器)
 
 ### 5.3 内容渲染 (WKWebView)
 
-```swift
-// ReaderContentView.swift
-class ReaderContentView: UIViewRepresentable {
-    let content: ChapterContent
-    let theme: ReaderTheme
-    let fontSize: CGFloat
-
-    func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.userContentController.add(coordinator, name: "textSelection")
-        config.userContentController.add(coordinator, name: "tap")
-        config.userContentController.add(coordinator, name: "scroll")
-
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.navigationDelegate = context.coordinator
-        return webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        let html = generateHTML(content: content, theme: theme, fontSize: fontSize)
-        webView.loadHTMLString(html, baseURL: nil)
-    }
-}
-```
-
 ### 5.4 HTML 模板
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    :root {
-      --bg-color: ${theme.backgroundColor};
-      --text-color: ${theme.textColor};
-      --font-size: ${fontSize}px;
-    }
-
-    body {
-      font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
-      font-size: var(--font-size);
-      line-height: 1.8;
-      color: var(--text-color);
-      background: var(--bg-color);
-      padding: 20px;
-      text-align: justify;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* CJK 支持 */
-    body:lang(zh) {
-      text-spacing: ideograph-alpha;
-      line-break: strict;
-      word-break: break-all;
-      hyphens: none;
-    }
-
-    h1.chapter-title {
-      text-align: center;
-      font-size: 1.4em;
-      margin-bottom: 2em;
-      text-indent: 0;
-    }
-
-    p {
-      text-indent: 2em;
-      margin: 1em 0;
-    }
-
-    p:first-of-type::first-letter {
-      font-size: 1em;
-      float: none;
-    }
-
-    blockquote {
-      font-style: italic;
-      border-left: 3px solid var(--text-color);
-      padding-left: 1em;
-      margin-left: 0;
-      opacity: 0.8;
-    }
-
-    /* 用户标注颜色 */
-    .highlight-yellow { background: rgba(255, 235, 59, 0.4); }
-    .highlight-green { background: rgba(76, 175, 80, 0.4); }
-    .highlight-blue { background: rgba(33, 150, 243, 0.4); }
-    .highlight-pink { background: rgba(233, 30, 99, 0.4); }
-    .highlight-purple { background: rgba(156, 39, 176, 0.4); }
-  </style>
-</head>
-<body lang="${language}">
-  <h1 class="chapter-title">${title}</h1>
-  ${htmlContent}
-
-  <script>
-    // 文本选择处理
-    document.addEventListener('selectionchange', () => {
-      const selection = window.getSelection();
-      if (selection.toString().trim()) {
-        const range = selection.getRangeAt(0);
-        const sentence = getSentenceContext(range);
-        window.webkit.messageHandlers.textSelection.postMessage({
-          text: selection.toString(),
-          sentence: sentence
-        });
-      }
-    });
-
-    // 点击处理
-    document.addEventListener('click', (e) => {
-      if (!window.getSelection().toString()) {
-        window.webkit.messageHandlers.tap.postMessage({});
-      }
-    });
-
-    // 滚动进度
-    window.addEventListener('scroll', () => {
-      const progress = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-      window.webkit.messageHandlers.scroll.postMessage({ progress });
-    });
-  </script>
-</body>
-</html>
-```
-
 ### 5.5 离线缓存
-
-```swift
-// ContentCache.swift
-class ContentCache {
-    static let shared = ContentCache()
-
-    private let cacheDirectory: URL
-
-    func saveChapterContent(_ content: ChapterContent, bookId: String) async throws {
-        let key = "\(bookId)_\(content.id)"
-        let data = try JSONEncoder().encode(content)
-        let fileURL = cacheDirectory.appendingPathComponent(key)
-        try data.write(to: fileURL)
-    }
-
-    func getChapterContent(bookId: String, chapterId: String) async -> ChapterContent? {
-        let key = "\(bookId)_\(chapterId)"
-        let fileURL = cacheDirectory.appendingPathComponent(key)
-        guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return try? JSONDecoder().decode(ChapterContent.self, from: data)
-    }
-}
-```
 
 ---
 
@@ -780,22 +398,15 @@ difficulty = -11.848 + 2.135×avgStrokes + 0.15×charsPerSentence +
 
 ### B. 环境变量
 
-```env
-# 数据库
-DATABASE_URL=postgresql://user:pass@localhost:5432/readmigo
-
-# Cloudflare R2
-R2_ENDPOINT=https://xxx.r2.cloudflarestorage.com
-R2_ACCESS_KEY_ID=xxx
-R2_SECRET_ACCESS_KEY=xxx
-R2_BUCKET_NAME=readmigo
-
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# CText API (可选)
-CTEXT_API_KEY=xxx
-```
+| Variable | Service |
+|----------|---------|
+| DATABASE_URL | PostgreSQL connection |
+| R2_ENDPOINT | Cloudflare R2 endpoint |
+| R2_ACCESS_KEY_ID | Cloudflare R2 auth |
+| R2_SECRET_ACCESS_KEY | Cloudflare R2 auth |
+| R2_BUCKET_NAME | R2 bucket name |
+| REDIS_URL | Redis connection |
+| CTEXT_API_KEY | CText API (optional) |
 
 ### C. 相关文件索引
 
@@ -809,8 +420,8 @@ CTEXT_API_KEY=xxx
 | `scripts/book-ingestion/processors/epub-parser.ts` | EPUB 解析器 |
 | `scripts/book-ingestion/processors/difficulty-analyzer.ts` | 英文难度分析 |
 | `scripts/book-ingestion/processors/chinese-difficulty-analyzer.ts` | 中文难度分析 |
-| `apps/backend/src/modules/books/books.controller.ts` | 书籍 API 控制器 |
-| `apps/backend/src/modules/books/books.service.ts` | 书籍业务逻辑 |
+| `src/modules/books/books.controller.ts` | 书籍 API 控制器 |
+| `src/modules/books/books.service.ts` | 书籍业务逻辑 |
 | `ios/Readmigo/Features/Reader/ReaderView.swift` | iOS 阅读器主视图 |
 | `ios/Readmigo/Features/Reader/ReaderViewModel.swift` | iOS 阅读器状态管理 |
 | `ios/Readmigo/Features/Reader/ReaderContentView.swift` | iOS WebView 渲染 |

@@ -119,20 +119,6 @@
 | 举报 | 举报不当内容 |
 
 #### 屏蔽数据结构
-```swift
-struct BlockedItem: Identifiable, Codable {
-    let id: String
-    let type: BlockType        // .post, .author
-    let targetId: String       // 帖子ID或作者ID
-    let reason: String?
-    let createdAt: Date
-}
-
-enum BlockType: String, Codable {
-    case post = "POST"
-    case author = "AUTHOR"
-}
-```
 
 ---
 
@@ -140,44 +126,7 @@ enum BlockType: String, Codable {
 
 ### 4.1 Author（作者）
 
-```swift
-struct Author: Codable, Identifiable, Hashable {
-    let id: String
-    let name: String              // 作者名
-    let avatarUrl: String?        // AI生成头像URL
-    let bio: String?              // 简介
-    let era: String?              // 年代 (如 "1775-1817")
-    let nationality: String?      // 国籍
-    let bookCount: Int            // 著作数量
-
-    // 计算属性
-    var initials: String          // 头像占位文字
-    var avatarColorIndex: Int     // 头像背景色索引
-}
-```
-
 ### 4.2 AgoraPost（帖子）
-
-```swift
-struct AgoraPost: Codable, Identifiable {
-    let id: String
-    let author: Author            // 作者信息
-    let quote: Quote              // 金句内容
-    let simulatedPostTime: Date   // 模拟发布时间
-    var likeCount: Int            // 点赞数
-    var shareCount: Int           // 分享数
-    var isLiked: Bool             // 当前用户是否点赞
-    var isBookmarked: Bool        // 是否收藏
-
-    // 计算属性
-    var relativeTimeString: String // "3分钟前"
-    var sourceString: String       // "《傲慢与偏见》· 第一章"
-
-    // V2 规划
-    // var commentCount: Int      // 评论数 (V2)
-    // var comments: [Comment]?   // 评论列表 (V2)
-}
-```
 
 ### 4.3 Comment（评论）- V2 规划
 
@@ -185,98 +134,13 @@ struct AgoraPost: Codable, Identifiable {
 
 ### 4.4 BlockedItem（屏蔽项）
 
-```swift
-struct BlockedItem: Codable, Identifiable {
-    let id: String
-    let type: BlockType
-    let targetId: String
-    let reason: String?
-    let createdAt: Date
-}
-
-enum BlockType: String, Codable {
-    case post = "POST"
-    case author = "AUTHOR"
-}
-```
-
 ---
 
 ## 五、业务逻辑层
 
 ### 5.1 AgoraManager
 
-```swift
-@MainActor
-class AgoraManager: ObservableObject {
-    static let shared = AgoraManager()
-
-    // MARK: - Published Properties
-    @Published var posts: [AgoraPost] = []
-    @Published var isLoading = false
-    @Published var hasMorePosts = true
-    @Published var blockedAuthors: Set<String> = []
-    @Published var blockedPosts: Set<String> = []
-
-    // MARK: - Posts Management
-    func fetchPosts(refresh: Bool = false) async
-    func loadMorePosts() async
-    func refreshPosts() async
-
-    // MARK: - Interactions
-    func likePost(_ postId: String) async
-    func unlikePost(_ postId: String) async
-    func sharePost(_ postId: String) async
-    func bookmarkPost(_ postId: String) async
-
-    // MARK: - Comments (V2 规划)
-    // func fetchComments(for postId: String) async -> [Comment]
-    // func addComment(to postId: String, content: String) async
-    // func likeComment(_ commentId: String) async
-    // func replyToComment(_ commentId: String, content: String) async
-
-    // MARK: - Block/Hide
-    func hidePost(_ postId: String)
-    func blockAuthor(_ authorId: String)
-    func unblockAuthor(_ authorId: String)
-    func reportPost(_ postId: String, reason: String) async
-
-    // MARK: - Helpers
-    func generateSimulatedPostTime() -> Date
-    func filterBlockedContent(_ posts: [AgoraPost]) -> [AgoraPost]
-}
-```
-
 ### 5.2 时间显示逻辑
-
-```swift
-extension Date {
-    var relativeTimeString: String {
-        let now = Date()
-        let interval = now.timeIntervalSince(self)
-
-        switch interval {
-        case 0..<60:
-            return "刚刚"
-        case 60..<3600:
-            let minutes = Int(interval / 60)
-            return "\(minutes)分钟前"
-        case 3600..<86400:
-            let hours = Int(interval / 3600)
-            return "\(hours)小时前"
-        case 86400..<172800:
-            return "昨天"
-        case 172800..<604800:
-            let days = Int(interval / 86400)
-            return "\(days)天前"
-        default:
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MM月dd日"
-            return formatter.string(from: self)
-        }
-    }
-}
-```
 
 ---
 
@@ -392,102 +256,12 @@ AgoraView (主视图)
 ### 7.2 响应示例
 
 #### 获取帖子列表
-```json
-{
-  "data": [
-    {
-      "id": "post-1",
-      "author": {
-        "id": "author-jane-austen",
-        "name": "Jane Austen",
-        "avatarUrl": "https://...",
-        "nationality": "British"
-      },
-      "quote": {
-        "id": "quote-1",
-        "text": "It is a truth universally acknowledged...",
-        "bookTitle": "Pride and Prejudice",
-        "chapter": "Chapter 1"
-      },
-      "simulatedPostTime": "2025-12-19T10:30:00Z",
-      "likeCount": 128,
-      "shareCount": 5,
-      "isLiked": false
-    }
-  ],
-  "total": 100,
-  "page": 1,
-  "limit": 20,
-  "hasMore": true
-}
-```
 
 ---
 
 ## 八、Mock数据设计
 
 ### 8.1 示例帖子
-
-```swift
-static let mockPosts: [AgoraPost] = [
-    // Jane Austen
-    AgoraPost(
-        id: "post-1",
-        author: Author.janeAusten,
-        quote: Quote(
-            text: "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.",
-            bookTitle: "Pride and Prejudice",
-            chapter: "Chapter 1"
-        ),
-        simulatedPostTime: Date().addingTimeInterval(-180),
-        likeCount: 128,
-        shareCount: 5,
-        isLiked: false
-    ),
-
-    // Oscar Wilde
-    AgoraPost(
-        id: "post-2",
-        author: Author.oscarWilde,
-        quote: Quote(
-            text: "To live is the rarest thing in the world. Most people exist, that is all.",
-            bookTitle: "The Soul of Man under Socialism"
-        ),
-        simulatedPostTime: Date().addingTimeInterval(-3600),
-        likeCount: 256,
-        shareCount: 12,
-        isLiked: true
-    ),
-
-    // Mark Twain
-    AgoraPost(
-        id: "post-3",
-        author: Author.markTwain,
-        quote: Quote(
-            text: "The secret of getting ahead is getting started.",
-            source: "author"
-        ),
-        simulatedPostTime: Date().addingTimeInterval(-7200),
-        likeCount: 89,
-        shareCount: 3,
-        isLiked: false
-    ),
-
-    // Fyodor Dostoevsky
-    AgoraPost(
-        id: "post-4",
-        author: Author.dostoevsky,
-        quote: Quote(
-            text: "Pain and suffering are always inevitable for a large intelligence and a deep heart.",
-            bookTitle: "Crime and Punishment"
-        ),
-        simulatedPostTime: Date().addingTimeInterval(-86400),
-        likeCount: 312,
-        shareCount: 28,
-        isLiked: false
-    )
-]
-```
 
 ---
 

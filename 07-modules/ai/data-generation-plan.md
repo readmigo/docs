@@ -236,16 +236,3 @@ satire of social pretensions...
 
 确认后，使用以下命令执行:
 
-```bash
-# 分析数据缺口
-pnpm --filter @readmigo/database exec npx tsx ../../scripts/hybrid-book-processor.ts analyze
-
-# 处理书籍数据 (摘要 + CEFR)
-pnpm --filter @readmigo/database exec npx tsx ../../scripts/hybrid-book-processor.ts process-books
-
-# 处理作者数据
-pnpm --filter @readmigo/database exec npx tsx ../../scripts/hybrid-book-processor.ts process-authors
-
-# 处理所有数据
-pnpm --filter @readmigo/database exec npx tsx ../../scripts/hybrid-book-processor.ts process-all
-```

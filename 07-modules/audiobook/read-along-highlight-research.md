@@ -616,43 +616,9 @@ LibriVox 章节划分可能与电子书不一致：
 
 **Replicate（最快验证）**
 
-```bash
-# 安装
-pip install replicate
-
-# 单文件转录
-replicate run openai/whisper:large-v3 \
-  --audio="https://archive.org/download/pride_prejudice/chapter1.mp3" \
-  --model=large-v3 \
-  --word_timestamps=true
-```
-
 **Modal（生产推荐）**
 
-```python
-import modal
-
-app = modal.App("whisper-processor")
-
-@app.function(gpu="A10G", timeout=3600)
-def transcribe(audio_url: str):
-    import whisper
-    model = whisper.load_model("large-v3")
-    result = model.transcribe(audio_url, word_timestamps=True)
-    return result
-
-# 部署: modal deploy whisper_app.py
-# 调用: modal run whisper_app.py::transcribe --audio-url="..."
-```
-
 **RunPod（批量处理）**
-
-```bash
-# 1. 在 RunPod 创建 GPU Pod (RTX 3090, $0.39/h)
-# 2. SSH 连接后运行批量脚本
-python batch_transcribe.py --input-dir /audiobooks --output-dir /timestamps
-# 3. 处理完成后关闭 Pod
-```
 
 #### 成本对比（300本书 / 3000小时音频）
 

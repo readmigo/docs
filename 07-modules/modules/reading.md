@@ -208,10 +208,10 @@ sequenceDiagram
 
 | 组件 | 路径 |
 |------|------|
-| **模块** | `apps/backend/src/modules/reading/reading.module.ts` |
-| **服务** | `apps/backend/src/modules/reading/reading.service.ts` |
-| **控制器** | `apps/backend/src/modules/reading/reading.controller.ts` |
-| **DTO** | `apps/backend/src/modules/reading/dto/` |
+| **模块** | `src/modules/reading/reading.module.ts` |
+| **服务** | `src/modules/reading/reading.service.ts` |
+| **控制器** | `src/modules/reading/reading.controller.ts` |
+| **DTO** | `src/modules/reading/dto/` |
 
 ---
 

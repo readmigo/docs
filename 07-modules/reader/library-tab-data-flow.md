@@ -23,18 +23,6 @@ Library Tab 是用户个人书库页面，展示用户添加到个人库的书�
 
 ### 加载逻辑（LibraryView.swift）
 
-```swift
-.task {
-    if libraryManager.userBooks.isEmpty {
-        await libraryManager.fetchUserLibrary()
-    }
-}
-
-.elegantRefreshable {
-    await libraryManager.fetchUserLibrary()
-}
-```
-
 ---
 
 ## 2. 子 Tab（过滤器）什么时候有数据
@@ -50,30 +38,7 @@ Library Tab 有 4 个过滤标签：
 
 ### 状态枚举定义
 
-```swift
-enum BookStatus: String, Codable {
-    case wantToRead = "want_to_read"  // 想读
-    case reading = "reading"           // 正在阅读
-    case completed = "completed"       // 已完成
-}
-```
-
 ### 过滤逻辑
-
-```swift
-var filteredBooks: [UserBook] {
-    switch selectedFilter {
-    case .all:
-        return userBooks
-    case .reading:
-        return userBooks.filter { $0.status == .reading }
-    case .wantToRead:
-        return userBooks.filter { $0.status == .wantToRead }
-    case .completed:
-        return userBooks.filter { $0.status == .completed }
-    }
-}
-```
 
 ### Continue Reading 区域
 
@@ -97,25 +62,7 @@ Library Tab 使用**三层缓存系统**：
 
 ### 缓存服务（ResponseCacheService）
 
-```swift
-struct CachedResponse {
-    let data: Data          // 缓存的数据
-    let timestamp: Date     // 缓存时间
-    let ttl: TimeInterval   // 生存时间
-
-    var isExpired: Bool {
-        Date().timeIntervalSince(timestamp) > ttl
-    }
-}
-```
-
 ### 缓存键规则
-
-```swift
-static func userLibraryKey() -> String { "user_library" }
-static func bookDetailKey(_ bookId: String) -> String { "book_detail_\(bookId)" }
-static func booksListKey(page: Int, limit: Int, search: String?) -> String
-```
 
 ---
 
@@ -131,27 +78,7 @@ static func booksListKey(page: Int, limit: Int, search: String?) -> String
 
 ### 添加书籍操作
 
-```swift
-func addToLibrary(bookId: String) async throws {
-    let _: UserBook = try await APIClient.shared.request(
-        endpoint: APIEndpoints.addToLibrary(bookId),
-        method: .post
-    )
-    await fetchUserLibrary()  // 刷新整个书库
-}
-```
-
 ### 移除书籍操作
-
-```swift
-func removeFromLibrary(bookId: String) async throws {
-    let _: EmptyResponse = try await APIClient.shared.request(
-        endpoint: APIEndpoints.removeFromLibrary(bookId),
-        method: .delete
-    )
-    userBooks.removeAll { $0.book.id == bookId }  // 本地同步删除
-}
-```
 
 ---
 
@@ -178,13 +105,6 @@ func removeFromLibrary(bookId: String) async throws {
 5. 缓存满时自动清理最老的 20% 条目
 
 ### 缓存清理接口
-
-```swift
-func invalidate(_ key: String)           // 清除单个缓存
-func invalidatePrefix(_ prefix: String)  // 清除前缀匹配的缓存
-func invalidateAll()                     // 清除全部缓存
-func cleanupExpired()                    // 清理过期数据
-```
 
 ---
 
@@ -232,13 +152,6 @@ func cleanupExpired()                    // 清理过期数据
 | completed | "completed" | 已完成 |
 
 ### 6.4 API 响应类型
-
-```swift
-// 用户书库响应
-struct UserLibraryResponse: Codable {
-    let books: [UserBook]
-}
-```
 
 ---
 

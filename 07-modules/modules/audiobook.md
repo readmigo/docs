@@ -94,65 +94,6 @@ loyalbooks/
 
 ## 3. 数据模型
 
-```typescript
-// 有声书
-interface Audiobook {
-  id: string;
-  bookId: string;
-  title: string;
-  author: string;
-  narrator?: string;
-  coverUrl: string;
-  totalDuration: number;
-  chapterCount: number;
-  source: 'librivox' | 'internet-archive' | 'premium';
-  isDownloaded: boolean;
-  lastPlayedAt?: string;
-  lastPosition: number;
-}
-
-// 音频章节
-interface AudioChapter {
-  id: string;
-  audiobookId: string;
-  index: number;
-  title: string;
-  audioUrl: string;
-  localPath?: string;
-  duration: number;
-  startTime: number;
-  isDownloaded: boolean;
-}
-
-// 播放状态
-interface PlaybackState {
-  status: 'idle' | 'loading' | 'playing' | 'paused' | 'buffering' | 'ended';
-  audiobookId: string | null;
-  currentChapterIndex: number;
-  position: number;
-  duration: number;
-  playbackRate: number;
-  volume: number;
-}
-
-// 睡眠定时器
-interface SleepTimer {
-  isActive: boolean;
-  endTime: number | null;
-  remainingMinutes: number;
-  mode: 'off' | 'end_of_chapter' | 'custom';
-}
-
-// Whispersync 同步点
-interface SyncPoint {
-  audioTime: number;
-  textStart: number;
-  textEnd: number;
-  textCfi?: string;
-  text?: string;
-}
-```
-
 ---
 
 ## 4. API 接口
@@ -172,61 +113,7 @@ interface SyncPoint {
 
 ### 5.1 MediaSession 服务
 
-```kotlin
-@AndroidEntryPoint
-class AudiobookPlaybackService : MediaSessionService() {
-    private var player: ExoPlayer? = null
-    private var mediaSession: MediaSession? = null
-
-    override fun onCreate() {
-        super.onCreate()
-        player = ExoPlayer.Builder(this)
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
-                    .build(), true
-            )
-            .setHandleAudioBecomingNoisy(true)
-            .build()
-
-        mediaSession = MediaSession.Builder(this, player!!).build()
-    }
-
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
-}
-```
-
 ### 5.2 播放控制器
-
-```kotlin
-@Singleton
-class PlaybackController @Inject constructor(
-    private val audiobookRepository: AudiobookRepository
-) {
-    private val _playbackState = MutableStateFlow(PlaybackState())
-    val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
-
-    suspend fun playAudiobook(audiobookId: String) {
-        val chapters = audiobookRepository.getChapters(audiobookId)
-        val mediaItems = chapters.map { chapter ->
-            MediaItem.Builder()
-                .setMediaId(chapter.id)
-                .setUri(chapter.audioUrl)
-                .build()
-        }
-        mediaController?.setMediaItems(mediaItems)
-        mediaController?.play()
-    }
-
-    fun skipForward(seconds: Int = 30) {
-        mediaController?.seekTo(mediaController!!.currentPosition + seconds * 1000)
-    }
-
-    fun skipBackward(seconds: Int = 15) {
-        mediaController?.seekTo(maxOf(0, mediaController!!.currentPosition - seconds * 1000))
-    }
-}
-```
 
 ---
 
@@ -234,58 +121,7 @@ class PlaybackController @Inject constructor(
 
 ### 6.1 Zustand Store
 
-```typescript
-export const useAudioStore = create<AudioState & AudioActions>()(
-  persist(
-    immer((set) => ({
-      playback: { status: 'idle', position: 0, playbackRate: 1.0 },
-      sleepTimer: { isActive: false, mode: 'off' },
-
-      setPlaybackStatus: (status) => set((s) => { s.playback.status = status; }),
-      setPosition: (position) => set((s) => { s.playback.position = position; }),
-      setPlaybackRate: (rate) => set((s) => { s.playback.playbackRate = rate; }),
-
-      setSleepTimer: (minutes) => set((s) => {
-        s.sleepTimer = {
-          isActive: true,
-          endTime: Date.now() + minutes * 60 * 1000,
-          remainingMinutes: minutes,
-          mode: 'custom',
-        };
-      }),
-    })),
-    { name: 'audio-storage', storage: createJSONStorage(() => AsyncStorage) }
-  )
-);
-```
-
 ### 6.2 音频服务
-
-```typescript
-class AudioPlayerService {
-  private sound: Audio.Sound | null = null;
-
-  async initialize() {
-    await Audio.setAudioModeAsync({
-      staysActiveInBackground: true,
-      playsInSilentModeIOS: true,
-    });
-  }
-
-  async loadAudio(chapter: AudioChapter) {
-    if (this.sound) await this.sound.unloadAsync();
-    const { sound } = await Audio.Sound.createAsync({ uri: chapter.audioUrl });
-    this.sound = sound;
-  }
-
-  async play() { await this.sound?.playAsync(); }
-  async pause() { await this.sound?.pauseAsync(); }
-  async seekTo(seconds: number) { await this.sound?.setPositionAsync(seconds * 1000); }
-  async setPlaybackRate(rate: number) { await this.sound?.setRateAsync(rate, true); }
-}
-
-export const audioPlayerService = new AudioPlayerService();
-```
 
 ---
 
@@ -293,73 +129,11 @@ export const audioPlayerService = new AudioPlayerService();
 
 ### 7.1 音频管理器
 
-```typescript
-class AudioManager {
-  private audio: HTMLAudioElement | null = null;
-
-  constructor() {
-    if (typeof window !== 'undefined') {
-      this.audio = new Audio();
-    }
-  }
-
-  async load(url: string) {
-    this.audio!.src = url;
-    await new Promise((resolve) => {
-      this.audio!.addEventListener('canplaythrough', resolve, { once: true });
-    });
-  }
-
-  play() { this.audio?.play(); }
-  pause() { this.audio?.pause(); }
-  seek(time: number) { if (this.audio) this.audio.currentTime = time; }
-  setPlaybackRate(rate: number) { if (this.audio) this.audio.playbackRate = rate; }
-}
-
-export const audioManager = typeof window !== 'undefined' ? new AudioManager() : null;
-```
-
 ### 7.2 Media Session Hook
-
-```typescript
-export function useMediaSession() {
-  const { currentBook, playback, togglePlayPause, skipForward, skipBackward } = useAudiobookStore();
-
-  useEffect(() => {
-    if (!('mediaSession' in navigator) || !currentBook) return;
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentBook.title,
-      artist: currentBook.narrator,
-      artwork: [{ src: currentBook.coverUrl }],
-    });
-
-    navigator.mediaSession.setActionHandler('play', togglePlayPause);
-    navigator.mediaSession.setActionHandler('pause', togglePlayPause);
-    navigator.mediaSession.setActionHandler('seekforward', skipForward);
-    navigator.mediaSession.setActionHandler('seekbackward', skipBackward);
-  }, [currentBook, playback.status]);
-}
-```
 
 ---
 
 ## 8. 工具函数
-
-```typescript
-export function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-
-  return h > 0
-    ? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-    : `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-export const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-export const TIMER_PRESETS = [5, 10, 15, 30, 45, 60];
-```
 
 ---
 

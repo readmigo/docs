@@ -35,38 +35,9 @@ Add `authorId` field to Book table with optional foreign key to Author table.
 
 #### Database Changes
 
-```prisma
-model Book {
-  id        String  @id @default(uuid()) @db.Uuid
-  title     String  @db.VarChar(500)
-  author    String  @db.VarChar(255)  // Keep for backward compatibility
-  authorId  String? @map("author_id") @db.Uuid  // New field
-  authorRef Author? @relation(fields: [authorId], references: [id])
-
-  // ... other fields
-}
-
-model Author {
-  id    String @id @default(uuid()) @db.Uuid
-  name  String @db.VarChar(255)
-  books Book[] // New relation
-
-  // ... other fields
-}
-```
-
 #### API Changes
 
 **BookDto (Response)**
-```typescript
-export class BookDto {
-  id: string;
-  title: string;
-  author: string;      // Keep for display
-  authorId?: string;   // New field
-  // ... other fields
-}
-```
 
 **Endpoints affected:**
 - `GET /books` - Include authorId in response
@@ -76,93 +47,18 @@ export class BookDto {
 #### iOS Changes
 
 **Book Model**
-```swift
-struct Book: Codable, Identifiable, Equatable {
-    let id: String
-    let title: String
-    let author: String      // Keep for display
-    let authorId: String?   // New field
-    // ... other fields
-}
-```
 
 **Navigation Logic**
-```swift
-// In BookDetailView
-if let authorId = book.authorId {
-    // Direct navigation to author profile
-    AuthorProfileView(authorId: authorId)
-} else {
-    // Fallback to current search-based approach
-    AuthorProfileLoaderView(authorName: book.author)
-}
-```
 
 ### Phase 2: Multiple Authors Support (Future)
 
 For books with multiple authors, create a junction table:
 
-```prisma
-model BookAuthor {
-  id       String @id @default(uuid()) @db.Uuid
-  bookId   String @map("book_id") @db.Uuid
-  book     Book   @relation(fields: [bookId], references: [id])
-  authorId String @map("author_id") @db.Uuid
-  author   Author @relation(fields: [authorId], references: [id])
-
-  isPrimary Boolean @default(false) @map("is_primary")
-  role      String? @db.VarChar(50)  // e.g., "author", "translator", "editor"
-  sortOrder Int     @default(0) @map("sort_order")
-
-  @@unique([bookId, authorId])
-  @@map("book_authors")
-}
-```
-
 ## Migration Strategy
 
 ### Step 1: Add Column (Non-breaking)
 
-```sql
-ALTER TABLE books ADD COLUMN author_id UUID;
-ALTER TABLE books ADD CONSTRAINT fk_books_author
-  FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE SET NULL;
-CREATE INDEX idx_books_author_id ON books(author_id);
-```
-
 ### Step 2: Data Migration Script
-
-```typescript
-async function migrateBookAuthors() {
-  const books = await prisma.book.findMany({
-    where: { authorId: null }
-  });
-
-  for (const book of books) {
-    // Try exact match first
-    let author = await prisma.author.findFirst({
-      where: { name: { equals: book.author, mode: 'insensitive' } }
-    });
-
-    // Try fuzzy match if not found
-    if (!author) {
-      author = await prisma.author.findFirst({
-        where: { name: { contains: book.author, mode: 'insensitive' } }
-      });
-    }
-
-    if (author) {
-      await prisma.book.update({
-        where: { id: book.id },
-        data: { authorId: author.id }
-      });
-      console.log(`Linked: ${book.title} -> ${author.name}`);
-    } else {
-      console.log(`No match: ${book.title} (${book.author})`);
-    }
-  }
-}
-```
 
 ### Step 3: Update Backend API
 

@@ -125,21 +125,6 @@ ios/Readmigo/
 - 协调 AI 交互面板
 
 **关键特性：**
-```swift
-struct ReaderView: View {
-    let book: Book
-    let bookDetail: BookDetail
-    @StateObject private var viewModel: ReaderViewModel
-
-    // 控制可见性，自动隐藏
-    @State private var showControls = true
-    @State private var hideTask: Task<Void, Never>?
-
-    // 弹窗展示
-    @State private var showChapterList = false
-    @State private var showSettings = false
-}
-```
 
 **控件自动隐藏逻辑：**
 ```
@@ -174,24 +159,6 @@ showControls = true
 
 **核心方法：**
 
-```swift
-// 章节加载
-func loadChapter(at index: Int) async
-func goToNextChapter()
-func goToPreviousChapter()
-func goToChapter(_ chapter: Chapter)
-
-// 进度管理
-func updateScrollProgress(_ progress: Double)
-func calculateOverallProgress() -> Double
-func scheduleProgressSave()
-func saveProgress() async
-
-// 文本选择
-func handleTextSelection(text: String, sentence: String)
-func clearSelection()
-```
-
 **进度计算公式：**
 ```
 overallProgress = (chapterIndex / totalChapters) + (scrollProgress / totalChapters)
@@ -205,22 +172,6 @@ overallProgress = (2/10) + (0.5/10) = 0.2 + 0.05 = 0.25 (25%)
 **用途：** SwiftUI 和 WKWebView 之间的桥接，用于 HTML 渲染
 
 **架构：**
-```swift
-struct ReaderContentView: UIViewRepresentable {
-    let content: ChapterContent
-    let theme: ReaderTheme
-    let fontSize: FontSize
-
-    // 回调到 ViewModel
-    let onProgressUpdate: (Double) -> Void
-    let onTextSelection: (String, String) -> Void
-    let onTap: () -> Void
-
-    func makeUIView(context: Context) -> WKWebView
-    func updateUIView(_ webView: WKWebView, context: Context)
-    func makeCoordinator() -> Coordinator
-}
-```
 
 **JavaScript 桥接消息：**
 
@@ -231,61 +182,6 @@ struct ReaderContentView: UIViewRepresentable {
 | `tap` | `{}` | `touchend` 事件（100ms 防抖）| 切换控件显示 |
 
 **HTML 生成：**
-```swift
-func generateHTML(content: ChapterContent, theme: ReaderTheme, fontSize: FontSize) -> String {
-    """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-        <style>
-            body {
-                background-color: \(theme.backgroundColor);
-                color: \(theme.textColor);
-                font-size: \(fontSize.textSize)px;
-                line-height: \(fontSize.lineHeight);
-                font-family: Georgia, serif;
-                padding: 20px;
-                margin: 0;
-            }
-            ::selection {
-                background-color: \(theme.highlightColor);
-            }
-        </style>
-    </head>
-    <body>
-        \(content.content)
-        <script>
-            // 文本选择处理器
-            document.addEventListener('selectionchange', () => {
-                const selection = window.getSelection();
-                if (selection.toString().trim()) {
-                    const text = selection.toString();
-                    const sentence = getSentenceFromSelection(selection);
-                    webkit.messageHandlers.textSelection.postMessage({text, sentence});
-                }
-            });
-
-            // 滚动进度追踪
-            let scrollTimeout;
-            window.addEventListener('scroll', () => {
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    const progress = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-                    webkit.messageHandlers.scroll.postMessage({progress: Math.min(1, Math.max(0, progress))});
-                }, 100);
-            });
-
-            // 点击检测
-            document.addEventListener('touchend', () => {
-                setTimeout(() => webkit.messageHandlers.tap.postMessage({}), 100);
-            });
-        </script>
-    </body>
-    </html>
-    """
-}
-```
 
 ### 4. ReaderSettingsView（自定义设置）
 
@@ -305,95 +201,9 @@ func generateHTML(content: ChapterContent, theme: ReaderTheme, fontSize: FontSiz
 
 ### 书籍和章节模型
 
-```swift
-struct Book: Identifiable, Codable {
-    let id: String
-    let title: String
-    let author: String
-    let description: String?
-    let coverUrl: String?
-    let genres: [String]
-    let difficultyScore: Int          // 1-100
-    let wordCount: Int
-    let chapterCount: Int
-    let source: BookSource
-    let status: BookStatus
-}
-
-struct BookDetail: Codable {
-    // 包含所有 Book 字段，另加：
-    let chapters: [ChapterSummary]
-}
-
-struct ChapterSummary: Identifiable, Codable {
-    let id: String
-    let title: String
-    let orderIndex: Int
-    let wordCount: Int
-}
-
-struct ChapterContent: Codable {
-    let id: String
-    let title: String
-    let orderIndex: Int
-    let content: String               // HTML 内容
-    let wordCount: Int
-    let previousChapterId: String?
-    let nextChapterId: String?
-}
-```
-
 ### 阅读进度模型
 
-```swift
-struct LibraryBook: Identifiable, Codable {
-    let id: String
-    let bookId: String
-    let book: BookInfo
-    let currentChapterId: String?
-    let currentChapterIndex: Int
-    let chapterProgress: Double       // 0.0-1.0
-    let overallProgress: Double       // 0.0-1.0
-    let status: ReadingStatus
-    let totalReadingTime: Int         // 秒
-    let lastReadAt: Date?
-    let addedAt: Date
-}
-
-struct UpdateProgressRequest: Codable {
-    let bookId: String
-    let chapterId: String
-    let progress: Double
-    let position: String?             // 可选的滚动位置标记
-}
-```
-
 ### AI 集成模型
-
-```swift
-struct WordExplainRequest: Codable {
-    let word: String
-    let sentence: String
-    let bookId: String?
-    let chapterId: String?
-}
-
-struct AIResponse: Codable {
-    let content: String
-    let model: String
-    let provider: String
-    let usage: TokenUsage
-}
-
-struct WordExplanation {
-    let word: String
-    let definition: String
-    let translation: String
-    let partOfSpeech: String
-    let examples: [String]
-    let relatedWords: [String]
-}
-```
 
 ---
 
@@ -454,66 +264,7 @@ flowchart TD
 
 ### 阅读器主题配置
 
-```swift
-enum ReaderTheme: String, CaseIterable {
-    case light
-    case sepia
-    case dark
-
-    var backgroundColor: String {
-        switch self {
-        case .light: return "#FFFFFF"
-        case .sepia: return "#FAF3E3"
-        case .dark:  return "#1F1F1F"
-        }
-    }
-
-    var textColor: String {
-        switch self {
-        case .light: return "#000000"
-        case .sepia: return "#4D331A"
-        case .dark:  return "#D9D9D9"
-        }
-    }
-
-    var highlightColor: String {
-        switch self {
-        case .light: return "rgba(255, 255, 0, 0.3)"
-        case .sepia: return "rgba(255, 165, 0, 0.3)"
-        case .dark:  return "rgba(100, 149, 237, 0.3)"
-        }
-    }
-}
-```
-
 ### 字号配置
-
-```swift
-enum FontSize: String, CaseIterable {
-    case small
-    case medium
-    case large
-    case extraLarge
-
-    var textSize: Int {
-        switch self {
-        case .small:      return 14
-        case .medium:     return 17
-        case .large:      return 20
-        case .extraLarge: return 24
-        }
-    }
-
-    var lineHeight: Double {
-        switch self {
-        case .small:      return 1.4
-        case .medium:     return 1.5
-        case .large:      return 1.6
-        case .extraLarge: return 1.7
-        }
-    }
-}
-```
 
 ---
 
@@ -541,17 +292,6 @@ Authorization: Bearer <token>
 ```
 
 **章节内容响应：**
-```json
-{
-  "id": "ch001",
-  "title": "Chapter 1: The Beginning",
-  "orderIndex": 0,
-  "content": "<h1>Chapter 1</h1><p>It was the best of times...</p>",
-  "wordCount": 2450,
-  "previousChapterId": null,
-  "nextChapterId": "ch002"
-}
-```
 
 **进度更新请求：**
 ```
@@ -599,15 +339,6 @@ Content-Type: application/json
 ## 错误处理
 
 ### 错误状态
-
-```swift
-enum ReaderError: Error {
-    case chapterLoadFailed(String)
-    case progressSaveFailed(String)
-    case networkUnavailable
-    case invalidContent
-}
-```
 
 ### 错误恢复策略
 

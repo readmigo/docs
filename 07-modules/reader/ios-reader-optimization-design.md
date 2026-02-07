@@ -94,42 +94,9 @@ DOMContentLoaded (50ms)
 
 **Step 1: 添加contentReady消息机制**
 
-```swift
-// ReaderContentView.swift:58
-configuration.userContentController.add(context.coordinator, name: "contentReady")
-
-// Coordinator中处理
-case "contentReady":
-    DispatchQueue.main.async {
-        self.onContentReady?()
-    }
-```
-
 **Step 2: JavaScript发送contentReady消息**
 
-```javascript
-// 分页完成后，内容显示时
-container.style.opacity = '1';
-
-// 延迟200ms确保淡入动画开始
-setTimeout(function() {
-    window.webkit.messageHandlers.contentReady.postMessage({});
-}, 200);
-```
-
 **Step 3: 延迟isLoading=false**
-
-```swift
-// EnhancedReaderView.swift:317-321
-onContentReady: {
-    // 内容真正可见后才隐藏loading
-    viewModel.isLoading = false
-}
-
-// ReaderViewModel.swift:287-292
-// 移除网络加载完成后立即设置isLoading=false的逻辑
-// 保持isLoading=true，等待contentReady消息
-```
 
 #### 新时序流程
 
@@ -282,94 +249,9 @@ T4 - T∞ (后台持续)
 
 #### 触发点 (EnhancedReaderView.swift:198-208)
 
-```swift
-.task {
-    // 1. 加载书籍详情（获取章节列表）
-    await viewModel.loadBookDetailIfNeeded()
-
-    // 2. 加载当前章节
-    if viewModel.isReadyToRead {
-        await viewModel.loadChapter(at: viewModel.currentChapterIndex)
-        await checkAudiobookAndSync()
-
-        // 3. 触发自动下载整本书
-        await triggerAutoDownloadBook()
-    }
-}
-```
-
 #### 自动下载逻辑 (EnhancedReaderView.swift:654-698)
 
-```swift
-private func triggerAutoDownloadBook() async {
-    guard let bookDetail = viewModel.bookDetail else { return }
-
-    let offlineManager = OfflineManager.shared
-
-    // 检查是否已下载或正在下载
-    if let existing = offlineManager.downloadedBooks.first(where: {
-        $0.bookId == viewModel.book.id
-    }) {
-        if existing.isComplete { return }
-        if existing.status == .downloading { return }
-    }
-
-    // 检查网络状态
-    let networkStatus = offlineManager.networkStatus
-    let settings = offlineManager.settings
-
-    let shouldDownload: Bool
-    switch networkStatus {
-    case .wifi:
-        shouldDownload = true
-    case .cellular:
-        // 尊重用户设置：仅WiFi下载
-        shouldDownload = !settings.downloadOnWifiOnly
-    case .notConnected, .unknown:
-        shouldDownload = false
-    }
-
-    guard shouldDownload else { return }
-
-    // 开始后台下载（低优先级）
-    await offlineManager.downloadBook(
-        viewModel.book,
-        bookDetail: bookDetail,
-        priority: .low
-    )
-}
-```
-
 #### 下载执行 (OfflineManager.swift:103-190)
-
-```swift
-func downloadBook(_ book: Book, bookDetail: BookDetail, priority: .low) async {
-    // 创建下载书籍记录
-    let downloadedBook = DownloadedBook(
-        bookId: book.id,
-        totalChapters: bookDetail.chapters.count,
-        status: .queued
-    )
-
-    // 保存元数据
-    downloadedBooks.append(downloadedBook)
-
-    // 为每一章创建下载任务
-    for chapter in bookDetail.chapters {
-        let task = DownloadTask(
-            bookId: book.id,
-            chapterId: chapter.id,
-            type: .chapter,
-            status: .queued,
-            priority: .low  // 低优先级，不影响阅读
-        )
-        downloadQueue.append(task)
-    }
-
-    // 开始处理下载队列（后台）
-    await processDownloadQueue()
-}
-```
 
 ### 3.4 下载策略
 
@@ -449,24 +331,6 @@ WiFi网络：
 
 ### 3.6 监控和日志
 
-```swift
-// 控制台日志示例
-📥 [AutoDownload] Starting auto-download for book: The Pilgrim's Progress
-📥 [AutoDownload] Total chapters: 50
-📥 [AutoDownload] Network: WiFi
-📥 [AutoDownload] Download queued successfully
-
-// 下载进度
-📥 [Download] Chapter 1/50: titlepage (100%)
-📥 [Download] Chapter 2/50: The Young Pilgrim (45%)
-📥 [Download] Overall progress: 10/50 chapters (20%)
-
-// 完成
-📥 [AutoDownload] Book download completed!
-📥 [AutoDownload] Total size: 8.5MB
-📥 [AutoDownload] Time elapsed: 15min 23sec
-```
-
 ---
 
 ## 4. 三WebView预加载方案
@@ -505,22 +369,6 @@ WiFi网络：
 ```
 
 #### 状态管理
-
-```swift
-struct WebViewSlot {
-    var chapterId: String?           // 当前加载的章节ID
-    var content: ChapterContent?     // 章节内容
-    var isLoading: Bool              // 是否加载中
-    var isReady: Bool                // 是否渲染完成（收到contentReady）
-    var webViewOffset: CGFloat       // WebView的水平偏移
-}
-
-@State var previousSlot: WebViewSlot
-@State var currentSlot: WebViewSlot
-@State var nextSlot: WebViewSlot
-
-@State var isTransitioning: Bool = false
-```
 
 #### 布局策略
 
@@ -630,71 +478,7 @@ App从后台回到前台
 
 #### 向后翻页（forward）
 
-```swift
-func goToNextChapter() async {
-    // Step 1: 检查预加载状态
-    guard nextSlot.isReady else {
-        // 未预加载，显示loading
-        isLoading = true
-        await loadChapter(at: currentChapterIndex + 1)
-        return
-    }
-
-    // Step 2: 执行切换动画
-    withAnimation(.easeInOut(duration: 0.3)) {
-        currentSlot.offset -= screenWidth  // 向左滑出
-        nextSlot.offset -= screenWidth     // 滑入中央
-        previousSlot.offset -= screenWidth // 更远离
-    }
-
-    // Step 3: 动画完成后更新状态
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-        // 更新指针
-        previousSlot = currentSlot
-        currentSlot = nextSlot
-        nextSlot = WebViewSlot()  // 清空，准备加载新的
-
-        // 触发新的预加载
-        Task {
-            await preloadNextChapter()
-        }
-    }
-}
-```
-
 #### 向前翻页（backward）
-
-```swift
-func goToPreviousChapter() async {
-    // Step 1: 检查预加载状态
-    guard previousSlot.isReady else {
-        // 未预加载，显示loading
-        isLoading = true
-        await loadChapter(at: currentChapterIndex - 1)
-        return
-    }
-
-    // Step 2: 执行切换动画
-    withAnimation(.easeInOut(duration: 0.3)) {
-        currentSlot.offset += screenWidth  // 向右滑出
-        previousSlot.offset += screenWidth // 滑入中央
-        nextSlot.offset += screenWidth     // 更远离
-    }
-
-    // Step 3: 动画完成后更新状态
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-        // 更新指针
-        nextSlot = currentSlot
-        currentSlot = previousSlot
-        previousSlot = WebViewSlot()  // 清空，准备加载新的
-
-        // 触发新的预加载
-        Task {
-            await preloadPreviousChapter()
-        }
-    }
-}
-```
 
 #### 边界情况处理
 

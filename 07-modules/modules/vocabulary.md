@@ -208,10 +208,10 @@ flowchart TD
 
 | 组件 | 路径 |
 |------|------|
-| **模块** | `apps/backend/src/modules/vocabulary/vocabulary.module.ts` |
-| **服务** | `apps/backend/src/modules/vocabulary/vocabulary.service.ts` |
-| **控制器** | `apps/backend/src/modules/vocabulary/vocabulary.controller.ts` |
-| **DTO** | `apps/backend/src/modules/vocabulary/dto/` |
+| **模块** | `src/modules/vocabulary/vocabulary.module.ts` |
+| **服务** | `src/modules/vocabulary/vocabulary.service.ts` |
+| **控制器** | `src/modules/vocabulary/vocabulary.controller.ts` |
+| **DTO** | `src/modules/vocabulary/dto/` |
 
 ---
 

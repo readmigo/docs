@@ -99,22 +99,6 @@
 ## 数据库结构
 
 ### Translation 表结构
-```prisma
-model Translation {
-  id         String   @id @default(uuid())
-  entityType String   @map("entity_type")  // book, author, genre, category
-  entityId   String   @map("entity_id")    // 实体的 ID
-  fieldName  String   @map("field_name")   // title, description, name
-  locale     String                        // zh-Hans, zh-Hant, en
-  value      String   @db.Text            // 翻译后的文本
-  source     String   @default("manual")   // ai, manual
-  status     String   @default("published") // published, draft
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@unique([entityType, entityId, fieldName, locale])
-}
-```
 
 ## 翻译工作流程
 
@@ -166,54 +150,8 @@ model Translation {
 ### 数据库查询
 
 #### 查询缺失翻译的书籍标题
-```typescript
-const books = await prisma.book.findMany({
-  where: { status: 'ACTIVE' },
-  select: { id: true, title: true }
-});
-
-const existing = await prisma.translation.findMany({
-  where: {
-    entityType: 'book',
-    fieldName: 'title',
-    locale: 'zh-Hans',
-    status: 'published'
-  },
-  select: { entityId: true }
-});
-
-const existingIds = new Set(existing.map(t => t.entityId));
-const missing = books.filter(b => !existingIds.has(b.id));
-```
 
 #### 插入翻译
-```typescript
-await prisma.translation.upsert({
-  where: {
-    entityType_entityId_fieldName_locale: {
-      entityType: 'book',
-      entityId: bookId,
-      fieldName: 'title',
-      locale: 'zh-Hans'
-    }
-  },
-  update: {
-    value: translatedText,
-    source: 'ai',
-    status: 'published',
-    updatedAt: new Date()
-  },
-  create: {
-    entityType: 'book',
-    entityId: bookId,
-    fieldName: 'title',
-    locale: 'zh-Hans',
-    value: translatedText,
-    source: 'ai',
-    status: 'published'
-  }
-});
-```
 
 ## 注意事项
 

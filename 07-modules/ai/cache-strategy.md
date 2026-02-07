@@ -141,121 +141,9 @@ ai:v1:vocab:family:{word}
 
 ### 4.1 本地缓存管理器
 
-```swift
-// AICacheManager.swift
-
-final class AICacheManager {
-    static let shared = AICacheManager()
-
-    private let db: any Database  // SQLite via GRDB
-    private let maxCacheSize: Int = 50 * 1024 * 1024  // 50MB
-
-    struct CacheEntry: Codable {
-        let key: String
-        let content: String
-        let createdAt: Date
-        let expiresAt: Date
-        let sizeBytes: Int
-    }
-
-    /// 查询缓存
-    func get(key: String) async -> String? {
-        guard let entry = try? await db.read({ db in
-            try CacheEntry.fetchOne(db, key: key)
-        }) else { return nil }
-
-        if entry.expiresAt < Date() {
-            Task { await delete(key: key) }
-            return nil
-        }
-        return entry.content
-    }
-
-    /// 写入缓存
-    func set(key: String, content: String, ttl: TimeInterval) async {
-        let entry = CacheEntry(
-            key: key,
-            content: content,
-            createdAt: Date(),
-            expiresAt: Date().addingTimeInterval(ttl),
-            sizeBytes: content.utf8.count
-        )
-        try? await db.write { db in
-            try entry.save(db)
-        }
-        await enforceMaxSize()
-    }
-
-    /// LRU 淘汰
-    private func enforceMaxSize() async {
-        // 按 createdAt 升序删除，直到低于容量限制
-    }
-}
-```
-
 ### 4.2 缓存键生成
 
-```swift
-// AICacheKeys.swift
-
-enum AICacheKeys {
-    private static let version = "v1"
-
-    static func wordExplain(word: String, sentence: String, level: String) -> String {
-        let sentenceHash = sentence.sha256().prefix(16)
-        return "ai:\(version):word:explain:\(word.lowercased()):\(sentenceHash):\(level)"
-    }
-
-    static func simplify(sentence: String, level: String) -> String {
-        let hash = sentence.sha256().prefix(16)
-        return "ai:\(version):sentence:simplify:\(hash):\(level)"
-    }
-
-    static func translate(paragraph: String, language: String) -> String {
-        let hash = paragraph.sha256().prefix(16)
-        return "ai:\(version):paragraph:translate:\(hash):\(language)"
-    }
-
-    static func chapterSummary(bookId: String, chapterId: String) -> String {
-        return "ai:\(version):chapter:summary:\(bookId):\(chapterId)"
-    }
-}
-```
-
 ### 4.3 带缓存的 AI 服务
-
-```swift
-// AIService+Cache.swift
-
-extension AIService {
-
-    /// 带缓存的词义解释
-    func explainWordWithCache(
-        word: String,
-        sentence: String,
-        level: String
-    ) async throws -> (content: String, fromCache: Bool) {
-        let cacheKey = AICacheKeys.wordExplain(word: word, sentence: sentence, level: level)
-
-        // 1. 检查本地缓存
-        if let cached = await AICacheManager.shared.get(key: cacheKey) {
-            return (cached, true)
-        }
-
-        // 2. 调用 API (后端会检查 Redis 缓存)
-        let response = try await explainWord(word: word, sentence: sentence)
-
-        // 3. 写入本地缓存
-        await AICacheManager.shared.set(
-            key: cacheKey,
-            content: response.content,
-            ttl: 90 * 24 * 3600  // 90 天 (公版书内容固定)
-        )
-
-        return (response.content, false)
-    }
-}
-```
 
 ---
 
@@ -270,121 +158,7 @@ extension AIService {
 
 ### 5.2 实现方案
 
-```swift
-// TypewriterTextView.swift
-
-struct TypewriterTextView: View {
-    let fullText: String
-    let fromCache: Bool
-
-    @State private var displayedText = ""
-    @State private var isComplete = false
-
-    // 缓存数据使用更快的速度，但仍有打字效果
-    private var charDelay: TimeInterval {
-        fromCache ? 0.008 : 0.015  // 缓存: 8ms/字符, 实时: 15ms/字符
-    }
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(displayedText)
-                .font(.body)
-
-            if !isComplete {
-                TypingIndicator()
-                    .transition(.opacity)
-            }
-        }
-        .task {
-            await animateText()
-        }
-    }
-
-    private func animateText() async {
-        // 缓存数据延迟 200-400ms 再开始，模拟"处理中"
-        if fromCache {
-            try? await Task.sleep(nanoseconds: UInt64.random(in: 200_000_000...400_000_000))
-        }
-
-        for char in fullText {
-            displayedText.append(char)
-            try? await Task.sleep(nanoseconds: UInt64(charDelay * 1_000_000_000))
-        }
-
-        withAnimation {
-            isComplete = true
-        }
-    }
-}
-
-// 打字指示器 (三个跳动的点)
-struct TypingIndicator: View {
-    @State private var animating = false
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<3) { i in
-                Circle()
-                    .fill(Color.secondary)
-                    .frame(width: 6, height: 6)
-                    .offset(y: animating ? -4 : 0)
-                    .animation(
-                        .easeInOut(duration: 0.4)
-                        .repeatForever()
-                        .delay(Double(i) * 0.15),
-                        value: animating
-                    )
-            }
-        }
-        .onAppear { animating = true }
-    }
-}
-```
-
 ### 5.3 集成到 AIInteractionPanel
-
-```swift
-// AIInteractionPanel.swift (修改)
-
-struct AIInteractionPanel: View {
-    @State private var responseText = ""
-    @State private var isLoading = false
-    @State private var fromCache = false
-
-    var body: some View {
-        VStack {
-            if isLoading {
-                LoadingView()
-            } else if !responseText.isEmpty {
-                TypewriterTextView(
-                    fullText: responseText,
-                    fromCache: fromCache
-                )
-            }
-        }
-    }
-
-    private func explain(word: String, sentence: String) async {
-        isLoading = true
-
-        do {
-            let (content, cached) = try await AIService.shared.explainWordWithCache(
-                word: word,
-                sentence: sentence,
-                level: userLevel
-            )
-
-            isLoading = false
-            fromCache = cached
-            responseText = content
-
-        } catch {
-            isLoading = false
-            // handle error
-        }
-    }
-}
-```
 
 ### 5.4 动效参数调优
 
@@ -403,48 +177,11 @@ struct AIInteractionPanel: View {
 
 在 `ai-extended.service.ts` 中为以下场景添加缓存:
 
-```typescript
-// 章节摘要 - P0 优先级
-async getChapterSummary(dto: ChapterSummaryDto): Promise<AIExtendedResponse> {
-  const cacheKey = `ai:v1:chapter:summary:${dto.bookId}:${dto.chapterId}`;
-
-  const cached = await this.cacheManager.get<string>(cacheKey);
-  if (cached) {
-    return { content: cached, fromCache: true };
-  }
-
-  const result = await this.generateChapterSummary(dto);
-  await this.cacheManager.set(cacheKey, result.content, 180 * 24 * 3600); // 180 天 (公版书内容固定)
-
-  return { ...result, fromCache: false };
-}
-```
-
 ### 6.2 缓存响应标记
 
 API 响应中增加 `fromCache` 字段，供客户端调整动效:
 
-```typescript
-interface AIResponse {
-  content: string;
-  model?: string;
-  usage?: TokenUsage;
-  fromCache?: boolean;  // 新增
-}
-```
-
 ### 6.3 缓存失效策略
-
-```typescript
-// 书籍内容更新时清除相关缓存
-async onBookContentUpdated(bookId: string) {
-  const pattern = `ai:*:*:${bookId}:*`;
-  await this.cacheManager.deleteByPattern(pattern);
-}
-
-// Prompt 版本更新时，新版本号自动生效，旧版本自然过期
-const CACHE_VERSION = 'v1';  // 升级时改为 v2
-```
 
 ---
 
@@ -460,17 +197,6 @@ const CACHE_VERSION = 'v1';  // 升级时改为 v2
 | `ai_api_error_rate` | API 错误率 | > 5% |
 
 ### 7.2 日志记录
-
-```typescript
-this.logger.log({
-  event: 'ai_request',
-  type: 'word_explain',
-  cacheHit: true,
-  latencyMs: 2,
-  userId: 'xxx',
-  word: 'serendipity',
-});
-```
 
 ---
 

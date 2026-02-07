@@ -47,8 +47,8 @@ Author 模块是 Readmigo 的作者系统，包含：
   - `AuthorViewModel.swift` - 作者逻辑
 
 ### 后端服务
-- `apps/backend/src/modules/authors/` - 作者服务
-- `apps/backend/src/modules/ai/` - AI对话服务
+- `src/modules/authors/` - 作者服务
+- `src/modules/ai/` - AI对话服务
 
 ---
 

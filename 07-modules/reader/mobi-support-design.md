@@ -113,28 +113,6 @@ AZW3 文件结构:
 
 ### 2.4 EXTH 记录类型（元数据）
 
-```typescript
-// EXTH 记录类型定义
-const EXTH_RECORD_TYPES = {
-  100: 'author',          // 作者
-  101: 'publisher',       // 出版社
-  103: 'description',     // 描述
-  104: 'isbn',            // ISBN
-  105: 'subject',         // 主题/分类
-  106: 'publishDate',     // 出版日期
-  108: 'contributor',     // 贡献者
-  109: 'rights',          // 版权
-  110: 'subjectCode',     // 主题代码
-  111: 'type',            // 类型
-  112: 'source',          // 来源
-  113: 'asin',            // ASIN
-  201: 'coverOffset',     // 封面偏移
-  202: 'thumbnailOffset', // 缩略图偏移
-  503: 'updatedTitle',    // 更新后的标题
-  524: 'language',        // 语言
-};
-```
-
 ---
 
 ## 三、技术方案选型
@@ -179,7 +157,7 @@ scripts/book-ingestion/processors/
 ├── mobi-parser.ts          # MOBI/AZW3 解析器（新增）
 └── index.ts                # 统一导出
 
-apps/backend/src/modules/user-books/
+src/modules/user-books/
 ├── processors/
 │   └── book-processor.ts   # 书籍处理入口
 └── ...
@@ -187,299 +165,11 @@ apps/backend/src/modules/user-books/
 
 ### 4.2 MobiParser 类设计
 
-```typescript
-// scripts/book-ingestion/processors/mobi-parser.ts
-
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { EpubParser, ParsedBook } from './epub-parser.js';
-
-const execAsync = promisify(exec);
-
-/**
- * MOBI/AZW3 电子书解析器
- *
- * 采用 Calibre 转换 + EPUB 解析的策略：
- * 1. 使用 Calibre 的 ebook-convert 将 MOBI/AZW3 转换为 EPUB
- * 2. 复用 EpubParser 解析转换后的 EPUB 文件
- * 3. 若 Calibre 不可用，回退到基础元数据提取
- */
-export class MobiParser {
-  private tempDir: string;
-
-  constructor() {
-    this.tempDir = path.join(os.tmpdir(), 'readmigo-mobi-parser');
-  }
-
-  /**
-   * 解析 MOBI/AZW3 文件
-   * @param mobiPath 文件路径
-   * @returns ParsedBook 解析结果
-   */
-  async parse(mobiPath: string): Promise<ParsedBook> {
-    // 1. 验证文件存在
-    if (!fs.existsSync(mobiPath)) {
-      throw new Error(`File not found: ${mobiPath}`);
-    }
-
-    // 2. 验证文件扩展名
-    const ext = path.extname(mobiPath).toLowerCase();
-    if (!['.mobi', '.azw', '.azw3'].includes(ext)) {
-      throw new Error(`Unsupported format: ${ext}`);
-    }
-
-    // 3. 确保临时目录存在
-    if (!fs.existsSync(this.tempDir)) {
-      fs.mkdirSync(this.tempDir, { recursive: true });
-    }
-
-    // 4. 检测 Calibre 可用性
-    const calibreAvailable = await this.checkCalibreAvailable();
-
-    if (calibreAvailable) {
-      return this.parseWithCalibre(mobiPath);
-    }
-
-    // 5. 回退解析
-    console.warn('Calibre not found. Using fallback parser.');
-    return this.parseDirectly(mobiPath);
-  }
-
-  /**
-   * 检查 Calibre 是否可用
-   */
-  private async checkCalibreAvailable(): Promise<boolean> {
-    try {
-      await execAsync('ebook-convert --version');
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * 使用 Calibre 转换并解析
-   */
-  private async parseWithCalibre(mobiPath: string): Promise<ParsedBook> {
-    const fileName = path.basename(mobiPath, path.extname(mobiPath));
-    const epubPath = path.join(this.tempDir, `${fileName}-${Date.now()}.epub`);
-
-    try {
-      console.log(`Converting ${path.basename(mobiPath)} to EPUB...`);
-
-      // 执行转换（2分钟超时）
-      const { stderr } = await execAsync(
-        `ebook-convert "${mobiPath}" "${epubPath}"`,
-        { timeout: 120000 }
-      );
-
-      if (stderr && !stderr.includes('Output saved')) {
-        console.warn('Calibre warnings:', stderr);
-      }
-
-      // 验证转换结果
-      if (!fs.existsSync(epubPath)) {
-        throw new Error('Conversion failed: output file not created');
-      }
-
-      // 使用 EPUB 解析器
-      const epubParser = new EpubParser();
-      const result = await epubParser.parse(epubPath);
-
-      // 清理临时文件
-      this.cleanup(epubPath);
-
-      return result;
-    } catch (error) {
-      this.cleanup(epubPath);
-
-      if (error instanceof Error) {
-        // DRM 检测
-        if (error.message.includes('DRM') || error.message.includes('encrypted')) {
-          throw new Error('DRM-protected book detected. Please remove DRM first.');
-        }
-        throw new Error(`MOBI conversion failed: ${error.message}`);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * 回退解析：直接从 MOBI 提取元数据
-   */
-  private async parseDirectly(mobiPath: string): Promise<ParsedBook> {
-    const fileBuffer = fs.readFileSync(mobiPath);
-    const metadata = this.parseMobiHeader(fileBuffer);
-
-    return {
-      title: metadata.title || path.basename(mobiPath, path.extname(mobiPath)),
-      author: metadata.author || 'Unknown Author',
-      description: metadata.description,
-      language: metadata.language || 'en',
-      publishedYear: undefined,
-      chapters: [{
-        title: 'Full Text',
-        content: '<p>Direct MOBI parsing is limited. Install Calibre for full content.</p>',
-        orderIndex: 0,
-        wordCount: 0,
-        href: 'text.html',
-      }],
-      totalWordCount: 0,
-    };
-  }
-
-  // ... 其他私有方法（见完整实现）
-}
-```
-
 ### 4.3 MOBI Header 解析
-
-```typescript
-/**
- * 解析 MOBI 文件头部获取元数据
- * 参考规范: https://wiki.mobileread.com/wiki/MOBI
- */
-private parseMobiHeader(buffer: Buffer): {
-  title?: string;
-  author?: string;
-  description?: string;
-  language?: string;
-} {
-  try {
-    // 1. 验证文件标识符 (offset 60-67)
-    const identifier = buffer.slice(60, 68).toString('utf-8');
-    if (identifier !== 'BOOKMOBI' && identifier !== 'TEXtREAd') {
-      console.warn('Unrecognized MOBI format:', identifier);
-    }
-
-    // 2. 查找 EXTH 头部
-    const exthOffset = buffer.indexOf('EXTH');
-    if (exthOffset === -1) {
-      return this.parsePdbTitle(buffer);
-    }
-
-    // 3. 解析 EXTH 记录
-    const exthLength = buffer.readUInt32BE(exthOffset + 4);
-    const recordCount = buffer.readUInt32BE(exthOffset + 8);
-
-    let offset = exthOffset + 12;
-    const metadata: Record<string, string | undefined> = {};
-
-    for (let i = 0; i < recordCount && offset < exthOffset + exthLength; i++) {
-      const recordType = buffer.readUInt32BE(offset);
-      const recordLength = buffer.readUInt32BE(offset + 4);
-      const recordData = buffer.slice(offset + 8, offset + recordLength)
-        .toString('utf-8').trim();
-
-      // 映射 EXTH 记录类型
-      switch (recordType) {
-        case 100: metadata.author = recordData; break;
-        case 103: metadata.description = recordData; break;
-        case 503: metadata.title = recordData; break;
-        case 524: metadata.language = recordData; break;
-      }
-
-      offset += recordLength;
-    }
-
-    // 4. 回退到 PDB 标题
-    if (!metadata.title) {
-      const pdbTitle = this.parsePdbTitle(buffer);
-      metadata.title = pdbTitle.title;
-    }
-
-    return metadata;
-  } catch (error) {
-    console.error('Error parsing MOBI header:', error);
-    return {};
-  }
-}
-
-/**
- * 从 PDB 头部提取标题（前 32 字节）
- */
-private parsePdbTitle(buffer: Buffer): { title?: string } {
-  try {
-    let title = '';
-    for (let i = 0; i < 32; i++) {
-      if (buffer[i] === 0) break;
-      title += String.fromCharCode(buffer[i]);
-    }
-    return { title: title.trim() || undefined };
-  } catch {
-    return {};
-  }
-}
-```
 
 ### 4.4 格式检测工具
 
-```typescript
-/**
- * 检测电子书文件格式
- */
-export function detectEbookFormat(
-  filePath: string
-): 'epub' | 'mobi' | 'azw3' | 'txt' | 'pdf' | 'unknown' {
-  const ext = path.extname(filePath).toLowerCase();
-  switch (ext) {
-    case '.epub': return 'epub';
-    case '.mobi': return 'mobi';
-    case '.azw':
-    case '.azw3': return 'azw3';
-    case '.txt': return 'txt';
-    case '.pdf': return 'pdf';
-    default: return 'unknown';
-  }
-}
-```
-
 ### 4.5 书籍处理入口
-
-```typescript
-// apps/backend/src/modules/user-books/processors/book-processor.ts
-
-import { EpubParser, ParsedBook } from '@scripts/book-ingestion/processors/epub-parser';
-import { MobiParser, detectEbookFormat } from '@scripts/book-ingestion/processors/mobi-parser';
-
-export class BookProcessor {
-  private epubParser: EpubParser;
-  private mobiParser: MobiParser;
-
-  constructor() {
-    this.epubParser = new EpubParser();
-    this.mobiParser = new MobiParser();
-  }
-
-  /**
-   * 处理上传的书籍文件
-   */
-  async processBook(filePath: string, filename: string): Promise<ParsedBook> {
-    const format = detectEbookFormat(filename);
-
-    switch (format) {
-      case 'epub':
-        return this.epubParser.parse(filePath);
-
-      case 'mobi':
-      case 'azw3':
-        return this.mobiParser.parse(filePath);
-
-      case 'txt':
-        return this.parseTxt(filePath, filename);
-
-      case 'pdf':
-        return this.parsePdf(filePath, filename);
-
-      default:
-        throw new Error(`Unsupported format: ${format}`);
-    }
-  }
-}
-```
 
 ---
 
@@ -487,75 +177,9 @@ export class BookProcessor {
 
 ### 5.1 支持的文件类型
 
-```swift
-// Features/Import/Views/ImportEntryView.swift
-
-struct ImportSheetView: View {
-    /// 支持的导入文件类型
-    static var supportedContentTypes: [UTType] {
-        var types: [UTType] = [.epub, .plainText, .pdf]
-
-        // MOBI 类型
-        if let mobiType = UTType(filenameExtension: "mobi") {
-            types.append(mobiType)
-        }
-
-        // AZW3 类型
-        if let azw3Type = UTType(filenameExtension: "azw3") {
-            types.append(azw3Type)
-        }
-
-        // AZW 类型
-        if let azwType = UTType(filenameExtension: "azw") {
-            types.append(azwType)
-        }
-
-        return types
-    }
-}
-```
-
 ### 5.2 MIME 类型映射
 
-```swift
-// Features/Import/Services/FileUploadService.swift
-
-extension URL {
-    /// 根据文件扩展名获取 MIME 类型
-    var mimeType: String {
-        let ext = pathExtension.lowercased()
-        switch ext {
-        case "epub":
-            return "application/epub+zip"
-        case "txt":
-            return "text/plain"
-        case "pdf":
-            return "application/pdf"
-        case "mobi":
-            return "application/x-mobipocket-ebook"
-        case "azw", "azw3":
-            return "application/vnd.amazon.ebook"
-        default:
-            return "application/octet-stream"
-        }
-    }
-}
-```
-
 ### 5.3 格式徽章显示
-
-```swift
-// Features/Import/Views/ImportEntryView.swift
-
-// 支持的格式徽章
-HStack(spacing: 8) {
-    FormatBadge(format: "EPUB", color: .blue)
-    FormatBadge(format: "TXT", color: .gray)
-    FormatBadge(format: "PDF", color: .red)
-    FormatBadge(format: "MOBI", color: .orange)   // 新增
-    FormatBadge(format: "AZW3", color: .purple)   // 新增
-}
-```
 
 ### 5.4 用户界面流程
 
@@ -620,31 +244,6 @@ Response:
 
 ### 6.2 格式验证逻辑
 
-```typescript
-// apps/backend/src/modules/user-books/user-books.service.ts
-
-private validateFormat(filename: string, contentType: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase();
-
-  const supportedFormats: Record<string, string[]> = {
-    epub: ['application/epub+zip', 'application/octet-stream'],
-    txt: ['text/plain'],
-    pdf: ['application/pdf'],
-    mobi: ['application/x-mobipocket-ebook', 'application/octet-stream'],
-    azw: ['application/vnd.amazon.ebook', 'application/octet-stream'],
-    azw3: ['application/vnd.amazon.ebook', 'application/octet-stream'],
-  };
-
-  for (const [format, mimeTypes] of Object.entries(supportedFormats)) {
-    if (ext === format && mimeTypes.includes(contentType)) {
-      return format;
-    }
-  }
-
-  throw new BadRequestException(`Unsupported format: ${ext}`);
-}
-```
-
 ### 6.3 文件大小限制
 
 | 格式 | 最大文件大小 | 说明 |
@@ -673,16 +272,6 @@ flowchart TD
 
 ### 7.2 Calibre 转换命令
 
-```bash
-# 基础转换
-ebook-convert input.mobi output.epub
-
-# 带选项的转换
-ebook-convert input.mobi output.epub \
-  --no-default-epub-cover \      # 不生成默认封面
-  --preserve-cover-aspect-ratio  # 保持封面比例
-```
-
 ### 7.3 转换时间预估
 
 | 文件大小 | 预估转换时间 | 说明 |
@@ -695,37 +284,11 @@ ebook-convert input.mobi output.epub \
 
 ### 7.4 进度更新节点
 
-```typescript
-// 后端处理进度分配
-const PROGRESS_STAGES = {
-  DOWNLOADING: 10,      // 下载文件
-  CONVERTING: 30,       // Calibre 转换（MOBI 特有）
-  PARSING: 50,          // 解析内容
-  CREATING_BOOK: 60,    // 创建书籍记录
-  CREATING_CHAPTERS: 70,// 创建章节
-  UPLOADING_CONTENT: 85,// 上传内容到 R2
-  FINALIZING: 95,       // 收尾工作
-  COMPLETED: 100,       // 完成
-};
-```
-
 ---
 
 ## 八、错误处理策略
 
 ### 8.1 错误类型分类
-
-```typescript
-enum MobiParseError {
-  FILE_NOT_FOUND = 'FILE_NOT_FOUND',
-  UNSUPPORTED_FORMAT = 'UNSUPPORTED_FORMAT',
-  DRM_PROTECTED = 'DRM_PROTECTED',
-  CONVERSION_FAILED = 'CONVERSION_FAILED',
-  CONVERSION_TIMEOUT = 'CONVERSION_TIMEOUT',
-  PARSE_FAILED = 'PARSE_FAILED',
-  INVALID_STRUCTURE = 'INVALID_STRUCTURE',
-}
-```
 
 ### 8.2 错误处理映射
 
@@ -740,19 +303,6 @@ enum MobiParseError {
 | `INVALID_STRUCTURE` | "文件结构异常" | 回退解析 |
 
 ### 8.3 DRM 检测
-
-```typescript
-private isDRMProtected(buffer: Buffer): boolean {
-  // 检查 MOBI header 中的 DRM 标志
-  // offset 92: drm_offset (如果非 0xFFFFFFFF 则有 DRM)
-  // offset 96: drm_count
-  // offset 100: drm_size
-  // offset 104: drm_flags
-
-  const drmOffset = buffer.readUInt32BE(92);
-  return drmOffset !== 0xFFFFFFFF;
-}
-```
 
 ### 8.4 错误恢复流程
 
@@ -772,83 +322,9 @@ flowchart TD
 
 ### 9.1 并发处理
 
-```typescript
-// Worker 并发配置
-const WORKER_CONFIG = {
-  concurrency: 3,           // 同时处理 3 个任务
-  limiter: {
-    max: 10,                // 每分钟最多 10 个
-    duration: 60000,
-  },
-  attempts: 3,              // 失败重试 3 次
-  backoff: {
-    type: 'exponential',
-    delay: 5000,            // 初始延迟 5 秒
-  },
-};
-```
-
 ### 9.2 临时文件管理
 
-```typescript
-class MobiParser {
-  private tempDir: string;
-
-  constructor() {
-    this.tempDir = path.join(os.tmpdir(), 'readmigo-mobi-parser');
-  }
-
-  /**
-   * 清理单个临时文件
-   */
-  private cleanup(filePath: string): void {
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    } catch (error) {
-      console.warn('Failed to cleanup:', filePath, error);
-    }
-  }
-
-  /**
-   * 清理所有临时文件（定期任务）
-   */
-  async cleanupTempDir(): Promise<void> {
-    try {
-      if (fs.existsSync(this.tempDir)) {
-        const files = fs.readdirSync(this.tempDir);
-        for (const file of files) {
-          const filePath = path.join(this.tempDir, file);
-          const stats = fs.statSync(filePath);
-          // 删除超过 1 小时的临时文件
-          if (Date.now() - stats.mtimeMs > 3600000) {
-            fs.unlinkSync(filePath);
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to cleanup temp dir:', error);
-    }
-  }
-}
-```
-
 ### 9.3 内存管理
-
-```typescript
-// 大文件流式处理
-async parseWithCalibre(mobiPath: string): Promise<ParsedBook> {
-  // 使用流式方式而非一次性加载
-  const fileSize = fs.statSync(mobiPath).size;
-
-  if (fileSize > 50 * 1024 * 1024) { // > 50MB
-    console.warn('Large file detected, may take longer to process');
-  }
-
-  // ... 处理逻辑
-}
-```
 
 ---
 
@@ -856,132 +332,7 @@ async parseWithCalibre(mobiPath: string): Promise<ParsedBook> {
 
 ### 10.1 单元测试
 
-```typescript
-// scripts/book-ingestion/processors/__tests__/mobi-parser.test.ts
-
-import { MobiParser, detectEbookFormat } from '../mobi-parser';
-
-describe('MobiParser', () => {
-  let parser: MobiParser;
-
-  beforeEach(() => {
-    parser = new MobiParser();
-  });
-
-  afterEach(async () => {
-    await parser.cleanupTempDir();
-  });
-
-  describe('parse', () => {
-    it('should throw for non-existent file', async () => {
-      await expect(parser.parse('/non/existent/file.mobi'))
-        .rejects.toThrow('File not found');
-    });
-
-    it('should throw for unsupported extension', async () => {
-      await expect(parser.parse('/path/to/file.docx'))
-        .rejects.toThrow('Unsupported file format');
-    });
-
-    it('should parse valid MOBI file with Calibre', async () => {
-      // 需要 Calibre 环境
-      const result = await parser.parse('./fixtures/sample.mobi');
-      expect(result.title).toBeDefined();
-      expect(result.chapters.length).toBeGreaterThan(0);
-    });
-
-    it('should fallback when Calibre unavailable', async () => {
-      // Mock Calibre 不可用
-      jest.spyOn(parser as any, 'checkCalibreAvailable')
-        .mockResolvedValue(false);
-
-      const result = await parser.parse('./fixtures/sample.mobi');
-      expect(result.title).toBeDefined();
-      // 回退模式章节有限
-      expect(result.chapters.length).toBe(1);
-    });
-  });
-
-  describe('parseMobiHeader', () => {
-    it('should extract metadata from EXTH records', () => {
-      const buffer = createMockMobiBuffer({
-        title: 'Test Book',
-        author: 'Test Author',
-      });
-
-      const metadata = (parser as any).parseMobiHeader(buffer);
-      expect(metadata.title).toBe('Test Book');
-      expect(metadata.author).toBe('Test Author');
-    });
-  });
-});
-
-describe('detectEbookFormat', () => {
-  it('should detect MOBI format', () => {
-    expect(detectEbookFormat('book.mobi')).toBe('mobi');
-  });
-
-  it('should detect AZW3 format', () => {
-    expect(detectEbookFormat('book.azw3')).toBe('azw3');
-  });
-
-  it('should detect AZW format as azw3', () => {
-    expect(detectEbookFormat('book.azw')).toBe('azw3');
-  });
-
-  it('should return unknown for unsupported', () => {
-    expect(detectEbookFormat('book.docx')).toBe('unknown');
-  });
-});
-```
-
 ### 10.2 集成测试
-
-```typescript
-// apps/backend/src/modules/user-books/__tests__/import-mobi.e2e-spec.ts
-
-describe('MOBI Import E2E', () => {
-  it('should import MOBI file successfully', async () => {
-    // 1. 发起导入
-    const initResponse = await request(app)
-      .post('/api/user-books/import/initiate')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        filename: 'test.mobi',
-        fileSize: 1024000,
-        contentType: 'application/x-mobipocket-ebook',
-      });
-
-    expect(initResponse.status).toBe(201);
-    expect(initResponse.body.uploadUrl).toBeDefined();
-
-    // 2. 上传文件（模拟）
-    await uploadToPresignedUrl(
-      initResponse.body.uploadUrl,
-      testMobiBuffer
-    );
-
-    // 3. 确认上传
-    const completeResponse = await request(app)
-      .post('/api/user-books/import/complete')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ jobId: initResponse.body.jobId });
-
-    expect(completeResponse.status).toBe(200);
-
-    // 4. 等待处理完成
-    await waitForJobComplete(initResponse.body.jobId);
-
-    // 5. 验证结果
-    const statusResponse = await request(app)
-      .get(`/api/user-books/import/${initResponse.body.jobId}/status`)
-      .set('Authorization', `Bearer ${token}`);
-
-    expect(statusResponse.body.status).toBe('COMPLETED');
-    expect(statusResponse.body.book).toBeDefined();
-  });
-});
-```
 
 ### 10.3 测试文件集
 
@@ -1001,57 +352,9 @@ describe('MOBI Import E2E', () => {
 
 ### 11.1 服务器依赖安装
 
-```bash
-# Ubuntu/Debian
-sudo apt-get update
-sudo apt-get install -y calibre
-
-# 验证安装
-ebook-convert --version
-
-# macOS (开发环境)
-brew install calibre
-
-# 添加到 PATH（如果需要）
-export PATH="/Applications/calibre.app/Contents/MacOS:$PATH"
-```
-
 ### 11.2 Docker 部署
 
-```dockerfile
-# Dockerfile
-FROM node:20-slim
-
-# 安装 Calibre
-RUN apt-get update && apt-get install -y \
-    calibre \
-    xvfb \
-    && rm -rf /var/lib/apt/lists/*
-
-# 设置虚拟显示（Calibre 需要）
-ENV DISPLAY=:99
-RUN Xvfb :99 -screen 0 1024x768x16 &
-
-# ... 其他配置
-```
-
 ### 11.3 监控指标
-
-```typescript
-// 关键监控指标
-const METRICS = {
-  // 导入成功率
-  'import.mobi.success_rate': 'gauge',
-  // 转换时间
-  'import.mobi.conversion_time_ms': 'histogram',
-  // 回退率（Calibre 不可用）
-  'import.mobi.fallback_rate': 'gauge',
-  // 错误分布
-  'import.mobi.error_type': 'counter',
-  // 文件大小分布
-  'import.mobi.file_size_bytes': 'histogram',
-};
-```
 
 ### 11.4 告警规则
 
@@ -1063,32 +366,6 @@ const METRICS = {
 | 队列积压 | > 50 | P1 |
 
 ### 11.5 日志记录
-
-```typescript
-// 关键日志点
-await this.logsService.logRuntime(
-  RuntimeLogLevel.INFO,
-  'MobiParser',
-  `[MOBI] Started parsing: filename=${filename}, size=${fileSize}`,
-  {
-    userId,
-    component: 'MobiParser',
-    metadata: { jobId, format, calibreAvailable },
-  },
-);
-
-// 转换完成
-await this.logsService.logRuntime(
-  RuntimeLogLevel.INFO,
-  'MobiParser',
-  `[MOBI] Conversion completed: duration=${duration}ms`,
-  {
-    userId,
-    component: 'MobiParser',
-    metadata: { jobId, duration, epubSize },
-  },
-);
-```
 
 ---
 

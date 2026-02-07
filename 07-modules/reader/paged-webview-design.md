@@ -48,37 +48,7 @@ ReaderView
 
 ### ReadingMode Enum (Simplified)
 
-```swift
-enum ReadingMode: String, CaseIterable, Codable {
-    case curlPage = "curl"           // 仿真翻页
-    case horizontalSlide = "slide"   // 左右滑动
-    case verticalScroll = "scroll"   // 上下滚动
-
-    var localizedName: String {
-        switch self {
-        case .curlPage: return "仿真翻页"
-        case .horizontalSlide: return "左右滑动"
-        case .verticalScroll: return "上下滚动"
-        }
-    }
-
-    var isPaged: Bool {
-        self != .verticalScroll
-    }
-
-    var supportsAutoPage: Bool {
-        self != .verticalScroll  // 上下滚动不支持自动翻页
-    }
-}
-```
-
 ### Auto Page Settings (Separate)
-
-```swift
-// In ThemeManager
-@Published var autoPageEnabled: Bool = false
-@Published var autoPageInterval: TimeInterval = 60 // seconds (15, 30, 60)
-```
 
 ### Files to Delete/Simplify
 
@@ -98,123 +68,15 @@ SIMPLIFY:
 
 CSS 3D 翻页效果：
 
-```css
-.page {
-    transform-style: preserve-3d;
-    transition: transform 0.6s ease-in-out;
-}
-
-.page.turning {
-    transform: rotateY(-180deg);
-    transform-origin: left center;
-}
-
-.page .front, .page .back {
-    backface-visibility: hidden;
-}
-
-.page .back {
-    transform: rotateY(180deg);
-}
-```
-
-```javascript
-function curlPageTurn(direction) {
-    const currentPage = document.querySelector('.page.current');
-    const nextPage = document.querySelector('.page.next');
-
-    currentPage.classList.add('turning');
-
-    setTimeout(() => {
-        currentPage.classList.remove('current', 'turning');
-        nextPage.classList.add('current');
-        updatePageState();
-    }, 600);
-}
-```
-
 ### 2. 左右滑动 (Horizontal Slide)
 
-```css
-.pages-container {
-    display: flex;
-    transition: transform 0.3s ease-out;
-}
-
-.page {
-    flex: 0 0 100vw;
-    min-width: 100vw;
-}
-```
-
-```javascript
-function slideTo(pageIndex) {
-    const container = document.querySelector('.pages-container');
-    const offset = pageIndex * window.innerWidth;
-    container.style.transform = `translateX(-${offset}px)`;
-}
-```
-
 ### 3. 上下滚动 (Vertical Scroll)
-
-```css
-.scroll-container {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-```
-
-```javascript
-// Existing scroll tracking logic
-window.addEventListener('scroll', function() {
-    const progress = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-    webkit.messageHandlers.scroll.postMessage({ progress: progress });
-});
-```
 
 ### 4. 自动翻页 (Auto Page)
 
 基于左右滑动模式 + 定时器：
 
-```javascript
-let autoPageTimer = null;
-let autoPageInterval = 30000; // 30 seconds default
-
-function startAutoPage(interval) {
-    autoPageInterval = interval;
-    autoPageTimer = setInterval(() => {
-        if (!goToNextPage()) {
-            // Reached chapter end
-            stopAutoPage();
-            webkit.messageHandlers.navigation.postMessage({event: 'autoPageEnd'});
-        }
-    }, autoPageInterval);
-}
-
-function stopAutoPage() {
-    if (autoPageTimer) {
-        clearInterval(autoPageTimer);
-        autoPageTimer = null;
-    }
-}
-```
-
 Swift 端控制：
-
-```swift
-// Auto page settings
-@Published var autoPageEnabled: Bool = false
-@Published var autoPageInterval: TimeInterval = 30 // seconds
-
-func toggleAutoPage() {
-    autoPageEnabled.toggle()
-    if autoPageEnabled {
-        webView.evaluateJavaScript("startAutoPage(\(autoPageInterval * 1000))")
-    } else {
-        webView.evaluateJavaScript("stopAutoPage()")
-    }
-}
-```
 
 ## Message Handlers
 

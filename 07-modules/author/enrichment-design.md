@@ -51,12 +51,6 @@ packages/database/scripts/enrich-authors-phase2.ts
 
 ### Usage
 
-```bash
-npx tsx scripts/enrich-authors-phase2.ts          # Preview authors to process
-npx tsx scripts/enrich-authors-phase2.ts --all    # Process all authors
-npx tsx scripts/enrich-authors-phase2.ts --limit 50  # Process first 50
-```
-
 ### Wikidata Properties Used
 
 | Property | Description | Field |
@@ -125,12 +119,6 @@ packages/database/scripts/enrich-authors-phase3-quotes.ts
 
 ### Usage
 
-```bash
-npx tsx scripts/enrich-authors-phase3-quotes.ts              # Full run (sync + fetch)
-npx tsx scripts/enrich-authors-phase3-quotes.ts --sync-only  # Sync quoteCount only
-npx tsx scripts/enrich-authors-phase3-quotes.ts --fetch-quotes --limit 30  # Fetch for N authors
-```
-
 ### Data Sources
 
 | Source | Language | Coverage |
@@ -178,12 +166,6 @@ packages/database/scripts/enrich-authors-phase4-timeline.ts
 
 ### Usage
 
-```bash
-npx tsx scripts/enrich-authors-phase4-timeline.ts          # Preview authors to process
-npx tsx scripts/enrich-authors-phase4-timeline.ts --all    # Process all authors
-npx tsx scripts/enrich-authors-phase4-timeline.ts --limit 30  # Process first 30
-```
-
 ### Wikidata Properties Used
 
 | Property | Description | Category |
@@ -199,18 +181,6 @@ npx tsx scripts/enrich-authors-phase4-timeline.ts --limit 30  # Process first 30
 | P585 | Point in time | AWARD |
 
 ### Data Structure
-
-```prisma
-model AuthorTimelineEvent {
-  id          String
-  authorId    String
-  year        Int
-  title       String    // "Published 'Adventures of Huckleberry Finn'"
-  titleZh     String?   // "出版《哈克贝利·费恩历险记》"
-  description String?
-  category    String    // BIRTH, EDUCATION, WORK, MAJOR_EVENT, AWARD, DEATH
-}
-```
 
 ### Data Sources
 
@@ -244,12 +214,6 @@ packages/database/scripts/enrich-authors-phase5-civilization.ts
 ```
 
 ### Usage
-
-```bash
-npx tsx scripts/enrich-authors-phase5-civilization.ts          # Preview status
-npx tsx scripts/enrich-authors-phase5-civilization.ts --all    # Process all authors
-npx tsx scripts/enrich-authors-phase5-civilization.ts --limit 30  # Process first 30
-```
 
 ### Enrichment Sources
 
@@ -286,23 +250,6 @@ npx tsx scripts/enrich-authors-phase5-civilization.ts --limit 30  # Process firs
 Show where an author fits in the broader context of world civilization and literary history. This helps users understand the author's significance and connections.
 
 ### 5.1 Literary Coordinates
-
-```typescript
-interface LiteraryPosition {
-  // Time period
-  era: string;              // "19th Century American Literature"
-  movement: string;         // "Realism", "Transcendentalism"
-
-  // Influence network
-  influencedBy: Author[];   // Predecessors who shaped their work
-  influenced: Author[];     // Writers they inspired
-  contemporaries: Author[]; // Writers active at the same time
-
-  // Genre positioning
-  primaryGenres: string[];  // ["Novel", "Satire", "Travel Writing"]
-  themes: string[];         // ["Social Criticism", "American Identity"]
-}
-```
 
 ### 5.2 World Context Map
 
@@ -349,93 +296,11 @@ FRENCH     [Hugo]----[Zola]----[Camus]----[Sartre]
 
 ### 5.5 Implementation
 
-```typescript
-interface AuthorCivilizationMap {
-  // Core positioning
-  literaryMovement: string;     // "American Realism"
-  historicalPeriod: string;     // "Gilded Age (1870-1900)"
-
-  // Influence network
-  influences: {
-    predecessors: AuthorLink[];  // Who influenced them
-    successors: AuthorLink[];    // Who they influenced
-    contemporaries: AuthorLink[];// Active at same time
-    mentors: AuthorLink[];       // Direct teachers
-    students: AuthorLink[];      // Direct students
-  };
-
-  // Cross-domain positioning
-  domains: {
-    literature: DomainPosition;   // Primary domain
-    philosophy?: DomainPosition;  // If applicable
-    politics?: DomainPosition;    // If applicable
-    science?: DomainPosition;     // If applicable
-  };
-
-  // Historical events during lifetime
-  historicalContext: HistoricalEvent[];
-}
-
-interface DomainPosition {
-  domain: string;
-  significance: 'major' | 'moderate' | 'minor';
-  contributions: string[];
-}
-```
-
 ---
 
 ## Database Schema (Current)
 
 The Author model already includes all Phase 2 fields:
-
-```prisma
-model Author {
-  id String @id @default(uuid()) @db.Uuid
-
-  // Basic info (Phase 1)
-  name         String   @db.VarChar(255)
-  bio          String?  @db.Text
-  bioZh        String?  @map("bio_zh") @db.Text
-  era          String?  @db.VarChar(50)
-  nationality  String?  @db.VarChar(100)
-  birthPlace   String?  @map("birth_place") @db.VarChar(255)
-  avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
-  wikipediaUrl String?  @map("wikipedia_url") @db.VarChar(500)
-  wikidataId   String?  @map("wikidata_id") @db.VarChar(50)
-
-  // Extended data (Phase 2) - IMPLEMENTED
-  nameZh         String?  @map("name_zh") @db.VarChar(255)
-  aliases        String[] @default([])
-  famousWorks    String[] @default([]) @map("famous_works")
-  literaryPeriod String?  @map("literary_period") @db.VarChar(100)
-  primaryGenres  String[] @default([]) @map("primary_genres")
-
-  // Civilization Map (Phase 5) - Schema ready
-  literaryMovement String?  @map("literary_movement") @db.VarChar(100)
-  historicalPeriod String?  @map("historical_period") @db.VarChar(100)
-  themes           String[] @default([])
-
-  // Relations (Phase 5)
-  influencesGiven    AuthorInfluence[] @relation("InfluencerAuthor")
-  influencesReceived AuthorInfluence[] @relation("InfluencedAuthor")
-  // ... other relations
-}
-
-model AuthorInfluence {
-  id             String @id @default(uuid()) @db.Uuid
-  influencerId   String @map("influencer_id") @db.Uuid
-  influencedId   String @map("influenced_id") @db.Uuid
-  influenceType  String @map("influence_type") @db.VarChar(50) // DIRECT, STYLISTIC, THEMATIC
-  description    String? @db.Text
-
-  influencer Author @relation("InfluencerAuthor", fields: [influencerId], references: [id])
-  influenced Author @relation("InfluencedAuthor", fields: [influencedId], references: [id])
-
-  @@unique([influencerId, influencedId])
-  @@map("author_influences")
-}
-```
 
 ---
 
@@ -478,38 +343,6 @@ model AuthorInfluence {
 ## API Response Enhancement
 
 Current author detail response needs to include:
-
-```json
-{
-  "id": "...",
-  "name": "Mark Twain",
-  "nameZh": "马克·吐温",
-  "bio": "...",
-  "era": "1835-1910",
-  "nationality": "United States",
-  "literaryPeriod": "American Realism",
-
-  "famousWorks": [
-    "Adventures of Huckleberry Finn",
-    "The Adventures of Tom Sawyer",
-    "A Connecticut Yankee in King Arthur's Court"
-  ],
-
-  "civilizationMap": {
-    "movement": "American Realism",
-    "historicalPeriod": "Gilded Age",
-    "influences": {
-      "predecessors": ["Charles Dickens", "Cervantes"],
-      "successors": ["Ernest Hemingway", "William Faulkner"],
-      "contemporaries": ["Henry James", "Herman Melville"]
-    }
-  },
-
-  "quotes": [...],
-  "timeline": [...],
-  "books": [...]
-}
-```
 
 ---
 

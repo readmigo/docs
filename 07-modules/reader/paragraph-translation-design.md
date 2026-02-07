@@ -32,24 +32,6 @@
 
 ### 推荐方案：方案B - 新建 ParagraphTranslation 表
 
-```prisma
-model ParagraphTranslation {
-  id              String   @id @default(uuid())
-  chapterId       String
-  paragraphIndex  Int      // 段落在章节中的位置 (0-based)
-  originalHash    String   // 原文MD5，用于检测原文变更
-  locale          String   // zh-Hans, zh-Hant, etc.
-  translatedText  String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  chapter         Chapter  @relation(fields: [chapterId], references: [id])
-
-  @@unique([chapterId, paragraphIndex, locale])
-  @@index([chapterId, locale])
-}
-```
-
 ## 翻译流程
 
 ```
@@ -100,14 +82,5 @@ Response:
 ## 章节内容格式
 
 章节HTML存储在R2，格式示例：
-
-```html
-<section epub:type="chapter">
-  <h2>Chapter Title</h2>
-  <p>First paragraph text...</p>
-  <p>Second paragraph text...</p>
-  ...
-</section>
-```
 
 每个 `<p>` 标签对应一个可翻译的段落。

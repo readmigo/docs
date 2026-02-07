@@ -30,18 +30,6 @@ flowchart TD
 
 ## 字体分类
 
-```swift
-enum FontCategory: String, Codable, CaseIterable {
-    case serif = "serif"                    // 衬线体（正式、经典）
-    case sansSerif = "sans_serif"           // 无衬线（现代、简洁）
-    case monospace = "monospace"            // 等宽（代码）
-    case display = "display"                // 展示体（标题）
-    case handwriting = "handwriting"        // 手写体
-    case chinese = "chinese"                // 中文专用
-    case dyslexia = "dyslexia"             // 阅读障碍友好
-}
-```
-
 | 分类 | 适用场景 |
 |------|----------|
 | 衬线体 | 适合长时间阅读，传统优雅 |
@@ -55,21 +43,6 @@ enum FontCategory: String, Codable, CaseIterable {
 ---
 
 ## 字体设置
-
-```swift
-struct FontSettings: Codable {
-    var bodyFont: String = "System"
-    var headingFont: String = "System"
-    var fontSize: CGFloat = 17
-    var lineHeight: CGFloat = 1.5
-    var letterSpacing: CGFloat = 0
-    var wordSpacing: CGFloat = 0
-    var paragraphSpacing: CGFloat = 12
-    var textAlignment: TextAlignment = .justified
-    var hyphenation: Bool = true
-    var fontWeight: FontWeight = .regular
-}
-```
 
 ---
 
@@ -90,43 +63,11 @@ struct FontSettings: Codable {
 
 支持导入 TTF/OTF 格式的字体文件：
 
-```swift
-func importFont(from url: URL) async throws -> ReaderFontFamily {
-    // 1. 验证字体文件
-    // 2. 解析字体信息
-    // 3. 提取字体元数据
-    // 4. 注册字体到系统
-    // 5. 复制到 App 字体目录
-    // 6. 创建字体模型
-}
-```
-
 ---
 
 ## 智能字体推荐
 
 根据书籍类型和用户偏好推荐最适合的字体：
-
-```swift
-func recommendFonts(for book: Book, userPreferences: FontSettings) -> [FontRecommendation] {
-    // 分析书籍类型
-    switch bookCategory {
-    case .fiction:
-        // 推荐 Literata、Crimson Pro
-    case .technical:
-        // 推荐 Source Code Pro、JetBrains Mono
-    case .academic:
-        // 推荐 Source Serif Pro
-    case .casual:
-        // 推荐 Atkinson Hyperlegible
-    }
-
-    // 考虑用户阅读时长和字号偏好
-    if userPreferences.fontSize > 20 {
-        // 推荐护眼字体
-    }
-}
-```
 
 ---
 

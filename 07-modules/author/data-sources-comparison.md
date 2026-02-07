@@ -4,7 +4,6 @@ AUTHOR DATA SOURCE COMPARISON - 10 TEST AUTHORS
 
 Comparing 4 sources: Wikipedia, Open Library, Wikidata, API Ninjas
 
-
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
 📚 AUTHOR: P. G. Wodehouse
@@ -321,7 +320,6 @@ Over...
    Title: English novelist, historian, and critic
    Era:  - 
    Occupation: Novelist, teacher, historian, journalist
-
 
 ====================================================================================================
 COMPARISON SUMMARY

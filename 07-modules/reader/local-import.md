@@ -58,7 +58,7 @@ iOS:      SwiftUI + iOS 17+
 | 能力 | 位置 | 状态 |
 |-----|------|------|
 | EPUB 解析 | `scripts/book-ingestion/processors/epub-parser.ts` | 完整 |
-| 文件存储 | `apps/backend/src/common/storage/storage.service.ts` | 完整 |
+| 文件存储 | `src/common/storage/storage.service.ts` | 完整 |
 | 预签名URL上传 | `StorageService.getSignedUploadUrl()` | 已实现 |
 | 书籍数据模型 | `Book`, `Chapter`, `UserBook` | 完整 |
 | 订阅验证 | `SubscriptionsService` | 完整 |
@@ -241,117 +241,11 @@ iOS:      SwiftUI + iOS 17+
 
 ### 5.1 新增表: UserImportedBook
 
-```prisma
-// 用户导入书籍扩展表
-model UserImportedBook {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bookId    String   @unique @map("book_id") @db.Uuid
-  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
-
-  // 导入信息
-  originalFilename String  @map("original_filename") @db.VarChar(500)
-  fileSize         Int     @map("file_size") // bytes
-  fileFormat       String  @map("file_format") @db.VarChar(20) // epub, txt, pdf
-  fileMd5          String? @map("file_md5") @db.VarChar(32)
-
-  // 存储信息
-  originalFileUrl  String  @map("original_file_url") @db.VarChar(500) // 原始文件R2路径
-
-  // 时间戳
-  importedAt DateTime @default(now()) @map("imported_at")
-
-  @@index([userId])
-  @@map("user_imported_books")
-}
-```
-
 ### 5.2 新增表: ImportJob
-
-```prisma
-// 导入任务追踪
-model ImportJob {
-  id     String @id @default(uuid()) @db.Uuid
-  userId String @map("user_id") @db.Uuid
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // 任务信息
-  status   ImportJobStatus @default(PENDING)
-  progress Int             @default(0) // 0-100
-
-  // 文件信息
-  filename   String @db.VarChar(500)
-  fileSize   Int    @map("file_size")
-  fileFormat String @map("file_format") @db.VarChar(20)
-  uploadKey  String @map("upload_key") @db.VarChar(500) // R2 临时上传路径
-
-  // 处理结果
-  bookId       String? @map("book_id") @db.Uuid
-  errorMessage String? @map("error_message") @db.Text
-
-  // 时间戳
-  createdAt   DateTime  @default(now()) @map("created_at")
-  startedAt   DateTime? @map("started_at")
-  completedAt DateTime? @map("completed_at")
-
-  @@index([userId, status])
-  @@index([createdAt])
-  @@map("import_jobs")
-}
-
-enum ImportJobStatus {
-  PENDING      // 等待上传
-  UPLOADING    // 正在上传
-  PROCESSING   // 正在处理
-  COMPLETED    // 处理完成
-  FAILED       // 处理失败
-}
-```
 
 ### 5.3 现有表扩展
 
-```prisma
-// Book 表添加字段
-model Book {
-  // ... existing fields ...
-
-  // 新增: 所有者（仅 USER_UPLOAD 类型有值）
-  ownerId String? @map("owner_id") @db.Uuid
-  owner   User?   @relation("OwnedBooks", fields: [ownerId], references: [id], onDelete: SetNull)
-
-  // 新增: 可见性
-  visibility BookVisibility @default(PUBLIC)
-
-  // 关联
-  userImportedBook UserImportedBook?
-}
-
-enum BookVisibility {
-  PUBLIC   // 平台公开书籍
-  PRIVATE  // 用户私有书籍
-}
-```
-
 ### 5.4 用户配额表
-
-```prisma
-// 用户存储配额
-model UserStorageQuota {
-  id     String @id @default(uuid()) @db.Uuid
-  userId String @unique @map("user_id") @db.Uuid
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // 使用情况
-  bookCount      Int   @default(0) @map("book_count")
-  totalSizeBytes BigInt @default(0) @map("total_size_bytes")
-
-  // 更新时间
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("user_storage_quotas")
-}
-```
 
 ---
 
@@ -538,125 +432,7 @@ Features/Import/
 
 #### ImportViewModel.swift
 
-```swift
-@MainActor
-class ImportViewModel: ObservableObject {
-    @Published var state: ImportState = .idle
-    @Published var progress: Double = 0
-    @Published var errorMessage: String?
-
-    private let importService: ImportService
-    private let subscriptionService: SubscriptionService
-
-    enum ImportState {
-        case idle
-        case checkingPermission
-        case selectingFile
-        case uploading
-        case processing
-        case completed(Book)
-        case failed(String)
-    }
-
-    func startImport() async {
-        state = .checkingPermission
-
-        // 1. 检查订阅权限
-        guard await checkSubscription() else {
-            state = .failed("请升级到 PRO 会员以使用导入功能")
-            return
-        }
-
-        // 2. 检查配额
-        guard await checkQuota() else {
-            state = .failed("已达到导入上限，请删除部分书籍后重试")
-            return
-        }
-
-        state = .selectingFile
-    }
-
-    func handleFileSelected(url: URL) async {
-        state = .uploading
-
-        do {
-            // 3. 获取预签名URL
-            let initResult = try await importService.initiateImport(
-                filename: url.lastPathComponent,
-                fileSize: try url.fileSize(),
-                contentType: url.mimeType
-            )
-
-            // 4. 上传文件
-            try await uploadFile(url: url, to: initResult.uploadUrl) { progress in
-                self.progress = progress * 0.5 // 上传占50%进度
-            }
-
-            // 5. 确认上传完成
-            try await importService.completeUpload(jobId: initResult.jobId)
-
-            state = .processing
-
-            // 6. 轮询处理状态
-            try await pollJobStatus(jobId: initResult.jobId)
-
-        } catch {
-            state = .failed(error.localizedDescription)
-        }
-    }
-
-    private func pollJobStatus(jobId: String) async throws {
-        while true {
-            let status = try await importService.getJobStatus(jobId: jobId)
-
-            switch status.status {
-            case .processing:
-                progress = 0.5 + Double(status.progress) / 100 * 0.5
-            case .completed:
-                if let book = status.book {
-                    state = .completed(book)
-                    return
-                }
-            case .failed:
-                throw ImportError.processingFailed(status.errorMessage ?? "未知错误")
-            default:
-                break
-            }
-
-            try await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
-        }
-    }
-}
-```
-
 #### FileUploadService.swift
-
-```swift
-class FileUploadService {
-    func uploadFile(
-        from localURL: URL,
-        to presignedURL: String,
-        progress: @escaping (Double) -> Void
-    ) async throws {
-        let fileData = try Data(contentsOf: localURL)
-
-        var request = URLRequest(url: URL(string: presignedURL)!)
-        request.httpMethod = "PUT"
-        request.setValue(localURL.mimeType, forHTTPHeaderField: "Content-Type")
-
-        let (_, response) = try await URLSession.shared.upload(
-            for: request,
-            from: fileData,
-            delegate: ProgressDelegate(progress: progress)
-        )
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            throw ImportError.uploadFailed
-        }
-    }
-}
-```
 
 ### 7.3 UI 设计规范
 
@@ -682,7 +458,7 @@ class FileUploadService {
 ### 8.1 模块结构
 
 ```
-apps/backend/src/modules/user-books/
+src/modules/user-books/
 ├── user-books.module.ts
 ├── user-books.controller.ts
 ├── user-books.service.ts
@@ -702,233 +478,7 @@ apps/backend/src/modules/user-books/
 
 #### user-books.service.ts
 
-```typescript
-@Injectable()
-export class UserBooksService {
-  constructor(
-    private prisma: PrismaService,
-    private storage: StorageService,
-    private queue: Queue,
-    private subscriptions: SubscriptionsService,
-  ) {}
-
-  async initiateImport(userId: string, dto: InitiateImportDto) {
-    // 1. 权限校验
-    const subscription = await this.subscriptions.getStatus(userId);
-    if (subscription.planType === 'FREE') {
-      throw new ForbiddenException('需要 PRO 或 PREMIUM 订阅');
-    }
-
-    // 2. 格式校验
-    const format = this.validateFormat(dto.filename, dto.contentType);
-
-    // 3. 配额校验
-    await this.checkQuota(userId, dto.fileSize, subscription.planType);
-
-    // 4. 创建导入任务
-    const job = await this.prisma.importJob.create({
-      data: {
-        userId,
-        filename: dto.filename,
-        fileSize: dto.fileSize,
-        fileFormat: format,
-        uploadKey: `user-uploads/${userId}/${randomUUID()}/${dto.filename}`,
-        status: 'PENDING',
-      },
-    });
-
-    // 5. 生成预签名URL
-    const uploadUrl = await this.storage.getSignedUploadUrl(
-      job.uploadKey,
-      600, // 10分钟有效期
-      dto.contentType,
-    );
-
-    return {
-      jobId: job.id,
-      uploadUrl,
-      uploadKey: job.uploadKey,
-      expiresIn: 600,
-    };
-  }
-
-  async completeUpload(userId: string, jobId: string) {
-    const job = await this.prisma.importJob.findFirst({
-      where: { id: jobId, userId },
-    });
-
-    if (!job) {
-      throw new NotFoundException('导入任务不存在');
-    }
-
-    // 验证文件已上传
-    const exists = await this.storage.exists(job.uploadKey);
-    if (!exists) {
-      throw new BadRequestException('文件未上传');
-    }
-
-    // 更新状态并加入处理队列
-    await this.prisma.importJob.update({
-      where: { id: jobId },
-      data: { status: 'PROCESSING', startedAt: new Date() },
-    });
-
-    await this.queue.add('process-import', { jobId }, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 5000 },
-    });
-
-    return { jobId, status: 'PROCESSING' };
-  }
-
-  async getJobStatus(userId: string, jobId: string) {
-    const job = await this.prisma.importJob.findFirst({
-      where: { id: jobId, userId },
-      include: { book: true },
-    });
-
-    if (!job) {
-      throw new NotFoundException('导入任务不存在');
-    }
-
-    return {
-      jobId: job.id,
-      status: job.status,
-      progress: job.progress,
-      book: job.book ? this.formatBook(job.book) : null,
-      errorMessage: job.errorMessage,
-    };
-  }
-
-  private validateFormat(filename: string, contentType: string): string {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    const supportedFormats: Record<string, string[]> = {
-      epub: ['application/epub+zip', 'application/octet-stream'],
-      txt: ['text/plain'],
-      pdf: ['application/pdf'],
-    };
-
-    for (const [format, mimeTypes] of Object.entries(supportedFormats)) {
-      if (ext === format && mimeTypes.includes(contentType)) {
-        return format;
-      }
-    }
-
-    throw new BadRequestException(`不支持的文件格式: ${ext}`);
-  }
-
-  private async checkQuota(userId: string, fileSize: number, planType: string) {
-    const quota = await this.prisma.userStorageQuota.findUnique({
-      where: { userId },
-    });
-
-    const limits = {
-      PRO: { bookCount: 50, totalSize: 500 * 1024 * 1024 },
-      PREMIUM: { bookCount: 200, totalSize: 2 * 1024 * 1024 * 1024 },
-    };
-
-    const limit = limits[planType as keyof typeof limits];
-    if (!limit) {
-      throw new ForbiddenException('无效的订阅类型');
-    }
-
-    const currentCount = quota?.bookCount ?? 0;
-    const currentSize = quota?.totalSizeBytes ?? BigInt(0);
-
-    if (currentCount >= limit.bookCount) {
-      throw new BadRequestException('已达到书籍数量上限');
-    }
-
-    if (Number(currentSize) + fileSize > limit.totalSize) {
-      throw new BadRequestException('已达到存储容量上限');
-    }
-  }
-}
-```
-
 ### 8.3 处理队列 Worker
-
-```typescript
-@Processor('book-import')
-export class ImportProcessor {
-  constructor(
-    private prisma: PrismaService,
-    private storage: StorageService,
-    private epubParser: EpubParser,
-  ) {}
-
-  @Process('process-import')
-  async processImport(job: Job<{ jobId: string }>) {
-    const importJob = await this.prisma.importJob.findUnique({
-      where: { id: job.data.jobId },
-    });
-
-    if (!importJob) return;
-
-    try {
-      // 1. 下载原始文件
-      await this.updateProgress(importJob.id, 10);
-      const fileBuffer = await this.storage.get(importJob.uploadKey);
-
-      // 2. 解析文件
-      await this.updateProgress(importJob.id, 20);
-      const parsedBook = await this.parseFile(
-        fileBuffer,
-        importJob.fileFormat,
-        importJob.filename
-      );
-
-      // 3. 创建书籍记录
-      await this.updateProgress(importJob.id, 40);
-      const book = await this.createBook(importJob.userId, parsedBook, importJob);
-
-      // 4. 上传章节内容和封面
-      await this.updateProgress(importJob.id, 60);
-      await this.uploadBookContent(book.id, parsedBook);
-
-      // 5. 更新配额
-      await this.updateProgress(importJob.id, 90);
-      await this.updateUserQuota(importJob.userId, importJob.fileSize);
-
-      // 6. 完成
-      await this.prisma.importJob.update({
-        where: { id: importJob.id },
-        data: {
-          status: 'COMPLETED',
-          progress: 100,
-          bookId: book.id,
-          completedAt: new Date(),
-        },
-      });
-
-      // 7. 清理临时文件
-      await this.storage.delete(importJob.uploadKey);
-
-    } catch (error) {
-      await this.prisma.importJob.update({
-        where: { id: importJob.id },
-        data: {
-          status: 'FAILED',
-          errorMessage: error.message,
-          completedAt: new Date(),
-        },
-      });
-      throw error;
-    }
-  }
-
-  private async parseFile(buffer: Buffer, format: string, filename: string) {
-    switch (format) {
-      case 'epub':
-        return this.epubParser.parseFromBuffer(buffer);
-      case 'txt':
-        return this.txtParser.parse(buffer, filename);
-      default:
-        throw new Error(`不支持的格式: ${format}`);
-    }
-  }
-}
-```
 
 ---
 
@@ -947,23 +497,6 @@ export class ImportProcessor {
 ### 9.2 客户端预处理（可选）
 
 使用 [EPUBKit](https://github.com/witekbobrowski/EPUBKit) 做基础元数据提取:
-
-```swift
-import EPUBKit
-
-class LocalEpubPreviewService {
-    func preview(url: URL) async throws -> EpubPreview {
-        let document = try EPUBDocument(url: url)
-
-        return EpubPreview(
-            title: document.title ?? url.deletingPathExtension().lastPathComponent,
-            author: document.author,
-            coverImage: document.cover,
-            estimatedChapters: document.spine?.items.count ?? 0
-        )
-    }
-}
-```
 
 ---
 
@@ -985,50 +518,6 @@ class LocalEpubPreviewService {
 
 **智能断章策略**:
 
-```typescript
-class TxtParser {
-  private chapterPatterns = [
-    /^第[一二三四五六七八九十百千零\d]+[章节卷部集篇回]/,
-    /^Chapter\s+\d+/i,
-    /^CHAPTER\s+[IVXLCDM]+/i,
-    /^[一二三四五六七八九十]+[、.．]/,
-    /^\d+[、.．]/,
-  ];
-
-  parse(content: string, filename: string): ParsedBook {
-    const lines = content.split('\n');
-    const chapters: ParsedChapter[] = [];
-
-    let currentChapter = { title: '序', content: '', startLine: 0 };
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (this.isChapterTitle(line)) {
-        if (currentChapter.content.trim()) {
-          chapters.push(this.finalizeChapter(currentChapter));
-        }
-        currentChapter = { title: line, content: '', startLine: i };
-      } else {
-        currentChapter.content += line + '\n';
-      }
-    }
-
-    // 添加最后一章
-    if (currentChapter.content.trim()) {
-      chapters.push(this.finalizeChapter(currentChapter));
-    }
-
-    return {
-      title: this.extractTitleFromFilename(filename),
-      author: '未知',
-      chapters,
-      // ...
-    };
-  }
-}
-```
-
 ### 10.3 PDF 处理（Phase 3）
 
 **基础方案**: 使用 pdf.js 或 pdf-parse 提取文本
@@ -1042,38 +531,6 @@ class TxtParser {
 ## 十一、测试策略
 
 ### 11.1 单元测试
-
-```typescript
-describe('UserBooksService', () => {
-  describe('initiateImport', () => {
-    it('should reject FREE users', async () => {
-      // ...
-    });
-
-    it('should check quota limits', async () => {
-      // ...
-    });
-
-    it('should generate valid presigned URL', async () => {
-      // ...
-    });
-  });
-});
-
-describe('EpubParser', () => {
-  it('should parse standard EPUB 2 files', async () => {
-    // ...
-  });
-
-  it('should parse EPUB 3 files with nav.xhtml', async () => {
-    // ...
-  });
-
-  it('should handle malformed EPUB gracefully', async () => {
-    // ...
-  });
-});
-```
 
 ### 11.2 集成测试
 
@@ -1099,20 +556,6 @@ describe('EpubParser', () => {
 
 ### 12.1 关键指标
 
-```typescript
-// 导入成功率
-const importSuccessRate = completedJobs / totalJobs;
-
-// 平均处理时间
-const avgProcessingTime = totalProcessingTime / completedJobs;
-
-// 格式分布
-const formatDistribution = groupBy(jobs, 'fileFormat');
-
-// 错误类型分布
-const errorDistribution = groupBy(failedJobs, 'errorType');
-```
-
 ### 12.2 告警规则
 
 - 导入成功率 < 95%
@@ -1121,19 +564,6 @@ const errorDistribution = groupBy(failedJobs, 'errorType');
 - 存储使用率 > 80%
 
 ### 12.3 日志记录
-
-```typescript
-await this.logsService.logRuntime(
-  RuntimeLogLevel.INFO,
-  'Import',
-  `[Import] Started: userId=${userId}, filename=${filename}`,
-  {
-    userId,
-    component: 'ImportProcessor',
-    metadata: { jobId, format, fileSize }
-  },
-);
-```
 
 ---
 

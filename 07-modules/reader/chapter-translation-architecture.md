@@ -46,25 +46,6 @@ flowchart TD
 
 ### ChapterTranslation
 
-```prisma
-model ChapterTranslation {
-  id             String   @id @default(uuid()) @db.Uuid
-  chapterId      String   @map("chapter_id") @db.Uuid
-  chapter        Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  locale         String   @db.VarChar(10)           // e.g., "zh-Hans"
-  contentUrl     String   @map("content_url") @db.VarChar(500)
-  paragraphCount Int      @map("paragraph_count")
-  source         String   @default("manual") @db.VarChar(20)  // manual, deepl, niutrans
-  status         String   @default("draft") @db.VarChar(20)   // draft, published
-  translatedAt   DateTime? @map("translated_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  @@unique([chapterId, locale])
-  @@map("chapter_translations")
-}
-```
-
 ## R2 存储结构
 
 ```
@@ -80,31 +61,6 @@ readmigo-production/
 ```
 
 ## 翻译JSON格式
-
-```json
-{
-  "version": "1.0",
-  "chapterId": "32f4913d-6389-4590-aba8-863360927165",
-  "locale": "zh-Hans",
-  "paragraphs": [
-    {
-      "index": 0,
-      "original": "It was four o'clock when the ceremony was over...",
-      "translation": "仪式结束时已是下午四点..."
-    },
-    {
-      "index": 1,
-      "original": "This was unfortunate...",
-      "translation": "这很不幸..."
-    }
-  ],
-  "metadata": {
-    "translatedAt": "2026-02-04T18:15:00Z",
-    "source": "niutrans",
-    "wordCount": 8427
-  }
-}
-```
 
 ## API 端点
 

@@ -304,12 +304,12 @@
 
 | 组件 | 路径 |
 |------|------|
-| **模块** | `apps/backend/src/modules/recommendation/recommendation.module.ts` |
-| **主服务** | `apps/backend/src/modules/recommendation/recommendation.service.ts` |
-| **统计服务** | `apps/backend/src/modules/recommendation/book-stats.service.ts` |
-| **评分服务** | `apps/backend/src/modules/recommendation/book-score.service.ts` |
-| **评分计算** | `apps/backend/src/modules/recommendation/score-calculator.ts` |
-| **控制器** | `apps/backend/src/modules/recommendation/recommendation.controller.ts` |
+| **模块** | `src/modules/recommendation/recommendation.module.ts` |
+| **主服务** | `src/modules/recommendation/recommendation.service.ts` |
+| **统计服务** | `src/modules/recommendation/book-stats.service.ts` |
+| **评分服务** | `src/modules/recommendation/book-score.service.ts` |
+| **评分计算** | `src/modules/recommendation/score-calculator.ts` |
+| **控制器** | `src/modules/recommendation/recommendation.controller.ts` |
 
 ---
 

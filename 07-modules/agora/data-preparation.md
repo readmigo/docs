@@ -256,4 +256,4 @@
 | 数据库Schema | `packages/database/prisma/schema.prisma` |
 | iOS头像组件 | `ios/Readmigo/Features/Agora/AuthorAvatarView.swift` |
 | iOS作者模型 | `ios/Readmigo/Core/Models/Author.swift` |
-| 后端金句服务 | `apps/backend/src/modules/quotes/quotes.service.ts` |
+| 后端金句服务 | `src/modules/quotes/quotes.service.ts` |
