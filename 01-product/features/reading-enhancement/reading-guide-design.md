@@ -32,31 +32,31 @@
 
 ### 2.1 实体关系图
 
-```
-┌─────────────┐       1:1        ┌─────────────────┐
-│    Book     │ ───────────────> │  ReadingGuide   │
-│             │                  │                 │
-│ id (PK)     │                  │ id (PK)         │
-│ title       │                  │ bookId (FK, UQ) │
-│ author      │                  │ sourceType      │
-│ ...         │                  │ aiModel         │
-└─────────────┘                  │ generatedAt     │
-                                 └────────┬────────┘
-                                          │
-                                          │ 1:N
-                                          ▼
-                                 ┌─────────────────────────┐
-                                 │ ReadingGuideTranslation │
-                                 │                         │
-                                 │ id (PK)                 │
-                                 │ readingGuideId (FK)     │
-                                 │ language                │
-                                 │ readingWarnings         │
-                                 │ storyTimeline           │
-                                 │ quickStartGuide         │
-                                 │                         │
-                                 │ UNIQUE(guideId, lang)   │
-                                 └─────────────────────────┘
+```mermaid
+erDiagram
+    Book ||--|| ReadingGuide : "1:1"
+    ReadingGuide ||--o{ ReadingGuideTranslation : "1:N"
+
+    Book {
+        uuid id PK
+        string title
+        string author
+    }
+    ReadingGuide {
+        uuid id PK
+        uuid bookId FK "UNIQUE"
+        string sourceType
+        string aiModel
+        datetime generatedAt
+    }
+    ReadingGuideTranslation {
+        uuid id PK
+        uuid readingGuideId FK
+        string language
+        text readingWarnings
+        text storyTimeline
+        text quickStartGuide
+    }
 ```
 
 ### 2.2 ReadingGuide 字段说明
