@@ -2,62 +2,18 @@
 
 ## Content Studio 在整体流程中的位置
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           EPUB 内容处理完整流程                               │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-    ┌──────────┐
-    │  EPUB    │
-    │  文件    │
-    └────┬─────┘
-         │
-         ▼
-┌────────────────────┐
-│    Pipeline        │
-│   (EPUB 解析)      │
-│                    │
-│ • 解压 EPUB        │
-│ • 解析元数据       │
-│ • 提取章节内容     │
-│ • 基础 HTML 清理   │
-└────────┬───────────┘
-         │
-         │ 原始解析结果
-         ▼
-┌────────────────────────────────────────────────────────┐
-│                  Content Studio                         │
-│                                                         │
-│  ┌─────────────┐    ┌─────────────┐    ┌────────────┐ │
-│  │ 自动应用    │───▶│ 人工校正    │───▶│ 质量审核   │ │
-│  │ 已学规则    │    │ & 修复      │    │ & 发布     │ │
-│  └─────────────┘    └─────────────┘    └────────────┘ │
-│         ▲                  │                           │
-│         │                  │                           │
-│         │    ┌─────────────▼─────────────┐            │
-│         │    │       学习系统             │            │
-│         │    │   • 模式识别              │            │
-│         │    │   • 规则生成              │            │
-│         └────│   • 置信度计算            │            │
-│              └───────────────────────────┘            │
-└─────────────────────────┬──────────────────────────────┘
-                          │
-                          │ 校正后的内容
-                          ▼
-              ┌───────────────────────┐
-              │   Readmigo 数据库     │
-              │                       │
-              │ • books 表            │
-              │ • chapters 表         │
-              │ • content_corrections │
-              │ • correction_rules    │
-              └───────────┬───────────┘
-                          │
-                          ▼
-              ┌───────────────────────┐
-              │    用户端 APP         │
-              │   (iOS / Android)     │
-              └───────────────────────┘
+```mermaid
+flowchart TD
+    A["EPUB 文件"] --> B["Pipeline (EPUB 解析)<br>解压 EPUB / 解析元数据<br>提取章节内容 / 基础 HTML 清理"]
+    B -->|"原始解析结果"| C["Content Studio"]
+    subgraph C["Content Studio"]
+        C1["自动应用已学规则"] --> C2["人工校正 & 修复"]
+        C2 --> C3["质量审核 & 发布"]
+        C2 --> C4["学习系统<br>模式识别 / 规则生成 / 置信度计算"]
+        C4 --> C1
+    end
+    C -->|"校正后的内容"| D["Readmigo 数据库<br>books / chapters<br>content_corrections / correction_rules"]
+    D --> E["用户端 APP<br>(iOS / Android)"]
 ```
 
 ## 数据流详解
@@ -81,96 +37,35 @@
 
 ## 数据库表关系
 
-```
-┌─────────────────┐       ┌─────────────────┐
-│     books       │       │    chapters     │
-├─────────────────┤       ├─────────────────┤
-│ id              │◄──────│ book_id         │
-│ title           │       │ original_html   │
-│ content_status  │       │ corrected_html  │
-│ ...             │       │ ...             │
-└────────┬────────┘       └────────┬────────┘
-         │                         │
-         │    ┌────────────────────┘
-         │    │
-         ▼    ▼
-┌─────────────────────────┐
-│  content_corrections    │
-├─────────────────────────┤
-│ id                      │
-│ book_id                 │
-│ chapter_id              │
-│ fix_type                │
-│ before_html             │
-│ after_html              │
-│ status                  │
-│ rule_id (nullable)      │
-└───────────┬─────────────┘
-            │
-            │ 聚合分析
-            ▼
-┌─────────────────────────┐       ┌─────────────────────┐
-│    learned_patterns     │──────▶│   correction_rules  │
-├─────────────────────────┤       ├─────────────────────┤
-│ pattern_hash            │       │ id                  │
-│ action_type             │       │ name                │
-│ selector_pattern        │       │ selector            │
-│ occurrences             │       │ action_type         │
-│ confidence              │       │ source (learned/    │
-│ status (pending/        │       │         builtin/    │
-│         approved)       │       │         custom)     │
-└─────────────────────────┘       │ confidence          │
-                                  │ is_active           │
-                                  └─────────────────────┘
+```mermaid
+flowchart TD
+    A["books<br>id, title, content_status"] --> C["content_corrections<br>id, book_id, chapter_id<br>fix_type, before_html, after_html<br>status, rule_id"]
+    B["chapters<br>book_id, original_html<br>corrected_html"] --> C
+    A --- B
+    C -->|"聚合分析"| D["learned_patterns<br>pattern_hash, action_type<br>selector_pattern, occurrences<br>confidence, status"]
+    D --> E["correction_rules<br>id, name, selector<br>action_type, source<br>confidence, is_active"]
 ```
 
 ## 状态流转
 
 ### 书籍内容状态
 
-```
-          ┌──────────────┐
-          │   pending    │  待处理
-          └──────┬───────┘
-                 │ Pipeline 解析完成
-                 ▼
-          ┌──────────────┐
-          │  auto_fixed  │  已自动修复
-          └──────┬───────┘
-                 │ 进入 Content Studio
-                 ▼
-          ┌──────────────┐
-          │  in_review   │  审核中
-          └──────┬───────┘
-                 │ 人工校正完成
-                 ▼
-          ┌──────────────┐
-          │  approved    │  已批准
-          └──────┬───────┘
-                 │ 发布
-                 ▼
-          ┌──────────────┐
-          │  published   │  已发布
-          └──────────────┘
+```mermaid
+flowchart TD
+    A["pending<br>待处理"] -->|"Pipeline 解析完成"| B["auto_fixed<br>已自动修复"]
+    B -->|"进入 Content Studio"| C["in_review<br>审核中"]
+    C -->|"人工校正完成"| D["approved<br>已批准"]
+    D -->|"发布"| E["published<br>已发布"]
 ```
 
 ### 修复项状态
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│ auto_applied│     │pending_confirm│    │ suggestion  │
-│  (自动应用) │     │  (待确认)    │     │   (建议)    │
-└──────┬──────┘     └──────┬──────┘     └──────┬──────┘
-       │                   │                   │
-       │                   │                   │
-       ▼                   ▼                   ▼
-┌──────────────────────────────────────────────────────┐
-│                    人工审核决策                        │
-└──────────────────────────────────────────────────────┘
-       │                   │                   │
-       ▼                   ▼                   ▼
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  confirmed  │     │  reverted   │     │  rejected   │
-│   (已确认)  │     │  (已回滚)   │     │  (已拒绝)   │
-└─────────────┘     └─────────────┘     └─────────────┘
+```mermaid
+flowchart TD
+    A1["auto_applied<br>(自动应用)"] --> B["人工审核决策"]
+    A2["pending_confirm<br>(待确认)"] --> B
+    A3["suggestion<br>(建议)"] --> B
+    B --> C1["confirmed<br>(已确认)"]
+    B --> C2["reverted<br>(已回滚)"]
+    B --> C3["rejected<br>(已拒绝)"]
 ```

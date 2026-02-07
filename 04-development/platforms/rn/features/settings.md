@@ -310,44 +310,10 @@
 
 ## 删除账号
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                  Delete Account Flow                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌───────────────┐                                              │
-│  │ Tap Delete    │                                              │
-│  │ Account       │                                              │
-│  └───────┬───────┘                                              │
-│          │                                                       │
-│          ▼                                                       │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  Confirmation Dialog                                       │  │
-│  │  ┌─────────────────────────────────────────────────────┐  │  │
-│  │  │  ⚠️ Delete Account                                  │  │  │
-│  │  │                                                      │  │  │
-│  │  │  This will permanently delete:                      │  │  │
-│  │  │  • Your profile and settings                        │  │  │
-│  │  │  • Your library and reading progress                │  │  │
-│  │  │  • Your vocabulary and learning data                │  │  │
-│  │  │                                                      │  │  │
-│  │  │  This action cannot be undone.                      │  │  │
-│  │  │                                                      │  │  │
-│  │  │            [ Cancel ]    [ Delete ]                 │  │  │
-│  │  └─────────────────────────────────────────────────────┘  │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│          │                                                       │
-│          ▼ 确认删除                                              │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  DELETE /auth/account                                      │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│          │                                                       │
-│          ▼                                                       │
-│  ┌───────────────┐                                              │
-│  │ Clear Storage │                                              │
-│  │ Navigate to   │                                              │
-│  │ Login Screen  │                                              │
-│  └───────────────┘                                              │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["Tap Delete Account"] --> B["Confirmation Dialog<br>This will permanently delete:<br>profile, library, vocabulary"]
+    B -->|"Cancel"| C["返回设置页"]
+    B -->|"确认删除"| D["DELETE /auth/account"]
+    D --> E["Clear Storage<br>Navigate to Login Screen"]
 ```

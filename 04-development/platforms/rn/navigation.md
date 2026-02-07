@@ -122,51 +122,22 @@ book/reader.tsx → 全屏模态展示
 
 ### 认证流程
 
-```
-┌───────────────┐
-│   App Start   │
-└───────┬───────┘
-        │
-        ▼
-┌───────────────────────┐
-│  Check Auth State     │
-│  (Zustand Rehydrate)  │
-└───────────┬───────────┘
-            │
-    ┌───────┴───────┐
-    │               │
-    ▼               ▼
-┌────────┐     ┌────────┐
-│ Guest  │     │ Authed │
-└────┬───┘     └────┬───┘
-     │              │
-     ▼              ▼
-┌────────────┐  ┌────────────┐
-│  (tabs)/   │  │  (tabs)/   │
-│  library   │  │  library   │
-└────────────┘  └────────────┘
-     │
-     │ (需要完整功能)
-     ▼
-┌────────────┐
-│  (auth)/   │
-│  login     │
-└────────────┘
+```mermaid
+flowchart TD
+    A["App Start"] --> B["Check Auth State<br>(Zustand Rehydrate)"]
+    B --> C{"认证状态"}
+    C -->|Guest| D["(tabs)/library"]
+    C -->|Authed| E["(tabs)/library"]
+    D -->|需要完整功能| F["(auth)/login"]
 ```
 
 ### 阅读流程
 
-```
-┌────────────┐     ┌────────────┐     ┌────────────┐
-│  Library   │────▶│Book Detail │────▶│   Reader   │
-│  /library  │     │ /book/[id] │     │/book/reader│
-└────────────┘     └────────────┘     └────────────┘
-                        │
-                        │ (返回)
-                        ▼
-                   ┌────────────┐
-                   │  Library   │
-                   └────────────┘
+```mermaid
+flowchart LR
+    A["Library<br>/library"] --> B["Book Detail<br>/book/[id]"]
+    B --> C["Reader<br>/book/reader"]
+    B -->|返回| A
 ```
 
 ## 导航 API

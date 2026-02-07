@@ -188,48 +188,13 @@
 
 ## 购买流程
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   Purchase Flow                                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌───────────────┐                                              │
-│  │ User taps     │                                              │
-│  │ Subscribe     │                                              │
-│  └───────┬───────┘                                              │
-│          │                                                       │
-│          ▼                                                       │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  subscriptionStore.purchasePackage(packageId)              │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│          │                                                       │
-│          ▼                                                       │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  Purchases.purchasePackage(package)                        │  │
-│  │  → 调起 App Store / Google Play 支付界面                   │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│          │                                                       │
-│    ┌─────┴─────┐                                                │
-│    │           │                                                 │
-│    ▼           ▼                                                 │
-│ Success     Cancelled/                                           │
-│    │        Failed                                               │
-│    │           │                                                 │
-│    ▼           ▼                                                 │
-│ ┌───────────┐ ┌───────────┐                                     │
-│ │ Update    │ │ Show      │                                     │
-│ │ State     │ │ Error     │                                     │
-│ │ isPremium │ │ Message   │                                     │
-│ └─────┬─────┘ └───────────┘                                     │
-│       │                                                          │
-│       ▼                                                          │
-│ ┌───────────────┐                                               │
-│ │ Show Success  │                                               │
-│ │ Navigate to   │                                               │
-│ │ Home          │                                               │
-│ └───────────────┘                                               │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["User taps Subscribe"] --> B["subscriptionStore.purchasePackage(packageId)"]
+    B --> C["Purchases.purchasePackage(package)<br>调起 App Store / Google Play 支付界面"]
+    C --> D{"购买结果"}
+    D -->|Success| E["Update State isPremium"] --> F["Show Success<br>Navigate to Home"]
+    D -->|"Cancelled / Failed"| G["Show Error Message"]
 ```
 
 ## 付费墙触发点

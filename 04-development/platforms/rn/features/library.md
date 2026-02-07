@@ -77,35 +77,15 @@
 
 ## 数据流
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Library Data Flow                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌───────────────┐                                              │
-│  │  useLibrary   │                                              │
-│  │    Hook       │                                              │
-│  └───────┬───────┘                                              │
-│          │                                                       │
-│          ▼                                                       │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                    React Query                             │  │
-│  │  ┌─────────────────┐  ┌─────────────────┐                 │  │
-│  │  │  useQuery       │  │  useMutation    │                 │  │
-│  │  │  (library/books)│  │  (add/remove)   │                 │  │
-│  │  └────────┬────────┘  └────────┬────────┘                 │  │
-│  └───────────┼────────────────────┼──────────────────────────┘  │
-│              │                    │                              │
-│              ▼                    ▼                              │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                     API Layer                              │  │
-│  │  GET /library/books                                        │  │
-│  │  POST /library/books                                       │  │
-│  │  DELETE /library/books/:id                                 │  │
-│  │  PUT /library/books/:id/progress                           │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["useLibrary Hook"] --> B["React Query"]
+    subgraph B["React Query"]
+        B1["useQuery<br>(library/books)"]
+        B2["useMutation<br>(add/remove)"]
+    end
+    B1 --> C["API Layer<br>GET /library/books<br>POST /library/books<br>DELETE /library/books/:id<br>PUT /library/books/:id/progress"]
+    B2 --> C
 ```
 
 ## 书籍分类
