@@ -37,36 +37,32 @@
 
 ### 2.1 架构总览
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                            READMIGO ENVIRONMENT ISOLATION                        │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                  │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐    │
-│  │    LOCAL      │  │   DEBUGGING   │  │    STAGING    │  │  PRODUCTION   │    │
-│  │               │  │               │  │               │  │               │    │
-│  │  开发者本机    │  │  远程调试环境  │  │  预发布环境    │  │   生产环境    │    │
-│  │               │  │               │  │               │  │               │    │
-│  │ ┌───────────┐ │  │ ┌───────────┐ │  │ ┌───────────┐ │  │ ┌───────────┐ │    │
-│  │ │ Local DB  │ │  │ │ Debug DB  │ │  │ │Staging DB │ │  │ │  Prod DB  │ │    │
-│  │ │ (Docker)  │ │  │ │  (Neon)   │ │  │ │  (Neon)   │ │  │ │  (Neon)   │ │    │
-│  │ └───────────┘ │  │ └───────────┘ │  │ └───────────┘ │  │ └───────────┘ │    │
-│  │               │  │               │  │               │  │               │    │
-│  │ ┌───────────┐ │  │ ┌───────────┐ │  │ ┌───────────┐ │  │ ┌───────────┐ │    │
-│  │ │Local Redis│ │  │ │Debug Redis│ │  │ │  Staging  │ │  │ │Prod Redis │ │    │
-│  │ │ (Docker)  │ │  │ │ (Upstash) │ │  │ │  Redis    │ │  │ │ (Upstash) │ │    │
-│  │ └───────────┘ │  │ └───────────┘ │  │ └───────────┘ │  │ └───────────┘ │    │
-│  │               │  │               │  │               │  │               │    │
-│  │ ┌───────────┐ │  │ ┌───────────┐ │  │ ┌───────────┐ │  │ ┌───────────┐ │    │
-│  │ │ Local R2  │ │  │ │ Debug R2  │ │  │ │Staging R2 │ │  │ │  Prod R2  │ │    │
-│  │ │  (MinIO)  │ │  │ │ (Bucket)  │ │  │ │ (Bucket)  │ │  │ │ (Bucket)  │ │    │
-│  │ └───────────┘ │  │ └───────────┘ │  │ └───────────┘ │  │ └───────────┘ │    │
-│  └───────────────┘  └───────────────┘  └───────────────┘  └───────────────┘    │
-│         │                  │                  │                  │              │
-│         ▼                  ▼                  ▼                  ▼              │
-│  localhost:3000   debug-api.readmigo.app  staging-api.readmigo.app  api.readmigo.app │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph LOCAL["LOCAL<br>开发者本机"]
+        L_DB["Local DB<br>(Docker)"]
+        L_Redis["Local Redis<br>(Docker)"]
+        L_R2["Local R2<br>(MinIO)"]
+    end
+    subgraph DEBUGGING["DEBUGGING<br>远程调试环境"]
+        D_DB["Debug DB<br>(Neon)"]
+        D_Redis["Debug Redis<br>(Upstash)"]
+        D_R2["Debug R2<br>(Bucket)"]
+    end
+    subgraph STAGING["STAGING<br>预发布环境"]
+        S_DB["Staging DB<br>(Neon)"]
+        S_Redis["Staging Redis"]
+        S_R2["Staging R2<br>(Bucket)"]
+    end
+    subgraph PRODUCTION["PRODUCTION<br>生产环境"]
+        P_DB["Prod DB<br>(Neon)"]
+        P_Redis["Prod Redis<br>(Upstash)"]
+        P_R2["Prod R2<br>(Bucket)"]
+    end
+    LOCAL --> L1["localhost:3000"]
+    DEBUGGING --> D1["debug-api.readmigo.app"]
+    STAGING --> S1["staging-api.readmigo.app"]
+    PRODUCTION --> P1["api.readmigo.app"]
 ```
 
 ### 2.2 环境定义
@@ -98,38 +94,17 @@
 
 ## 4. 数据流向
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         DATA FLOW BETWEEN ENVIRONMENTS                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│                            PRODUCTION                                    │
-│                         (Source of Truth)                                │
-│                               │                                          │
-│          ┌────────────────────┼────────────────────┐                    │
-│          │                    │                    │                    │
-│          ▼                    ▼                    ▼                    │
-│   ┌─────────────┐      ┌─────────────┐      ┌─────────────┐            │
-│   │   Daily     │      │   Weekly    │      │  On-Demand  │            │
-│   │   Backup    │      │    Sync     │      │    Sync     │            │
-│   └─────────────┘      └─────────────┘      └─────────────┘            │
-│          │                    │                    │                    │
-│          ▼                    ▼                    ▼                    │
-│   ┌─────────────┐      ┌─────────────┐      ┌─────────────┐            │
-│   │  Disaster   │      │   STAGING   │      │  DEBUGGING  │            │
-│   │  Recovery   │      │  (Full Sync)│      │(Partial Sync│            │
-│   └─────────────┘      └─────────────┘      └─────────────┘            │
-│                               │                    │                    │
-│                               ▼                    ▼                    │
-│                        ┌─────────────┐      ┌─────────────┐            │
-│                        │ Anonymizer  │      │ Anonymizer  │            │
-│                        │   Script    │      │   Script    │            │
-│                        └─────────────┘      └─────────────┘            │
-│                                                                          │
-│                          LOCAL (Optional)                                │
-│                      Debugging Snapshot                           │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A["PRODUCTION<br>(Source of Truth)"] --> B["Daily<br>Backup"]
+    A --> C["Weekly<br>Sync"]
+    A --> D["On-Demand<br>Sync"]
+    B --> E["Disaster<br>Recovery"]
+    C --> F["STAGING<br>(Full Sync)"]
+    D --> G["DEBUGGING<br>(Partial Sync)"]
+    F --> H["Anonymizer<br>Script"]
+    G --> I["Anonymizer<br>Script"]
+    I -.-> J["LOCAL (Optional)<br>Debugging Snapshot"]
 ```
 
 ---
@@ -156,10 +131,11 @@
 
 ### 5.4 渐进发布
 
-```
-Local → Debugging → Staging → Production
-  │         │          │          │
-  └─ 功能开发  └─ 功能验证  └─ 全链路测试  └─ 正式发布
+```mermaid
+graph LR
+    A["Local<br>功能开发"] --> B["Debugging<br>功能验证"]
+    B --> C["Staging<br>全链路测试"]
+    C --> D["Production<br>正式发布"]
 ```
 
 ### 5.5 可观测性

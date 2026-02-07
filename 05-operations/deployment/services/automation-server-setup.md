@@ -112,46 +112,11 @@
 
 ### 2.1 推荐架构
 
-```
-┌─────────────────────────────────────────────────────┐
-│     Digital Ocean Droplet (Job Server)              │
-│  Ubuntu 24.04 LTS • 8GB RAM • 4 vCPU • 50GB SSD    │
-├─────────────────────────────────────────────────────┤
-│                                                      │
-│  ┌──────────────────────────────────────────────┐  │
-│  │  Cron Jobs (定时任务)                         │  │
-│  │  ├─ 0 2 * * 0  → import-standard-ebooks.sh   │  │
-│  │  ├─ 0 3 * * 1  → import-gutenberg.sh         │  │
-│  │  ├─ 0 4 * * *  → sync-data-to-staging.sh     │  │
-│  │  └─ 0 5 * * 6  → enrich-author-data.sh       │  │
-│  └──────────────────────────────────────────────┘  │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐  │
-│  │  Services                                     │  │
-│  │  ├─ Node.js 20 (运行导入脚本)                 │  │
-│  │  ├─ PostgreSQL Client (连接远程数据库)       │  │
-│  │  ├─ PM2 (进程管理与监控)                      │  │
-│  │  └─ Logrotate (日志管理)                      │  │
-│  └──────────────────────────────────────────────┘  │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐  │
-│  │  Logs & Monitoring                            │  │
-│  │  ├─ /var/log/readmigo/imports/               │  │
-│  │  ├─ /var/log/readmigo/cron/                  │  │
-│  │  └─ PM2 Dashboard (可选)                      │  │
-│  └──────────────────────────────────────────────┘  │
-│                                                      │
-└─────────────────────────────────────────────────────┘
-           │                    │                  │
-           │                    │                  │
-           ▼                    ▼                  ▼
-    ┌──────────┐        ┌──────────┐      ┌──────────┐
-    │  Neon    │        │ Fly.io   │      │ Cloudflare│
-    │   DB     │        │  Redis   │      │    R2     │
-    │ (Debug/  │        │ (Queue)  │      │ (Storage) │
-    │ Staging/ │        │          │      │           │
-    │  Prod)   │        │          │      │           │
-    └──────────┘        └──────────┘      └──────────┘
+```mermaid
+graph TD
+    A["Digital Ocean Droplet (Job Server)<br>Ubuntu 24.04 LTS / 8GB RAM / 4 vCPU / 50GB SSD<br>Cron Jobs + Node.js 20 + PM2 + Logs"] --> B["Neon DB<br>(Debug / Staging / Prod)"]
+    A --> C["Fly.io Redis<br>(Queue)"]
+    A --> D["Cloudflare R2<br>(Storage)"]
 ```
 
 ### 2.2 成本对比（月度）

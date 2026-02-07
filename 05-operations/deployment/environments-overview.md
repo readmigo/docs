@@ -15,22 +15,15 @@
 
 ## 基础设施架构
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                           Production                                 │
-├─────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────────┐  │
-│  │   Vercel    │    │   Fly.io    │    │   Fly.io Workers        │  │
-│  │   (Web)     │───▶│   (API)     │───▶│   (Background Jobs)     │  │
-│  └─────────────┘    └──────┬──────┘    └─────────────────────────┘  │
-│                            │                                         │
-│         ┌──────────────────┼──────────────────┐                     │
-│         ▼                  ▼                  ▼                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐             │
-│  │    Neon     │    │   Upstash   │    │ Cloudflare  │             │
-│  │ PostgreSQL  │    │    Redis    │    │     R2      │             │
-│  └─────────────┘    └─────────────┘    └─────────────┘             │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph Production
+        A["Vercel<br>(Web)"] --> B["Fly.io<br>(API)"]
+        B --> C["Fly.io Workers<br>(Background Jobs)"]
+        B --> D["Neon<br>PostgreSQL"]
+        B --> E["Upstash<br>Redis"]
+        B --> F["Cloudflare<br>R2"]
+    end
 ```
 
 ## 各环境详细配置
@@ -126,22 +119,12 @@
 
 ## 部署流程
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        GitHub Actions CI/CD                          │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│   Push to main ──────▶ ci.yml (Lint + Type Check)                   │
-│         │                                                            │
-│         ▼                                                            │
-│   deploy.yml ──────────▶ Debugging 环境 (自动)                       │
-│                                                                      │
-│   Manual Trigger ──────▶ deploy-staging.yml ──▶ Staging 环境        │
-│                                                                      │
-│   Manual Trigger ──────▶ deploy-production.yml ──▶ Production 环境  │
-│                          (包含健康检查)                              │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A["Push to main"] --> B["ci.yml<br>(Lint + Type Check)"]
+    A --> C["deploy.yml"] --> D["Debugging 环境 (自动)"]
+    E["Manual Trigger"] --> F["deploy-staging.yml"] --> G["Staging 环境"]
+    H["Manual Trigger"] --> I["deploy-production.yml<br>(包含健康检查)"] --> J["Production 环境"]
 ```
 
 ## 配置文件位置
