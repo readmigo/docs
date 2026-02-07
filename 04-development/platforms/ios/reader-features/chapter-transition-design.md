@@ -97,78 +97,37 @@
 
 **当前问题**
 
-```
-goToNextChapter()
-       │
-       ▼
-┌─────────────────┐
-│ 开始offset动画   │
-│ (300ms)         │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Task.sleep      │ ← 问题：显式阻塞，不与动画同步
-│ (300ms)         │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ 更新状态         │
-└─────────────────┘
+```mermaid
+flowchart TD
+    A["goToNextChapter()"] --> B["开始offset动画<br>(300ms)"]
+    B --> C["Task.sleep<br>(300ms)<br>← 问题: 显式阻塞, 不与动画同步"]
+    C --> D["更新状态"]
 ```
 
 **优化后**
 
-```
-goToNextChapter()
-       │
-       ▼
-┌─────────────────────────────┐
-│ withAnimation(.easeInOut)   │
-│ + Transaction completion    │ ← 改进：使用动画完成回调
-└────────────┬────────────────┘
-             │
-             ▼ (动画真正完成时触发)
-┌─────────────────────────────┐
-│ 更新状态                     │
-└─────────────────────────────┘
+```mermaid
+flowchart TD
+    A["goToNextChapter()"] --> B["withAnimation(.easeInOut)<br>+ Transaction completion<br>← 改进: 使用动画完成回调"]
+    B -->|"动画真正完成时触发"| C["更新状态"]
 ```
 
 ### 优化2: 改进onChange逻辑
 
 **当前问题**
 
-```
-currentChapterIndex 变化
-         │
-         ▼
-┌─────────────────────────┐
-│ onChange 触发            │
-│ - 清除所有 chapterViews  │ ← 问题：无差别清除
-│ - 重新加载当前章节        │
-└─────────────────────────┘
+```mermaid
+flowchart TD
+    A["currentChapterIndex 变化"] --> B["onChange 触发<br>- 清除所有 chapterViews<br>- 重新加载当前章节<br>← 问题: 无差别清除"]
 ```
 
 **优化后**
 
-```
-currentChapterIndex 变化
-         │
-         ▼
-    ┌────┴────┐
-    │ 来源判断 │
-    └────┬────┘
-         │
-    ┌────┴────────────────┐
-    │                     │
-    ▼                     ▼
-内部导航               外部跳转
-(翻章按钮/手势)        (目录/书签跳转)
-    │                     │
-    ▼                     ▼
-保留已加载的            清除并重新加载
-chapterViews
+```mermaid
+flowchart TD
+    A["currentChapterIndex 变化"] --> B{"来源判断"}
+    B -->|"内部导航<br>(翻章按钮/手势)"| C["保留已加载的<br>chapterViews"]
+    B -->|"外部跳转<br>(目录/书签跳转)"| D["清除并重新加载"]
 ```
 
 **实现方式**
@@ -186,15 +145,11 @@ chapterViews
 
 **当前预加载流程**
 
-```
-章节加载完成
-     │
-     ▼
-startPreloading()
-     │
-     ├─► preloadChapter(nextIndex)
-     │
-     └─► preloadChapter(prevIndex)
+```mermaid
+flowchart TD
+    A["章节加载完成"] --> B["startPreloading()"]
+    B --> C["preloadChapter(nextIndex)"]
+    B --> D["preloadChapter(prevIndex)"]
 ```
 
 **优化后预加载流程**
