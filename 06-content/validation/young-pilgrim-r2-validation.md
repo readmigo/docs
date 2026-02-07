@@ -36,84 +36,6 @@
 
 ---
 
-## 3. 客户端 API 验证（关键章节）
-
-### 实际数据流
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          实际 API 请求流程                                   │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  iOS 客户端:                                                                │
-│    GET /books/{bookId}/content/{chapterId}                                  │
-│    → 后端查询: prisma.chapter.findFirst({ select: { htmlContent } })        │
-│    → 返回: 数据库 htmlContent 字段 ✓                                        │
-│                                                                             │
-│  Android 客户端:                                                            │
-│    GET /books/{bookId}/chapters/{chapterIndex}/content                      │
-│    → 后端查询: prisma.chapter.findFirst({ select: { htmlContent } })        │
-│    → 返回: 数据库 html_content 字段 ✓                                       │
-│                                                                             │
-│  Web 客户端:                                                                │
-│    使用 epub.js 直接解析 book.epubUrl                                       │
-│    → 不调用章节 API ✓                                                       │
-│                                                                             │
-│  注意: API 不使用 R2 章节文件，不使用 contentUrl 字段                        │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 后端代码确认（books.service.ts:357-415）
-
-```typescript
-const chapter = await this.prisma.chapter.findFirst({
-  where: { id: chapterId, bookId },
-  select: {
-    id: true,
-    title: true,
-    order: true,
-    href: true,
-    content: true,
-    htmlContent: true,  // ← API 直接返回此字段
-    wordCount: true,
-    // 注意: 没有 select contentUrl
-  },
-});
-
-return {
-  ...chapter,
-  htmlContent: chapter.htmlContent,  // ← 不访问 R2
-  previousChapterId: previousChapter?.id || null,
-  nextChapterId: nextChapter?.id || null,
-};
-```
-
----
-
-## 4. 存储架构分析
-
-### 当前存储状态
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              存储架构图                                      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  数据库 (Neon PostgreSQL):                                                  │
-│  ├── content (纯文本)              ← API 返回                               │
-│  ├── htmlContent (HTML)            ← API 返回 ✓ (主要使用)                  │
-│  └── contentUrl (R2 URL)           ← 存储但未使用 ⚠                         │
-│                                                                             │
-│  R2 (Cloudflare):                                                           │
-│  ├── chapters/chapter-N.html       ← 未使用 ⚠ (冗余)                        │
-│  ├── images/img-N.jpg              ← 被 htmlContent 引用 ✓                  │
-│  ├── cover.jpg                     ← 被 coverUrl 引用 ✓                     │
-│  └── epubs/gutenberg/61280.epub    ← 被 Web 客户端使用 ✓                    │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
 ### R2 文件统计
 
 | 文件类型 | 数量 | 是否使用 |
@@ -125,8 +47,6 @@ return {
 | **总计** | 72 个 | |
 
 ---
-
-## 5. R2 文件命名说明
 
 ### 文件命名对比
 
@@ -146,8 +66,6 @@ return {
 
 ---
 
-## 6. 内容完整性验证
-
 ### 数据库内容
 
 | 检查项 | 状态 |
@@ -162,13 +80,6 @@ return {
 | 图片链接有效性 | ✓ 所有 38 张图片可访问 |
 
 ### htmlContent 图片引用示例
-
-```html
-<!-- 数据库 htmlContent 中的图片引用 -->
-<img src="https://cdn.readmigo.app/books/24cf5cbf-9e54-4284-bd2d-d700f70c429c/images/img-1.jpg">
-<img src="https://cdn.readmigo.app/books/24cf5cbf-9e54-4284-bd2d-d700f70c429c/images/img-2.jpg">
-...
-```
 
 图片引用指向 R2 存储的 `images/` 目录，这些文件被正常使用。
 
@@ -231,50 +142,13 @@ return {
 
 **HTML 内容片段**:
 
-```html
-<div style="text-align: center">
-  <img src="https://cdn.readmigo.app/books/24cf5cbf-9e54-4284-bd2d-d700f70c429c/images/img-1.jpg" alt="" class="x-ebookmaker-cover">
-</div>
-
-<div class="figcenter" style="width: 400px;" id="illus1">
-  <img alt="" src="https://cdn.readmigo.app/books/24cf5cbf-9e54-4284-bd2d-d700f70c429c/images/img-2.jpg">
-  <p class="caption">MR. EWART AND MARK.</p>
-</div>
-
-<p class="titlepage larger">
-  <span class="smaller">THE</span><br>
-  <span class="smcap">Young Pilgrim</span>.
-</p>
-<p class="titlepage">A Tale<br><i>ILLUSTRATIVE OF "THE PILGRIM'S PROGRESS."</i></p>
-```
-
 ---
 
 ## 9. 导出数据
 
 完整数据已导出至 `~/Desktop/young-pilgrim-export/`：
 
-```
-young-pilgrim-export/
-├── 01-book-info.json          # 书籍元数据
-├── 02-chapters-summary.json   # 章节摘要（31 章）
-├── 03-r2-files.json           # R2 文件列表（72 个）
-├── 04-comparison-report.md    # 对比报告
-├── db-chapters/               # 数据库章节内容
-│   ├── chapter-00.json        # 完整字段
-│   ├── chapter-00.html        # 可浏览器查看
-│   └── ... (31 章 × 2 格式)
-├── r2-chapters/               # R2 章节文件（冗余）
-│   ├── chapter-0.html
-│   └── ... (32 个 HTML)
-└── r2-images/                 # R2 图片文件
-    ├── img-1.jpg              # 封面
-    └── ... (38 个图片)
-```
-
 ---
-
-## 10. 优化建议
 
 ### 低优先级优化
 
@@ -291,8 +165,6 @@ young-pilgrim-export/
 - ✗ 更新 contentUrl 字段 → 字段未被 API 返回
 
 ---
-
-## 11. 结论
 
 ### 验证结果
 

@@ -8,20 +8,6 @@
 
 ### 1.1 简单方案的问题
 
-```
-❌ 每版本一套完整文件（不推荐）
-
-readmigo-v1/                    readmigo-v2/
-├── epubs/ (300本, ~150MB)      ├── epubs/ (300本, ~150MB)  ← 完全重复!
-├── covers/ (300张, ~60MB)      ├── covers/ (300张, ~60MB)  ← 完全重复!
-└── authors/ (100位, ~20MB)     ├── authors/ (100位, ~20MB) ← 完全重复!
-                                └── audiobooks/ (150本, ~15GB) ← 新增
-
-问题:
-├── 存储浪费: 230MB × 2 = 460MB 重复数据
-├── 同步复杂: 修复一本书需要更新多个版本
-└── 成本增加: 存储和操作费用翻倍
-```
 
 ### 1.2 V1 与 V2 的内容差异
 
@@ -59,116 +45,9 @@ flowchart TD
 
 ### 2.2 目录结构设计
 
-```
-readmigo/                              # 单一 Production Bucket
-│
-├── manifests/                         # 版本清单目录
-│   ├── v1.0.0.json                   # V1.0.0 包含的所有内容 ID
-│   ├── v1.1.0.json                   # V1.1.0 包含的所有内容 ID
-│   └── v2.0.0.json                   # V2.0.0 包含的所有内容 ID
-│
-├── epubs/                             # 电子书文件 (共享)
-│   ├── {content-hash-1}.epub         # 内容寻址命名
-│   ├── {content-hash-2}.epub
-│   └── ...
-│
-├── covers/                            # 封面图片 (共享)
-│   ├── books/
-│   │   ├── {book-id}.jpg
-│   │   └── {book-id}-thumb.jpg
-│   └── audiobooks/
-│       └── {audiobook-id}.jpg
-│
-├── authors/                           # 作者资源 (共享)
-│   └── {author-id}/
-│       ├── portrait.jpg
-│       └── portrait-thumb.jpg
-│
-└── audiobooks/                        # 有声书音频 (V2+)
-    └── {audiobook-id}/
-        ├── chapter-01.mp3
-        ├── chapter-02.mp3
-        └── ...
-```
 
 ### 2.3 版本清单文件结构
 
-```json
-// manifests/v1.0.0.json
-{
-  "version": "1.0.0",
-  "releaseDate": "2025-01-15",
-  "minAppVersion": "1.0.0",
-  "content": {
-    "ebooks": {
-      "count": 300,
-      "ids": ["book-001", "book-002", "..."],
-      "lastUpdated": "2025-01-15T00:00:00Z"
-    },
-    "authors": {
-      "count": 100,
-      "ids": ["author-001", "author-002", "..."],
-      "lastUpdated": "2025-01-15T00:00:00Z"
-    },
-    "audiobooks": {
-      "count": 0,
-      "ids": [],
-      "enabled": false
-    }
-  },
-  "files": {
-    "epubs": [
-      {"id": "book-001", "key": "epubs/abc123.epub", "size": 524288},
-      {"id": "book-002", "key": "epubs/def456.epub", "size": 612000}
-    ],
-    "covers": [
-      {"id": "book-001", "key": "covers/books/book-001.jpg"},
-      {"id": "book-001-thumb", "key": "covers/books/book-001-thumb.jpg"}
-    ],
-    "authors": [
-      {"id": "author-001", "key": "authors/author-001/portrait.jpg"}
-    ]
-  },
-  "checksum": "sha256:abcdef123456..."
-}
-```
-
-```json
-// manifests/v2.0.0.json
-{
-  "version": "2.0.0",
-  "releaseDate": "2025-06-01",
-  "minAppVersion": "2.0.0",
-  "content": {
-    "ebooks": {
-      "count": 300,
-      "ids": ["book-001", "book-002", "..."],  // 与 V1 相同
-      "lastUpdated": "2025-01-15T00:00:00Z"
-    },
-    "authors": {
-      "count": 100,
-      "ids": ["author-001", "author-002", "..."],  // 与 V1 相同
-      "lastUpdated": "2025-01-15T00:00:00Z"
-    },
-    "audiobooks": {
-      "count": 150,
-      "ids": ["audiobook-001", "audiobook-002", "..."],  // 新增
-      "enabled": true,
-      "lastUpdated": "2025-06-01T00:00:00Z"
-    }
-  },
-  "files": {
-    "epubs": [...],      // 复用 V1 的文件引用
-    "covers": [...],     // 复用 V1 的文件引用
-    "authors": [...],    // 复用 V1 的文件引用
-    "audiobooks": [      // 新增音频文件
-      {"id": "audiobook-001", "key": "audiobooks/audiobook-001/chapter-01.mp3", "size": 52428800},
-      {"id": "audiobook-001", "key": "audiobooks/audiobook-001/chapter-02.mp3", "size": 48576000}
-    ]
-  },
-  "checksum": "sha256:789xyz..."
-}
-```
 
 ---
 
@@ -225,88 +104,9 @@ flowchart TD
 
 ### 4.3 执行计划
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   V2.0.0 发布执行计划                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  阶段 1: 音频文件准备 (Debug 环境)                               │
-│  ├── 1.1 下载 150 本有声书音频到 Debug R2                       │
-│  │       └── 脚本: loyalbooks-ingestion/download-all.ts         │
-│  ├── 1.2 处理音频文件 (格式转换、标准化)                        │
-│  ├── 1.3 下载有声书封面                                         │
-│  └── 1.4 验证音频播放和元数据                                   │
-│                                                                   │
-│  阶段 2: 数据库准备                                              │
-│  ├── 2.1 导入 Audiobook 记录到 Debug 数据库                     │
-│  ├── 2.2 建立 Book ↔ Audiobook 关联                             │
-│  ├── 2.3 导入 AudiobookChapter 章节信息                         │
-│  └── 2.4 验证数据完整性                                         │
-│                                                                   │
-│  阶段 3: Staging 同步与验证                                      │
-│  ├── 3.1 同步音频文件到 Staging R2                              │
-│  │       └── 仅同步新增的 audiobooks/ 目录                      │
-│  ├── 3.2 同步数据库记录到 Staging                               │
-│  ├── 3.3 生成 v2.0.0-rc1.json manifest                         │
-│  ├── 3.4 iOS v2.0.0 连接 Staging 测试                           │
-│  │       ├── 电子书功能 (应与 v1 完全一致)                      │
-│  │       ├── 有声书列表加载                                     │
-│  │       ├── 音频播放功能                                       │
-│  │       └── 书电关联跳转                                       │
-│  └── 3.5 验证通过，标记为 v2.0.0-release                        │
-│                                                                   │
-│  阶段 4: Production 部署                                         │
-│  ├── 4.1 同步新增文件到 Production R2                           │
-│  │       ├── audiobooks/ 目录 (~15GB)                           │
-│  │       └── 不触碰现有 epubs/covers/authors/                   │
-│  ├── 4.2 同步数据库记录                                         │
-│  ├── 4.3 上传 manifests/v2.0.0.json                            │
-│  └── 4.4 更新版本检查 API 配置                                  │
-│                                                                   │
-│  阶段 5: iOS v2.0.0 发布                                         │
-│  ├── 5.1 启用有声书 Tab                                         │
-│  ├── 5.2 指向 Production + manifest v2.0.0                      │
-│  ├── 5.3 TestFlight 测试                                        │
-│  └── 5.4 App Store 提审                                         │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 ### 4.4 文件同步详情
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              V1 → V2 文件同步详情                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  Production R2 Bucket 变化:                                      │
-│                                                                   │
-│  V1.0.0 状态                     V2.0.0 状态                     │
-│  ─────────────                   ─────────────                   │
-│  manifests/                      manifests/                      │
-│    └── v1.0.0.json               ├── v1.0.0.json  (保留)        │
-│                                  └── v2.0.0.json  (新增)        │
-│                                                                   │
-│  epubs/                          epubs/                          │
-│    └── (300 files)               └── (300 files)  (不变)        │
-│                                                                   │
-│  covers/                         covers/                         │
-│    └── books/ (300 files)        ├── books/ (300 files) (不变)  │
-│                                  └── audiobooks/ (150 新增)      │
-│                                                                   │
-│  authors/                        authors/                        │
-│    └── (100 dirs)                └── (100 dirs)  (不变)         │
-│                                                                   │
-│  (不存在)                        audiobooks/  (新增 ~15GB)       │
-│                                    └── {id}/chapter-xx.mp3       │
-│                                                                   │
-│  ─────────────────────────────────────────────────────────────  │
-│  新增数据量: ~15GB (仅有声书相关)                                │
-│  复用数据量: ~230MB (电子书、作者资源)                           │
-│  存储节省: 100% 复用 V1 资源                                     │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -341,29 +141,6 @@ flowchart TD
 
 ### 5.3 功能开关配置
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     功能开关配置表                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  版本检查 API 返回的 features 字段:                              │
-│                                                                   │
-│  iOS 1.x:                        iOS 2.x:                        │
-│  {                               {                               │
-│    "features": {                   "features": {                 │
-│      "audiobooks": false,           "audiobooks": true,          │
-│      "agora": false,                "agora": false,              │
-│      "authorChat": false            "authorChat": false          │
-│    }                               }                              │
-│  }                               }                               │
-│                                                                   │
-│  客户端根据 features 决定:                                       │
-│  ├── 是否显示有声书 Tab                                         │
-│  ├── 是否显示社区入口                                           │
-│  └── 是否显示作者聊天功能                                       │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -406,33 +183,6 @@ flowchart TD
 
 ### 7.2 成本对比
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    存储成本对比                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  方案 A: 每版本独立存储 (不推荐)                                 │
-│  ├── V1: 230MB                                                   │
-│  ├── V2: 230MB + 15GB = 15.2GB                                  │
-│  ├── 总计: 15.43GB                                              │
-│  └── 重复: 230MB (电子书资源重复一次)                           │
-│                                                                   │
-│  方案 B: 共享存储 + manifest (推荐) ✅                           │
-│  ├── 共享资源: 230MB                                            │
-│  ├── V2 新增: 15GB                                              │
-│  ├── 总计: 15.23GB                                              │
-│  └── 重复: 0                                                    │
-│                                                                   │
-│  节省: 230MB (1.5%)                                              │
-│  注: 电子书场景节省比例较小，但有声书场景会放大                  │
-│                                                                   │
-│  如果 V3 新增另一套内容:                                         │
-│  方案 A: 15.43GB + 15.2GB = 30.63GB                             │
-│  方案 B: 15.23GB + 15GB = 30.23GB                               │
-│  节省: 400MB (1.3%)                                              │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 ### 7.3 月度成本估算
 
@@ -450,39 +200,6 @@ flowchart TD
 
 ### 8.1 V2 发布前检查
 
-```
-□ Debug 环境
-  □ 150 本有声书音频已下载
-  □ 音频文件格式统一 (MP3, 128kbps)
-  □ 有声书封面已下载
-  □ Audiobook 数据库记录完整
-  □ Book ↔ Audiobook 关联正确
-  □ AudiobookChapter 章节信息正确
-
-□ Staging 环境
-  □ 音频文件同步完成 (~15GB)
-  □ 数据库同步完成
-  □ v2.0.0-rc1.json manifest 生成
-  □ iOS v2.0.0 测试通过
-    □ 电子书功能正常 (回归测试)
-    □ 有声书列表正常
-    □ 音频播放正常
-    □ 进度同步正常
-
-□ Production 环境
-  □ audiobooks/ 目录同步完成
-  □ covers/audiobooks/ 封面同步完成
-  □ 数据库记录同步完成
-  □ v2.0.0.json manifest 上传
-  □ 版本 API 配置更新
-
-□ iOS 发布
-  □ 有声书 Tab 启用
-  □ 指向 Production 环境
-  □ manifest 版本正确 (v2.0.0)
-  □ TestFlight 测试通过
-  □ App Store 提审
-```
 
 ---
 

@@ -1,26 +1,6 @@
-# Standard Ebooks vs EPUB 3 格式对比
-
 ## 概述
 
 Standard Ebooks (SE) 是基于 EPUB 3 标准的**严格子集 + 扩展约定**。所有 SE 电子书都是有效的 EPUB 3 文件，但 SE 在标准之上添加了更严格的规范和排版约定。
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                      EPUB 3.3 标准                              │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                Standard Ebooks 规范                       │  │
-│  │                                                          │  │
-│  │  • 文件命名：强制语义化命名                                │  │
-│  │  • 目录结构：固定的 epub/ 目录布局                        │  │
-│  │  • 元数据：扩展的 Dublin Core + SE 专用属性               │  │
-│  │  • 语义：z3998 + se 扩展词汇表                           │  │
-│  │  • 排版：typogrify 排版规范化                            │  │
-│  │  • CSS：分层架构 (core/local/se.css)                    │  │
-│  │  • 验证：EPUBCheck + SE Lint (300+ 规则)                │  │
-│  │                                                          │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -36,38 +16,6 @@ Standard Ebooks (SE) 是基于 EPUB 3 标准的**严格子集 + 扩展约定**�
 
 ---
 
-## 二、文件结构对比
-
-### 2.1 目录结构
-
-```
-EPUB 3 标准 (灵活)                    Standard Ebooks (固定)
-─────────────────────────────────    ─────────────────────────────────
-book.epub/                           book.epub/
-├── mimetype                         ├── mimetype
-├── META-INF/                        ├── META-INF/
-│   └── container.xml                │   └── container.xml
-└── OEBPS/          ← 名称可变       └── epub/           ← 固定名称
-    ├── content.opf                      ├── content.opf
-    ├── toc.ncx     ← 可选               ├── toc.xhtml    ← 必须 EPUB 3 NAV
-    ├── nav.xhtml                        ├── onix.xml     ← SE 专用
-    ├── *.xhtml     ← 命名自由           ├── css/
-    ├── *.css                            │   ├── core.css  ← SE 基础样式
-    └── images/                          │   ├── local.css ← 书籍专用
-                                         │   └── se.css    ← SE 标准样式
-                                         ├── images/
-                                         │   ├── cover.svg  ← SVG 封面
-                                         │   ├── titlepage.svg
-                                         │   └── logo.svg
-                                         ├── text/
-                                         │   ├── colophon.xhtml
-                                         │   ├── imprint.xhtml
-                                         │   ├── titlepage.xhtml
-                                         │   ├── chapter-1.xhtml ← 语义化命名
-                                         │   └── ...
-                                         └── fonts/        ← 可选嵌入字体
-```
-
 ### 2.2 文件命名规范
 
 | 类型 | EPUB 3 | Standard Ebooks |
@@ -80,8 +28,6 @@ book.epub/                           book.epub/
 | 字符大小写 | 无限制 | 全小写 + 连字符 |
 
 ---
-
-## 三、元数据对比
 
 ### 3.1 OPF 元数据
 
@@ -97,21 +43,7 @@ book.epub/                           book.epub/
 | `meta property="dcterms:modified"` | 必须 | 必须 |
 | `meta property="se:*"` | 不存在 | SE 专用扩展属性 |
 
-### 3.2 SE 专用元数据属性
-
-```
-SE 扩展的 meta property:
-├── se:subject              # SE 分类标签
-├── se:production-notes     # 制作说明
-├── se:word-count           # 字数统计
-├── se:reading-ease         # 可读性评分
-├── se:url.encyclopedia.wikipedia  # 维基百科链接
-└── se:url.vcs.github       # GitHub 仓库链接
-```
-
 ---
-
-## 四、语义标记对比
 
 ### 4.1 epub:type 词汇表
 
@@ -139,8 +71,6 @@ graph TB
 | 船名 *Titanic* | `<i>Titanic</i>` | `<i epub:type="se:name.vessel">Titanic</i>` |
 
 ---
-
-## 五、CSS 规范对比
 
 ### 5.1 CSS 架构
 
@@ -176,8 +106,6 @@ graph TB
 
 ---
 
-## 六、排版约定对比
-
 ### 6.1 字符处理
 
 | 字符类型 | EPUB 3 | Standard Ebooks |
@@ -189,35 +117,7 @@ graph TB
 | 分数 | `1/2` | 必须 `½` (Unicode 分数) |
 | 缩写空格 | `Mr. X` | `Mr.␣X` (不换行空格 U+00A0) |
 
-### 6.2 SE 特有字符处理
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    SE typogrify 处理                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Word Joiner (U+2060) - 防止行首破折号:                          │
-│  ├─ 原文: "word—"                                               │
-│  └─ 处理后: "word⁠—" (word + WORD_JOINER + em-dash)             │
-│                                                                 │
-│  Hair Space (U+200A) - 相邻引号间距:                             │
-│  ├─ 原文: "'"                                                   │
-│  └─ 处理后: "'␣" (开双引号 + HAIR_SPACE + 开单引号)              │
-│                                                                 │
-│  No-Break Space (U+00A0) - 缩写不换行:                           │
-│  ├─ 原文: "Mr. Smith"                                           │
-│  └─ 处理后: "Mr.␣Smith" (Mr. + NO_BREAK_SPACE + Smith)          │
-│                                                                 │
-│  连续破折号合并:                                                  │
-│  ├─ ——— → ⸻ (three-em-dash U+2E3B)                            │
-│  └─ —— → ⸺ (two-em-dash U+2E3A)                               │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
 ---
-
-## 七、验证标准对比
 
 ### 7.1 验证工具
 
@@ -225,33 +125,6 @@ graph TB
 |--------|----------|----------|
 | EPUBCheck | EPUB 3 标准合规 | ~200 条 |
 | SE Lint | SE 规范合规 | 300+ 条 |
-
-### 7.2 验证层次
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        验证层次                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Level 1: EPUBCheck (EPUB 3 标准)                               │
-│  ├─ ZIP 结构验证                                                │
-│  ├─ mimetype 位置和内容                                         │
-│  ├─ OPF 必需元素                                                │
-│  ├─ XHTML 语法正确性                                            │
-│  ├─ 资源引用完整性                                              │
-│  └─ 媒体类型正确性                                              │
-│                                                                 │
-│  Level 2: SE Lint (SE 规范)                                     │
-│  ├─ 文件命名规范                                                │
-│  ├─ 元数据完整性 (dc:source, se:* 等)                           │
-│  ├─ 语义标记正确性 (epub:type)                                  │
-│  ├─ CSS 规范遵守                                                │
-│  ├─ 排版规则 (引号、破折号等)                                    │
-│  ├─ 拼写检查                                                    │
-│  └─ 模板文件完整性                                              │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 ### 7.3 SE Lint 规则分类
 
@@ -265,8 +138,6 @@ graph TB
 | XHTML | x-xxx | x-001: 属性名大写 |
 
 ---
-
-## 八、兼容性分析
 
 ### 8.1 SE EPUB 在标准阅读器中的表现
 
@@ -290,8 +161,6 @@ graph TB
 | se: 词汇 | 阅读器不解析 | 无语义增强 |
 
 ---
-
-## 九、对 Readmigo 的启示
 
 ### 9.1 可借鉴的 SE 实践
 

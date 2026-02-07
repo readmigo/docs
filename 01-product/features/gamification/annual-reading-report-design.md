@@ -47,141 +47,18 @@
 
 #### 1. AnnualReport（年度报告主表）
 
-```prisma
-model AnnualReport {
-  id          String       @id @default(uuid()) @db.Uuid
-  userId      String       @map("user_id") @db.Uuid
-  year        Int          @db.SmallInt
-  status      ReportStatus @default(PENDING)
-  generatedAt DateTime?    @map("generated_at")
-
-  // JSONB 存储各项数据
-  readingOverview Json @map("reading_overview") @db.JsonB
-  highlights      Json @db.JsonB
-  socialRanking   Json @map("social_ranking") @db.JsonB
-  preferences     Json @db.JsonB
-  personalization Json @db.JsonB
-
-  shareCardUrl String? @map("share_card_url")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([userId, year])
-  @@index([year, status])
-  @@map("annual_reports")
-}
-
-enum ReportStatus {
-  PENDING
-  GENERATING
-  COMPLETED
-  FAILED
-}
-```
 
 #### 2. UserRankingSnapshot（排名快照）
 
-```prisma
-model UserRankingSnapshot {
-  id          String      @id @default(uuid()) @db.Uuid
-  year        Int         @db.SmallInt
-  rankingType RankingType @map("ranking_type")
-  percentiles Json        @db.JsonB  // p10-p99 阈值
-  calculatedAt DateTime   @map("calculated_at")
-  createdAt    DateTime   @default(now())
-
-  @@unique([year, rankingType])
-  @@index([year])
-  @@map("user_ranking_snapshots")
-}
-
-enum RankingType {
-  READING_MINUTES
-  BOOKS_READ
-  VOCABULARY_COUNT
-}
-```
 
 #### 3. UserHighlight（划线/笔记）
 
-```prisma
-model UserHighlight {
-  id           String   @id @default(uuid()) @db.Uuid
-  userId       String   @map("user_id") @db.Uuid
-  userBookId   String   @map("user_book_id") @db.Uuid
-  selectedText String   @map("selected_text") @db.Text
-  note         String?  @db.Text
-  color        String?  @db.VarChar(20)
-  cfi          String   @db.VarChar(500)
-  chapterRef   String?  @map("chapter_ref") @db.VarChar(255)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user     User     @relation(fields: [userId], references: [id])
-  userBook UserBook @relation(fields: [userBookId], references: [id])
-
-  @@index([userId, createdAt])
-  @@index([userBookId])
-  @@map("user_highlights")
-}
-```
 
 #### 4. ShareLog（分享日志）
 
-```prisma
-model ShareLog {
-  id          String           @id @default(uuid()) @db.Uuid
-  userId      String           @map("user_id") @db.Uuid
-  contentType ShareContentType @map("content_type")
-  contentId   String           @map("content_id") @db.Uuid
-  platform    String           @db.VarChar(50)
-  createdAt   DateTime         @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId, createdAt])
-  @@map("share_logs")
-}
-
-enum ShareContentType {
-  POSTCARD
-  QUOTE
-  BOOK
-  AGORA_POST
-  ANNUAL_REPORT
-}
-```
 
 #### 5. AnnualReportShare（年度报告分享页面）
 
-```prisma
-model AnnualReportShare {
-  id             String    @id @default(uuid()) @db.Uuid
-  shareId        String    @unique @map("share_id") @db.VarChar(16)
-  annualReportId String    @map("annual_report_id") @db.Uuid
-  userId         String    @map("user_id") @db.Uuid
-  year           Int       @db.SmallInt
-
-  // 分享页面数据快照
-  snapshotData   Json      @map("snapshot_data") @db.JsonB
-
-  // 访问统计
-  viewCount      Int       @default(0) @map("view_count")
-
-  isActive       Boolean   @default(true) @map("is_active")
-  expiresAt      DateTime? @map("expires_at")
-  createdAt      DateTime  @default(now())
-
-  user         User         @relation(fields: [userId], references: [id])
-  annualReport AnnualReport @relation(fields: [annualReportId], references: [id])
-
-  @@index([shareId])
-  @@index([userId, year])
-  @@map("annual_report_shares")
-}
-```
 
 ---
 
@@ -201,121 +78,11 @@ model AnnualReportShare {
 
 ### 响应结构
 
-```typescript
-// 年度报告完整响应
-interface AnnualReportDto {
-  id: string;
-  year: number;
-  status: 'PENDING' | 'GENERATING' | 'COMPLETED' | 'FAILED';
-  generatedAt: Date | null;
-
-  readingOverview: {
-    totalBooks: number;
-    finishedBooks: number;
-    totalReadingMinutes: number;
-    totalPages: number;
-    completionRate: number;
-    booksDetail: {
-      bookId: string;
-      title: string;
-      coverUrl: string | null;
-      author: string;
-      finishedAt: Date | null;
-      progressPercent: number;
-    }[];
-  };
-
-  highlights: {
-    longestReadingDay: { date: string; value: number } | null;
-    latestReadingNight: { date: string; value: number; context?: string } | null;
-    mostNotesDay: { date: string; value: number } | null;
-    mostCommentsDay: { date: string; value: number } | null;
-    mostAgoraPostsDay: { date: string; value: number } | null;
-    mostSupportMessagesDay: { date: string; value: number } | null;
-    firstSubscriptionDay: { date: string; planType: string } | null;
-  };
-
-  socialRanking: {
-    readingTimePercentile: number;
-    booksReadPercentile: number;
-    vocabularyPercentile: number;
-    calculatedAt: Date;
-  };
-
-  preferences: {
-    readingTimePreference: ReadingTimePreference;
-    favoriteGenres: { genre: string; count: number; percentage: number }[];
-    aiUsagePreference: { type: string; count: number; percentage: number }[];
-    averageSessionLength: number;
-    preferredReadingDays: string[];
-  };
-
-  personalization: {
-    badges: string[];
-    title: string;
-    summary: string;
-    summaryLocalized: Record<string, string>;
-  };
-
-  shareCardUrl: string | null;
-}
-
-enum ReadingTimePreference {
-  EARLY_BIRD = 'EARLY_BIRD',      // 5:00-9:00
-  MORNING = 'MORNING',            // 9:00-12:00
-  AFTERNOON = 'AFTERNOON',        // 12:00-18:00
-  EVENING = 'EVENING',            // 18:00-22:00
-  NIGHT_OWL = 'NIGHT_OWL',        // 22:00-5:00
-  FLEXIBLE = 'FLEXIBLE',          // 无明显偏好
-}
-
-// 状态查询响应
-interface ReportStatusDto {
-  status: ReportStatus;
-  progress?: number;  // 0-100
-  estimatedCompletion?: Date;
-  error?: string;
-}
-
-// 历史年份响应
-interface ReportHistoryDto {
-  years: {
-    year: number;
-    status: ReportStatus;
-    generatedAt: Date | null;
-  }[];
-}
-
-// 分享页面响应
-interface SharePageDto {
-  shareId: string;
-  url: string;
-}
-```
 
 ---
 
 ## 缓存策略
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      缓存层级设计                            │
-├─────────────────────────────────────────────────────────────┤
-│ L1: Redis 热数据缓存                                         │
-│     Key: annual_report:{userId}:{year}                      │
-│     TTL: 24 小时                                            │
-│     场景: 已完成报告的快速读取                                │
-├─────────────────────────────────────────────────────────────┤
-│ L2: PostgreSQL 持久化存储                                    │
-│     Table: annual_reports                                   │
-│     场景: 报告永久存储，支持历史年份查询                       │
-├─────────────────────────────────────────────────────────────┤
-│ L3: 排名快照缓存                                             │
-│     Key: ranking_snapshot:{year}:{type}                     │
-│     TTL: 7 天（每周日凌晨更新）                              │
-│     场景: 全局排名百分位计算                                  │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -323,39 +90,9 @@ interface SharePageDto {
 
 ### 目录结构
 
-```
-ios/Readmigo/Features/AnnualReport/
-├── Models/
-│   └── AnnualReport.swift
-├── Managers/
-│   └── AnnualReportManager.swift
-├── Views/
-│   ├── AnnualReportView.swift           // 主视图
-│   ├── AnnualReportEntryCard.swift      // Me 页面入口卡片
-│   └── Pages/
-│       ├── CoverPageView.swift          // 封面页
-│       ├── ReadingOverviewPageView.swift // 阅读总览页
-│       ├── HighlightsPageView.swift     // 高光时刻页
-│       ├── BooksPageView.swift          // 书籍列表页
-│       ├── RankingPageView.swift        // 社交排名页
-│       ├── PreferencesPageView.swift    // 行为偏好页
-│       └── PersonalizationPageView.swift // 个性化总结页
-└── Components/
-    ├── StatCard.swift
-    ├── HighlightCard.swift
-    ├── RankingItem.swift
-    └── ShareReportSheet.swift
-```
 
 ### 入口设计（Me 页面）
 
-```swift
-// Me 页面顶部添加年度报告入口卡片
-AnnualReportEntryCard
-├── 当年报告预览（缩略统计：书籍数、阅读时长、完成率）
-├── "查看完整报告" 按钮
-└── 历史年份选择器（Picker/Menu）
-```
 
 ### 交互设计
 
@@ -386,12 +123,6 @@ AnnualReportEntryCard
 
 ### OG 标签示例
 
-```html
-<meta property="og:title" content="我的2024年度阅读报告" />
-<meta property="og:description" content="这一年，我读了30本书，累计阅读120小时..." />
-<meta property="og:image" content="https://readmigo.app/og/annual-report/xxx.png" />
-<meta property="og:url" content="https://readmigo.app/share/annual-report/xxx" />
-```
 
 ---
 

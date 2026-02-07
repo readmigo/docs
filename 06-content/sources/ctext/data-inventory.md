@@ -25,19 +25,7 @@
 | 官方 API 支持 | 请求速率限制 |
 | 覆盖核心经典 | 书籍数量有限 |
 
-### 对 Readmigo 的价值
-
-```
-✅ 中国哲学经典的权威来源
-✅ 儒释道核心著作全覆盖
-✅ 适合语言学习的短篇经典
-✅ 高质量文本可用于 AI 训练
-✅ 结构化数据便于章节导航
-```
-
 ---
-
-## 2. 核心书目
 
 ### 2.1 儒家经典
 
@@ -73,14 +61,6 @@
 
 ---
 
-## 3. 官方 API
-
-### 3.1 API 端点
-
-```
-Base URL: https://ctext.org/tools/api
-```
-
 ### 3.2 认证方式
 
 CText API 支持三种认证方式：
@@ -91,94 +71,7 @@ CText API 支持三种认证方式：
 | **用户密码** | `user={user}&pass={pass}` | 账号登录 |
 | **无认证** | - | 仅限特定 IP 或有限访问 |
 
-### 3.3 API 请求格式
-
-```bash
-# 获取书籍目录
-https://ctext.org/tools/api?urn=ctp:analects&if=en
-
-# 带 API Key
-https://ctext.org/tools/api?urn=ctp:analects&if=en&apikey={YOUR_KEY}
-
-# 带用户密码
-https://ctext.org/tools/api?urn=ctp:analects&if=en&user={USER}&pass={PASS}
-```
-
-### 3.4 API 响应格式
-
-#### 目录响应
-
-```json
-{
-  "title": "論語",
-  "subsections": [
-    "ctp:analects/xue-er",
-    "ctp:analects/wei-zheng",
-    "ctp:analects/ba-yi",
-    // ...
-  ]
-}
-```
-
-#### 章节内容响应
-
-```json
-{
-  "title": "學而",
-  "fulltext": [
-    "子曰：「學而時習之，不亦說乎？有朋自遠方來，不亦樂乎？人不知而不慍，不亦君子乎？」",
-    "有子曰：「其為人也孝弟，而好犯上者，鮮矣；不好犯上，而好作亂者，未之有也。君子務本，本立而道生。孝弟也者，其為仁之本與！」",
-    // ...
-  ]
-}
-```
-
-### 3.5 API 示例
-
-```bash
-# 获取《论语》目录
-curl "https://ctext.org/tools/api?urn=ctp:analects&if=en&apikey={KEY}"
-
-# 获取《学而》篇内容
-curl "https://ctext.org/tools/api?urn=ctp:analects/xue-er&if=en&apikey={KEY}"
-
-# 获取《道德经》
-curl "https://ctext.org/tools/api?urn=ctp:dao-de-jing&if=en&apikey={KEY}"
-```
-
 ---
-
-## 4. 数据处理流程
-
-### 4.1 导入流程
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Step 1: 遍历预定义经典书籍列表                                │
-│  └── 使用 CLASSIC_BOOKS 数组                                 │
-│                                                             │
-│  Step 2: 获取书籍目录                                         │
-│  └── 调用 API: ?urn={book_urn}                               │
-│  └── 解析 subsections 获取章节 URN 列表                       │
-│                                                             │
-│  Step 3: 逐章获取内容                                         │
-│  └── 调用 API: ?urn={chapter_urn}                            │
-│  └── 解析 fulltext 获取文本内容                               │
-│  └── 请求间隔 3 秒（避免限流）                                 │
-│                                                             │
-│  Step 4: 文本处理                                            │
-│  └── 繁体转简体                                              │
-│  └── 中文难度分析                                            │
-│                                                             │
-│  Step 5: 上传到 R2                                           │
-│  └── 纯文本格式: books/ctext/{urn}.txt                       │
-│                                                             │
-│  Step 6: 存入数据库                                           │
-│  └── source: CTEXT                                          │
-│  └── 创建 Book 和 Chapter 记录                                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ### 4.2 请求限制
 
@@ -189,8 +82,6 @@ curl "https://ctext.org/tools/api?urn=ctp:dao-de-jing&if=en&apikey={KEY}"
 | **认证要求** | 无认证可能返回 HTML 错误页 |
 
 ---
-
-## 5. 数据字段映射
 
 ### 5.1 与 Readmigo 需求对照
 
@@ -214,8 +105,6 @@ curl "https://ctext.org/tools/api?urn=ctp:dao-de-jing&if=en&apikey={KEY}"
 
 ---
 
-## 6. 分类体系
-
 ### 6.1 学派分类
 
 | 学派 | 代表著作 | 特点 |
@@ -229,8 +118,6 @@ curl "https://ctext.org/tools/api?urn=ctp:dao-de-jing&if=en&apikey={KEY}"
 
 ---
 
-## 7. 实现状态
-
 ### 7.1 代码位置
 
 | 文件 | 说明 |
@@ -239,38 +126,7 @@ curl "https://ctext.org/tools/api?urn=ctp:dao-de-jing&if=en&apikey={KEY}"
 | `scripts/book-ingestion/processors/chinese-difficulty-analyzer.js` | 中文难度分析 |
 | `scripts/book-ingestion/processors/text-converter.js` | 繁简转换 |
 
-### 7.2 环境变量
-
-```bash
-# .env 配置
-CTEXT_API_KEY=your_api_key      # 推荐方式
-# 或
-CTEXT_USER=your_username
-CTEXT_PASSWORD=your_password
-```
-
-### 7.3 运行方式
-
-```bash
-# 导入前 10 本经典
-npx tsx scripts/book-ingestion/sources/ctext.ts 10
-
-# 导入全部经典
-npx tsx scripts/book-ingestion/sources/ctext.ts 99
-```
-
-### 7.4 数据库枚举
-
-```prisma
-enum BookSource {
-  CTEXT  // 中国哲学书电子化计划
-  // ...
-}
-```
-
 ---
-
-## 8. 技术注意事项
 
 ### 8.1 常见问题
 

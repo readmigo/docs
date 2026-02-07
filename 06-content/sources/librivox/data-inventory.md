@@ -25,36 +25,11 @@
 | 多种音频格式 | 部分录音有背景噪音 |
 | 持续更新 | 无专业后期制作 |
 
-### 对 Readmigo 的价值
-
-```
-✅ 可为公版书提供免费有声书版本
-✅ 听力+阅读结合，增强学习体验
-✅ 与 Project Gutenberg 书籍天然关联
-✅ 可作为"跟读"、"听读"功能的素材
-```
-
 ---
-
-## 2. 官方 API
-
-### 2.1 API 端点
-
-```
-Base URL: https://librivox.org/api/feed/audiobooks
-```
 
 ### 2.2 查询方式
 
 支持两种 URL 风格：
-
-```
-# 方式1: 查询参数
-https://librivox.org/api/feed/audiobooks/?id=52
-
-# 方式2: RESTful 路径
-https://librivox.org/api/feed/audiobooks/id/52
-```
 
 ### 2.3 查询参数
 
@@ -82,108 +57,15 @@ https://librivox.org/api/feed/audiobooks/id/52
 | **JSONP** | `format=jsonp` | 跨域调用 |
 | **PHP Array** | `format=php` | PHP 序列化 |
 
-### 2.5 API 响应字段
-
-#### 基础响应（默认）
-
-```json
-{
-  "books": [
-    {
-      "id": "52",
-      "title": "Pride and Prejudice",
-      "description": "...",
-      "url_text_source": "http://www.gutenberg.org/etext/1342",
-      "language": "English",
-      "copyright_year": "1813",
-      "num_sections": "61",
-      "url_rss": "https://librivox.org/rss/52",
-      "url_zip_file": "https://www.archive.org/download/...",
-      "url_project": "https://librivox.org/pride-and-prejudice/",
-      "url_librivox": "https://librivox.org/pride-and-prejudice/",
-      "url_iarchive": "https://archive.org/details/...",
-      "totaltime": "11:45:35",
-      "totaltimesecs": 42335,
-      "authors": [
-        {
-          "id": "41",
-          "first_name": "Jane",
-          "last_name": "Austen",
-          "dob": "1775",
-          "dod": "1817"
-        }
-      ],
-      "genres": [
-        {
-          "id": "12",
-          "name": "Romance"
-        }
-      ]
-    }
-  ]
-}
-```
-
 #### 扩展响应（extended=1）
 
 额外包含章节/分段信息：
 
-```json
-{
-  "sections": [
-    {
-      "id": "1234",
-      "section_number": "1",
-      "title": "Chapter 1",
-      "listen_url": "https://www.archive.org/download/.../chapter01.mp3",
-      "language": "English",
-      "playtime": "00:12:34",
-      "file_name": "prideandprejudice_01_austen.mp3",
-      "readers": [
-        {
-          "reader_id": "123",
-          "display_name": "John Smith"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### 2.6 API 示例
-
-```bash
-# 获取所有有声书（分页）
-curl "https://librivox.org/api/feed/audiobooks/?limit=50&offset=0&format=json"
-
-# 搜索标题
-curl "https://librivox.org/api/feed/audiobooks/title/^pride?format=json"
-
-# 搜索作者
-curl "https://librivox.org/api/feed/audiobooks/author/Shakespeare?format=json"
-
-# 获取单本详情
-curl "https://librivox.org/api/feed/audiobooks/?id=52&extended=1&format=json"
-
-# 获取指定日期后的新书
-curl "https://librivox.org/api/feed/audiobooks/?since=1704067200&format=json"
-
-# 按类型过滤
-curl "https://librivox.org/api/feed/audiobooks/?genre=plays&format=json"
-```
-
 ---
-
-## 3. 音频文件托管
 
 ### 3.1 Internet Archive 托管
 
 所有 LibriVox 音频文件托管在 Internet Archive：
-
-```
-音频集合: https://archive.org/details/librivoxaudio
-单本地址: https://archive.org/details/{identifier}
-```
 
 ### 3.2 音频格式
 
@@ -200,26 +82,7 @@ curl "https://librivox.org/api/feed/audiobooks/?genre=plays&format=json"
 
 每本有声书提供 ZIP 打包下载：
 
-```
-ZIP 下载 URL: 从 API 响应的 url_zip_file 获取
-```
-
-### 3.4 通过 Internet Archive API 访问
-
-```bash
-# 获取元数据
-curl "https://archive.org/metadata/{identifier}"
-
-# 列出所有文件
-curl "https://archive.org/metadata/{identifier}/files"
-
-# 直接下载文件
-https://archive.org/download/{identifier}/{filename}
-```
-
 ---
-
-## 4. 数据字段映射
 
 ### 4.1 与 Readmigo 需求对照
 
@@ -240,17 +103,9 @@ https://archive.org/download/{identifier}/{filename}
 
 LibriVox 响应中的 `url_text_source` 通常指向 Project Gutenberg：
 
-```json
-{
-  "url_text_source": "http://www.gutenberg.org/etext/1342"
-}
-```
-
 可通过解析 URL 提取 PG ID：`1342`
 
 ---
-
-## 5. 分类体系
 
 ### 5.1 主要类型 (Genres)
 
@@ -296,41 +151,6 @@ LibriVox 响应中的 `url_text_source` 通常指向 Project Gutenberg：
 
 ---
 
-## 6. 数据获取策略
-
-### 6.1 初始导入
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  目标：建立 LibriVox 有声书数据库                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Step 1: 全量获取目录                                        │
-│  └── 分页遍历 API: ?limit=50&offset={n}&format=json          │
-│                                                             │
-│  Step 2: 过滤英语有声书                                      │
-│  └── 筛选 language = "English"                              │
-│                                                             │
-│  Step 3: 获取详细章节信息                                     │
-│  └── 对每本书请求 ?id={id}&extended=1                        │
-│                                                             │
-│  Step 4: 关联 Project Gutenberg                              │
-│  └── 解析 url_text_source 提取 PG ID                         │
-│  └── 建立 Book -> Audiobook 关联                             │
-│                                                             │
-│  Step 5: 存储音频 URL                                        │
-│  └── 存储 IA download URL（不下载实际文件）                   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 6.2 增量更新
-
-```bash
-# 使用 since 参数获取新增有声书
-curl "https://librivox.org/api/feed/audiobooks/?since={last_sync_timestamp}&format=json"
-```
-
 ### 6.3 数据同步频率
 
 | 数据类型 | 建议频率 |
@@ -339,8 +159,6 @@ curl "https://librivox.org/api/feed/audiobooks/?since={last_sync_timestamp}&form
 | 全量同步 | 每月 |
 
 ---
-
-## 7. 技术注意事项
 
 ### 7.1 API 限制
 
@@ -360,14 +178,7 @@ curl "https://librivox.org/api/feed/audiobooks/?since={last_sync_timestamp}&form
 
 音频可直接流式播放：
 
-```html
-<audio src="https://archive.org/download/{identifier}/{filename}.mp3" controls>
-</audio>
-```
-
 ---
-
-## 8. 与 Readmigo 集成建议
 
 ### 8.1 功能场景
 
@@ -377,64 +188,6 @@ curl "https://librivox.org/api/feed/audiobooks/?since={last_sync_timestamp}&form
 | **跟读练习** | 用户跟随朗读，AI 评分 |
 | **磨耳朵** | 纯听力训练 |
 | **睡前故事** | 定时播放章节 |
-
-### 8.2 数据模型建议
-
-```prisma
-model Audiobook {
-  id            String   @id
-  bookId        String?  @map("book_id")  // 关联 Book
-  book          Book?    @relation(fields: [bookId], references: [id])
-
-  title         String
-  description   String?
-  totalDuration Int      // 总时长（秒）
-  language      String
-  librivoxId    String   @unique @map("librivox_id")
-  librivoxUrl   String   @map("librivox_url")
-  archiveUrl    String   @map("archive_url")
-  zipUrl        String?  @map("zip_url")
-  rssUrl        String?  @map("rss_url")
-
-  chapters      AudiobookChapter[]
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-model AudiobookChapter {
-  id            String     @id
-  audiobookId   String     @map("audiobook_id")
-  audiobook     Audiobook  @relation(fields: [audiobookId], references: [id])
-
-  chapterNumber Int        @map("chapter_number")
-  title         String
-  duration      Int        // 时长（秒）
-  audioUrl      String     @map("audio_url")
-  readerName    String?    @map("reader_name")
-
-  @@index([audiobookId, chapterNumber])
-}
-```
-
-### 8.3 推荐优先级
-
-```
-Phase 1: 关联已有书籍
-├── 为 Standard Ebooks 书籍匹配 LibriVox 有声书
-├── 为 Project Gutenberg 热门书籍匹配
-└── 约 1000-2000 本可匹配
-
-Phase 2: 功能实现
-├── 基础播放功能
-├── 章节导航
-└── 播放进度记录
-
-Phase 3: 高级功能
-├── 听读同步（需要时间戳对齐）
-├── 跟读评分
-└── 离线下载
-```
 
 ---
 

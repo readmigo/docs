@@ -15,8 +15,6 @@
 
 ---
 
-## 一、电子书清单 (300本) | Section 1: Ebooks (300 titles)
-
 ### 1.1 英国文学完善 (40本) | British Literature Completion (40 titles)
 
 | # | 书名 Title | 作者 Author | 中文译名 | LibriVox | 来源 Source |
@@ -399,8 +397,6 @@
 
 ---
 
-## 二、有声书清单 (150本) | Section 2: Audiobooks (150 titles)
-
 ### 2.1 剩余热门匹配 (50本) | Remaining Popular Matches (50 titles)
 
 | # | 书名 Title | 作者 Author | 中文译名 | 播放量 Plays | 时长 Duration |
@@ -567,8 +563,6 @@
 | 40 | María | Jorge Isaacs | 玛丽亚 | 小说 Fiction | 10h |
 
 ---
-
-## 三、作者清单 (200位) | Section 3: Authors (200)
 
 ### 3.1 英国文学专题作家 (40位) | British Literature Specialized Authors (40)
 
@@ -802,8 +796,6 @@
 
 ---
 
-## 四、执行检查清单 | Section 4: Execution Checklist
-
 ### 4.1 电子书导入检查 | Ebook Import Checklist
 
 - [ ] 300本电子书全部获取（SE优先，PG补充）| All 300 ebooks acquired (SE priority, PG supplement)
@@ -840,8 +832,6 @@
 | 作者 Authors | 100 | 200 | 200 | **500** | 500 | ✅ 完成 |
 
 ---
-
-## 五、Phase 3 特色内容 | Section 5: Phase 3 Highlights
 
 ### 5.1 世界文学覆盖 | World Literature Coverage
 

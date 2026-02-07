@@ -91,16 +91,17 @@
 
 ### 当前状态 vs 目标状态
 
-| 维度 | 当前状态 | 目标状态 | 完成度 |
-|------|---------|---------|--------|
-| **R2 存储** | 共享存储空间 | 独立 bucket (readmigo-debug) | 0% |
-| **书籍数量** | 0 本 | 100 本 (Gutenberg Top 100) | 0% |
-| **作者数量** | 20 人 | 100 人 (Gutenberg Top 100 Authors) | 20% |
-| **书籍元数据** | 不完整 | 完整 (封面/简介/分类/语言/难度) | 0% |
-| **作者数据** | 基础信息 | 丰富 (头像/简介/作品列表/年代) | 30% |
-| **发现页数据流** | 无 | Top 100 + 分类榜单 + 推荐 | 0% |
-| **城邦数据流** | Top 20 | Top 100 作者完整数据 | 20% |
-| **Dashboard 管理** | 基础 CRUD | 完整内容管理 + 数据监控 | 60% |
+| 维度 | 说明 | 状态 |
+|------|------|------|
+| **数据来源** | 已迁移至 100% Standard Ebooks | 已完成 |
+| **书籍数量** | 1000+ 本 SE 书籍 | 已完成 |
+| **作者数量** | ~300 位 | 已完成 |
+| **书籍元数据** | 封面/简介/分类/语言/难度 | 已完成 |
+| **作者数据** | 头像/简介/作品列表/年代 | 已完成 |
+| **发现页数据流** | 推荐 + 分类 + 排行 | 已完成 |
+| **Dashboard 管理** | 内容管理 + 数据监控 | 基本完成 |
+
+> 注: V2 已将数据源从 Gutenberg 迁移至 100% Standard Ebooks，书籍数量从 300 扩展至 1000+
 
 ---
 
@@ -165,29 +166,6 @@
 - 导入日志报告
 
 **数据结构示例**:
-```json
-{
-  "id": "pg1342",
-  "gutenberg_id": 1342,
-  "title": "Pride and Prejudice",
-  "title_zh": "傲慢与偏见",
-  "author": "Jane Austen",
-  "author_zh": "简·奥斯汀",
-  "language": "en",
-  "difficulty_level": "B2",
-  "subjects": ["Romance", "Classic", "19th Century"],
-  "tags": ["爱情", "经典", "英国文学"],
-  "description_en": "...",
-  "description_zh": "...",
-  "recommendation": "经典浪漫主义小说，适合提升英语阅读能力",
-  "cover_url": "https://r2.readmigo.app/debug/covers/pg1342.jpg",
-  "epub_url": "https://r2.readmigo.app/debug/books/pg1342.epub",
-  "file_size": 512000,
-  "page_count": 432,
-  "downloads": 45678,
-  "publish_year": 1813
-}
-```
 
 ---
 
@@ -231,33 +209,6 @@
 - 作者数据 JSON 文件
 
 **数据结构示例**:
-```json
-{
-  "id": "author-jane-austen",
-  "name": "Jane Austen",
-  "name_zh": "简·奥斯汀",
-  "birth_year": 1775,
-  "death_year": 1817,
-  "nationality": "British",
-  "nationality_zh": "英国",
-  "avatar_url": "https://r2.readmigo.app/debug/authors/jane-austen.jpg",
-  "bio_en": "Jane Austen was an English novelist...",
-  "bio_zh": "简·奥斯汀是英国小说家...",
-  "tags": ["浪漫主义", "19世纪", "讽刺文学"],
-  "genres": ["Romance", "Satire", "Social Commentary"],
-  "works_count": 6,
-  "popular_works": [
-    "Pride and Prejudice",
-    "Sense and Sensibility",
-    "Emma"
-  ],
-  "timeline": [
-    {"year": 1811, "work": "Sense and Sensibility"},
-    {"year": 1813, "work": "Pride and Prejudice"}
-  ],
-  "total_downloads": 234567
-}
-```
 
 ---
 
@@ -301,32 +252,6 @@
 - 缓存策略文档
 
 **API 响应示例**:
-```json
-{
-  "sections": [
-    {
-      "id": "hero-banner",
-      "title": "Classic Masterpieces",
-      "type": "carousel",
-      "items": [
-        {
-          "book_id": "pg1342",
-          "title": "Pride and Prejudice",
-          "author": "Jane Austen",
-          "cover_url": "...",
-          "description": "..."
-        }
-      ]
-    },
-    {
-      "id": "popular-now",
-      "title": "Popular Now",
-      "type": "horizontal-list",
-      "items": [...]
-    }
-  ]
-}
-```
 
 ---
 
@@ -408,47 +333,9 @@
 
 ### Week 1: 基础设施 + 书籍导入
 
-```
-Day 1: 阶段 0 - 基础设施准备
-  ├─ ✅ 创建 readmigo-debug R2 bucket
-  ├─ ✅ 配置环境变量和数据库
-  └─ ✅ 验证环境隔离
-
-Day 2-3: 阶段 1.1 - 数据抓取
-  ├─ ✅ 获取 Top 100 书单
-  ├─ ✅ 抓取元数据
-  ├─ ✅ 下载 EPUB 文件
-  └─ ✅ 获取封面图
-
-Day 4-5: 阶段 1.2-1.3 - 数据丰富化 + 入库
-  ├─ ✅ AI 生成中文翻译和标签
-  ├─ ✅ 上传到 R2
-  └─ ✅ 批量入库验证
-```
 
 ### Week 2: 作者导入 + 数据流配置
 
-```
-Day 1-2: 阶段 2 - 作者导入
-  ├─ ✅ 抓取作者基础数据
-  ├─ ✅ 丰富化处理 (头像/简介/时间线)
-  └─ ✅ 入库验证
-
-Day 3: 阶段 3 - 发现页数据流
-  ├─ ✅ 配置 7 个 Section
-  ├─ ✅ 开发 Discovery API
-  └─ ✅ iOS 集成测试
-
-Day 4: 阶段 4 - 城邦数据流
-  ├─ ✅ 精选 30 位核心作者
-  ├─ ✅ 开发 Agora API
-  └─ ✅ iOS Agora Tab 测试
-
-Day 5: 阶段 5 - Dashboard 完善
-  ├─ ✅ 内容管理功能增强
-  ├─ ✅ 数据监控面板
-  └─ ✅ 环境切换功能
-```
 
 ---
 

@@ -8,7 +8,7 @@ Highlights, notes, and bookmarks management module.
 
 | Item | Description |
 |------|-------------|
-| Path | `apps/backend/src/modules/annotations/` |
+| Path | `src/modules/annotations/` |
 | Auth | JWT required |
 | Purpose | Manage user highlights, annotations, and bookmarks |
 
@@ -120,25 +120,21 @@ flowchart TD
 
 #### Create Highlight Request
 
-```typescript
-interface CreateHighlightDto {
-  userBookId: string;
-  chapterId: string;
-  startOffset: number;
-  endOffset: number;
-  cfiRange?: string;
-  selectedText: string;
-  color: 'yellow' | 'green' | 'blue' | 'pink' | 'purple' | 'orange';
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| userBookId | string | Yes | User's book ID |
+| chapterId | string | Yes | Chapter ID |
+| startOffset | number | Yes | Start character offset |
+| endOffset | number | Yes | End character offset |
+| cfiRange | string | No | EPUB CFI range |
+| selectedText | string | Yes | Selected text content |
+| color | enum | Yes | yellow, green, blue, pink, purple, orange |
 
 #### Update Highlight Request
 
-```typescript
-interface UpdateHighlightDto {
-  color?: 'yellow' | 'green' | 'blue' | 'pink' | 'purple' | 'orange';
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| color | enum | No | yellow, green, blue, pink, purple, orange |
 
 ### Annotations
 
@@ -153,25 +149,21 @@ interface UpdateHighlightDto {
 
 #### Create Annotation Request
 
-```typescript
-interface CreateAnnotationDto {
-  highlightId?: string;      // Optional link to highlight
-  userBookId: string;
-  chapterId: string;
-  cfi?: string;
-  note: string;
-  isPublic?: boolean;
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| highlightId | string | No | Optional link to highlight |
+| userBookId | string | Yes | User's book ID |
+| chapterId | string | Yes | Chapter ID |
+| cfi | string | No | EPUB CFI position |
+| note | string | Yes | Annotation text |
+| isPublic | boolean | No | Public visibility |
 
 #### Update Annotation Request
 
-```typescript
-interface UpdateAnnotationDto {
-  note?: string;
-  isPublic?: boolean;
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| note | string | No | Updated annotation text |
+| isPublic | boolean | No | Updated visibility |
 
 ### Bookmarks
 
@@ -184,17 +176,15 @@ interface UpdateAnnotationDto {
 
 #### Create Bookmark Request
 
-```typescript
-interface CreateBookmarkDto {
-  userBookId: string;
-  chapterId: string;
-  cfi?: string;
-  scrollPosition?: number;
-  pageNumber?: number;
-  title?: string;
-  excerpt?: string;
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| userBookId | string | Yes | User's book ID |
+| chapterId | string | Yes | Chapter ID |
+| cfi | string | No | EPUB CFI position |
+| scrollPosition | number | No | Scroll position |
+| pageNumber | number | No | Page number |
+| title | string | No | Bookmark title |
+| excerpt | string | No | Text excerpt |
 
 ### Offline Sync
 
@@ -204,38 +194,24 @@ interface CreateBookmarkDto {
 
 #### Sync Request
 
-```typescript
-interface SyncAnnotationsDto {
-  highlights?: Array<CreateHighlightDto & { localId: string }>;
-  annotations?: Array<CreateAnnotationDto & { localId: string }>;
-  bookmarks?: Array<CreateBookmarkDto & { localId: string }>;
-  deletedHighlightIds?: string[];
-  deletedAnnotationIds?: string[];
-  deletedBookmarkIds?: string[];
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| highlights | array (optional) | Highlights to create (with localId) |
+| annotations | array (optional) | Annotations to create (with localId) |
+| bookmarks | array (optional) | Bookmarks to create (with localId) |
+| deletedHighlightIds | string[] (optional) | Highlight IDs to delete |
+| deletedAnnotationIds | string[] (optional) | Annotation IDs to delete |
+| deletedBookmarkIds | string[] (optional) | Bookmark IDs to delete |
 
 #### Sync Response
 
-```typescript
-interface SyncResponse {
-  created: {
-    highlights: Array<{ localId: string; serverId: string }>;
-    annotations: Array<{ localId: string; serverId: string }>;
-    bookmarks: Array<{ localId: string; serverId: string }>;
-  };
-  deleted: {
-    highlightIds: string[];
-    annotationIds: string[];
-    bookmarkIds: string[];
-  };
-  conflicts: Array<{
-    type: 'highlight' | 'annotation' | 'bookmark';
-    localId: string;
-    reason: string;
-  }>;
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| created.highlights | array | Each entry: localId, serverId |
+| created.annotations | array | Each entry: localId, serverId |
+| created.bookmarks | array | Each entry: localId, serverId |
+| deleted | object | Lists of deleted IDs by type |
+| conflicts | array | Each entry: type, localId, reason |
 
 ---
 
@@ -243,66 +219,48 @@ interface SyncResponse {
 
 ### HighlightResponseDto
 
-```typescript
-interface HighlightResponseDto {
-  id: string;
-  userBookId: string;
-  chapterId: string;
-  startOffset: number;
-  endOffset: number;
-  cfiRange?: string;
-  selectedText: string;
-  color: string;
-  createdAt: string;
-  updatedAt: string;
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | Highlight UUID |
+| userBookId | string | User's book ID |
+| chapterId | string | Chapter ID |
+| startOffset / endOffset | number | Character offsets |
+| cfiRange | string (optional) | EPUB CFI range |
+| selectedText | string | Highlighted text |
+| color | string | Highlight color |
+| createdAt / updatedAt | string | Timestamps |
 
 ### HighlightWithAnnotationsDto
 
-```typescript
-interface HighlightWithAnnotationsDto extends HighlightResponseDto {
-  annotations: AnnotationResponseDto[];
-  book: {
-    id: string;
-    title: string;
-    coverUrl?: string;
-  };
-}
-```
+Extends HighlightResponseDto with:
+- **annotations**: Array of AnnotationResponseDto
+- **book**: Object with id, title, coverUrl
 
 ### AnnotationResponseDto
 
-```typescript
-interface AnnotationResponseDto {
-  id: string;
-  highlightId?: string;
-  userBookId: string;
-  chapterId: string;
-  cfi?: string;
-  note: string;
-  isPublic: boolean;
-  aiSummary?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | Annotation UUID |
+| highlightId | string (optional) | Linked highlight |
+| userBookId / chapterId | string | Location identifiers |
+| cfi | string (optional) | EPUB CFI position |
+| note | string | Annotation text |
+| isPublic | boolean | Visibility flag |
+| aiSummary | string (optional) | AI-generated summary |
+| createdAt / updatedAt | string | Timestamps |
 
 ### BookmarkResponseDto
 
-```typescript
-interface BookmarkResponseDto {
-  id: string;
-  userBookId: string;
-  chapterId: string;
-  cfi?: string;
-  scrollPosition?: number;
-  pageNumber?: number;
-  title?: string;
-  excerpt?: string;
-  createdAt: string;
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | Bookmark UUID |
+| userBookId / chapterId | string | Location identifiers |
+| cfi | string (optional) | EPUB CFI position |
+| scrollPosition | number (optional) | Scroll position |
+| pageNumber | number (optional) | Page number |
+| title | string (optional) | Bookmark title |
+| excerpt | string (optional) | Text excerpt |
+| createdAt | string | Creation timestamp |
 
 ---
 

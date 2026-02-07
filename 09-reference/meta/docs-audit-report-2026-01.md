@@ -78,19 +78,6 @@ flowchart TD
 
 ### 已执行的移动
 
-```
-docs/IOS_APP_STORE_SUBMISSION.md
-  → docs/05-operations/deployment/ios-app-store-submission.md
-
-docs/ios-reader-chapter-transition-design.md
-  → docs/04-development/platforms/ios/reader-features/chapter-transition-design.md
-
-docs/VERSION_MIGRATION_GUIDE.md
-  → docs/08-releases/version-migration-guide.md
-
-docs/validation-reports/*
-  → docs/06-content/validation/
-```
 
 ---
 

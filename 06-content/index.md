@@ -38,8 +38,6 @@
 
 ---
 
-## 数据来源
-
 ### P0 核心来源
 | 来源 | 文档 |
 |------|------|
@@ -69,4 +67,3 @@
 - **选书参考**: staging-launch-strategy.md → staging-phase1-booklist.md
 - **技术实现**: classification-system.md → content-processing.md
 - **数据来源**: sources/README.md
-

@@ -33,33 +33,30 @@
 
 ### 2.1 用户模型
 
-```typescript
-// 共享类型定义
-interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  avatarUrl?: string;
-  subscriptionTier: 'free' | 'premium';
-  createdAt: string;
-  profile?: UserProfile;
-}
+**User**
 
-interface UserProfile {
-  englishLevel: 'beginner' | 'intermediate' | 'advanced';
-  learningGoal: 'casual' | 'regular' | 'intensive';
-  interests: string[];
-  dailyGoalMinutes: number;
-}
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | User UUID |
+| email | string | Email address |
+| displayName | string | Display name |
+| avatarUrl | string (optional) | Avatar image URL |
+| subscriptionTier | free / premium | Subscription tier |
+| createdAt | string | Account creation date |
+| profile | UserProfile (optional) | Learning profile |
 
-interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
-}
+**UserProfile**
 
-type AuthProvider = 'google' | 'apple' | 'email';
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| englishLevel | enum | beginner / intermediate / advanced |
+| learningGoal | enum | casual / regular / intensive |
+| interests | string[] | Interest categories |
+| dailyGoalMinutes | number | Daily reading goal in minutes |
+
+**AuthTokens**: accessToken, refreshToken, expiresAt
+
+**AuthProvider**: google, apple, email
 
 ---
 
@@ -77,33 +74,13 @@ type AuthProvider = 'google' | 'apple' | 'email';
 
 ### 3.2 请求/响应格式
 
-```typescript
-// Google 登录请求
-interface GoogleAuthRequest {
-  idToken: string;
-  accessToken?: string;
-}
+**Google 登录请求**: idToken (required), accessToken (optional)
 
-// Apple 登录请求
-interface AppleAuthRequest {
-  identityToken: string;
-  authorizationCode: string;
-  user?: { email?: string; fullName?: string };
-}
+**Apple 登录请求**: identityToken, authorizationCode (both required), user info (optional: email, fullName)
 
-// 认证响应
-interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  user: User;
-}
+**认证响应**: accessToken, refreshToken, expiresIn, user object
 
-// 刷新 Token 请求
-interface RefreshTokenRequest {
-  refreshToken: string;
-}
-```
+**刷新 Token 请求**: refreshToken (required)
 
 ---
 
@@ -139,132 +116,28 @@ flowchart TD
 
 ### 4.2 Token Manager
 
-```kotlin
-// core/auth/TokenManager.kt
-@Singleton
-class TokenManager @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
-
-    private val encryptedPrefs = EncryptedSharedPreferences.create(
-        context, "auth_prefs", masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
-
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
-    val authState: StateFlow<AuthState> = _authState.asStateFlow()
-
-    fun saveTokens(response: AuthResponse) { /* ... */ }
-    fun getAccessToken(): String? = encryptedPrefs.getString(KEY_ACCESS_TOKEN, null)
-    fun getRefreshToken(): String? = encryptedPrefs.getString(KEY_REFRESH_TOKEN, null)
-    fun isTokenExpired(): Boolean { /* ... */ }
-    fun clearTokens() { /* ... */ }
-}
-```
+Uses EncryptedSharedPreferences with AES-256-GCM encryption. Exposes auth state via StateFlow. Key operations: saveTokens, getAccessToken, getRefreshToken, isTokenExpired, clearTokens.
 
 ### 4.3 Google Sign-In
 
-```kotlin
-// features/auth/GoogleSignInHandler.kt
-@Singleton
-class GoogleSignInHandler @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
-    private val credentialManager = CredentialManager.create(context)
-
-    suspend fun signIn(activityContext: Context): Result<GoogleAuthCredential> {
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setServerClientId(WEB_CLIENT_ID)
-            .setFilterByAuthorizedAccounts(false)
-            .setAutoSelectEnabled(true)
-            .build()
-
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
-        val result = credentialManager.getCredential(activityContext, request)
-        // Process credential...
-    }
-}
-```
+Uses Android Credential Manager API with GoogleIdOption. Configures serverClientId, disabled authorized account filtering, and auto-select.
 
 ---
 
 ## 5. React Native 实现
 
-### 5.1 依赖配置
+### 5.1 依赖
 
-```bash
-npx expo install expo-apple-authentication expo-secure-store expo-auth-session
-npm install @react-native-google-signin/google-signin
-```
+- expo-apple-authentication, expo-secure-store, expo-auth-session
+- @react-native-google-signin/google-signin
 
 ### 5.2 Zustand Store
 
-```typescript
-// src/features/auth/stores/authStore.ts
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import * as SecureStore from 'expo-secure-store';
-
-const secureStorage = {
-  getItem: async (name: string) => await SecureStore.getItemAsync(name),
-  setItem: async (name: string, value: string) => await SecureStore.setItemAsync(name, value),
-  removeItem: async (name: string) => await SecureStore.deleteItemAsync(name),
-};
-
-export const useAuthStore = create<AuthState & AuthActions>()(
-  persist(
-    immer((set, get) => ({
-      user: null,
-      tokens: null,
-      isAuthenticated: false,
-      isLoading: true,
-      isGuestMode: false,
-      error: null,
-
-      setUser: (user) => set((state) => { state.user = user; state.isAuthenticated = true; }),
-      setTokens: (tokens) => set((state) => { state.tokens = tokens; }),
-      logout: async () => { /* ... */ },
-      enterGuestMode: () => set((state) => { state.isGuestMode = true; }),
-    })),
-    { name: 'auth-storage', storage: createJSONStorage(() => secureStorage) }
-  )
-);
-```
+Auth store uses Zustand with persist middleware and expo-secure-store for encrypted storage. State includes: user, tokens, isAuthenticated, isLoading, isGuestMode, error. Actions: setUser, setTokens, logout, enterGuestMode.
 
 ### 5.3 Apple Sign-In
 
-```typescript
-// src/features/auth/hooks/useAppleSignIn.ts
-import * as AppleAuthentication from 'expo-apple-authentication';
-
-export function useAppleSignIn() {
-  const login = useLogin();
-
-  const signIn = async () => {
-    const credential = await AppleAuthentication.signInAsync({
-      requestedScopes: [
-        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        AppleAuthentication.AppleAuthenticationScope.EMAIL,
-      ],
-    });
-
-    await login.mutateAsync({
-      provider: 'apple',
-      idToken: credential.identityToken!,
-      authorizationCode: credential.authorizationCode!,
-    });
-  };
-
-  return { signIn, isLoading: login.isPending, error: login.error };
-}
-```
+Uses expo-apple-authentication requesting FULL_NAME and EMAIL scopes. On success, sends identityToken and authorizationCode to backend auth API.
 
 ---
 
@@ -272,61 +145,11 @@ export function useAppleSignIn() {
 
 ### 6.1 NextAuth.js 配置
 
-```typescript
-// src/lib/auth.ts
-import NextAuth from 'next-auth';
-import Google from 'next-auth/providers/google';
-import Apple from 'next-auth/providers/apple';
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-    }),
-    Apple({
-      clientId: process.env.AUTH_APPLE_ID,
-      clientSecret: process.env.AUTH_APPLE_SECRET,
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.id = user.id;
-        token.subscriptionTier = user.subscriptionTier;
-      }
-      if (account?.access_token) {
-        token.accessToken = account.access_token;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      session.user.id = token.id as string;
-      session.user.subscriptionTier = token.subscriptionTier as string;
-      return session;
-    },
-  },
-  pages: { signIn: '/login', newUser: '/onboarding' },
-  session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
-});
-```
+Uses NextAuth with Google and Apple providers. JWT strategy with 30-day max age. Custom pages: /login (sign in), /onboarding (new user). JWT callback enriches token with user ID and subscription tier.
 
 ### 6.2 Server Actions
 
-```typescript
-// src/features/auth/actions/login.ts
-'use server';
-
-import { signIn } from '@/lib/auth';
-
-export async function loginWithGoogle() {
-  await signIn('google', { redirectTo: '/library' });
-}
-
-export async function loginWithApple() {
-  await signIn('apple', { redirectTo: '/library' });
-}
-```
+Server actions for loginWithGoogle and loginWithApple, both redirecting to /library on success.
 
 ---
 
@@ -348,16 +171,13 @@ export async function loginWithApple() {
 
 ## 8. 测试用例
 
-```typescript
-// 通用测试场景
-describe('Auth Module', () => {
-  it('should set user correctly after login', () => { /* ... */ });
-  it('should handle guest mode', () => { /* ... */ });
-  it('should clear user on logout', () => { /* ... */ });
-  it('should refresh token when expired', () => { /* ... */ });
-  it('should handle login cancellation', () => { /* ... */ });
-});
-```
+| Test Case | Description |
+|-----------|-------------|
+| Login success | User set correctly after login |
+| Guest mode | Guest mode activation |
+| Logout | All auth data cleared on logout |
+| Token refresh | Auto-refresh when token expired |
+| Login cancellation | Graceful handling of user cancellation |
 
 ---
 

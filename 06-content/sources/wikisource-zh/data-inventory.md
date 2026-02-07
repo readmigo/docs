@@ -24,19 +24,7 @@
 | 四大名著完整版 | 无封面图片 |
 | 持续更新维护 | 需要繁简转换 |
 
-### 对 Readmigo 的价值
-
-```
-✅ 四大名著完整章节内容
-✅ 近现代文学（鲁迅等）
-✅ 社区校对质量保证
-✅ 免费 API 无需认证
-✅ 可与 Gutenberg ZH 互补
-```
-
 ---
-
-## 2. 推荐书目
 
 ### 2.1 四大名著
 
@@ -65,21 +53,6 @@
 
 ---
 
-## 3. MediaWiki API
-
-### 3.1 API 端点
-
-```
-Base URL: https://zh.wikisource.org/w/api.php
-```
-
-### 3.2 获取页面内容
-
-```bash
-# 获取页面 Wikitext 内容
-curl "https://zh.wikisource.org/w/api.php?action=query&prop=revisions&titles=紅樓夢&rvprop=content&rvslots=main&format=json&formatversion=2"
-```
-
 ### 3.3 API 参数
 
 | 参数 | 说明 | 示例 |
@@ -92,143 +65,13 @@ curl "https://zh.wikisource.org/w/api.php?action=query&prop=revisions&titles=紅
 | `format` | 响应格式 | `json` |
 | `formatversion` | 格式版本 | `2` |
 
-### 3.4 获取分类成员
-
-```bash
-# 获取分类下的页面列表
-curl "https://zh.wikisource.org/w/api.php?action=query&list=categorymembers&cmtitle=Category:四大名著&cmlimit=50&cmtype=page&format=json"
-```
-
-### 3.5 API 响应示例
-
-```json
-{
-  "query": {
-    "pages": [
-      {
-        "pageid": 12345,
-        "ns": 0,
-        "title": "紅樓夢/第001回",
-        "revisions": [
-          {
-            "slots": {
-              "main": {
-                "content": "{{header\n|title=紅樓夢\n|chapter=第一回\n}}\n\n甄士隱夢幻識通靈　賈雨村風塵懷閨秀\n\n..."
-              }
-            }
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
 ---
-
-## 4. 章节 URL 模式
 
 ### 4.1 四大名著章节格式
 
 维基文库中文版使用三位数字格式：
 
-```
-# 红楼梦第一回
-https://zh.wikisource.org/wiki/紅樓夢/第001回
-
-# 西游记第五十回
-https://zh.wikisource.org/wiki/西遊記/第050回
-
-# 三国演义第一百二十回
-https://zh.wikisource.org/wiki/三國演義/第120回
-```
-
-### 4.2 章节号格式化
-
-```typescript
-// 格式化为三位数字
-function formatChapterNumber(n: number): string {
-  return n.toString().padStart(3, '0');
-}
-
-// 示例
-formatChapterNumber(1)   // "001"
-formatChapterNumber(50)  // "050"
-formatChapterNumber(120) // "120"
-```
-
 ---
-
-## 5. 数据处理流程
-
-### 5.1 导入流程
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Step 1: 遍历推荐书籍列表                                     │
-│  └── 使用 RECOMMENDED_BOOKS 数组                             │
-│                                                             │
-│  Step 2: 判断书籍类型                                         │
-│  ├── 有章节模式 → fetchBookWithChapters()                    │
-│  └── 单页书籍 → fetchSinglePageBook()                        │
-│                                                             │
-│  Step 3: 逐章获取内容                                         │
-│  └── 调用 MediaWiki API                                      │
-│  └── 请求间隔 2 秒                                           │
-│                                                             │
-│  Step 4: Wikitext 清理                                       │
-│  └── 移除模板 {{...}}                                        │
-│  └── 移除链接 [[...]]                                        │
-│  └── 移除 HTML 标签                                          │
-│  └── 移除格式标记                                            │
-│                                                             │
-│  Step 5: 文本处理                                            │
-│  └── 繁体转简体                                              │
-│  └── 中文难度分析                                            │
-│                                                             │
-│  Step 6: 上传到 R2                                           │
-│  └── 纯文本格式: books/wikisource-zh/{slug}.txt              │
-│                                                             │
-│  Step 7: 存入数据库                                           │
-│  └── source: WIKISOURCE_ZH                                  │
-│  └── 创建 Book 和 Chapter 记录                                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 5.2 Wikitext 清理规则
-
-```typescript
-function cleanWikitext(wikitext: string): string {
-  let text = wikitext;
-
-  // 移除模板 {{...}}
-  text = text.replace(/\{\{[^}]*\}\}/g, '');
-
-  // 移除链接，保留文字 [[链接|文字]] -> 文字
-  text = text.replace(/\[\[[^\]|]*\|([^\]]*)\]\]/g, '$1');
-  text = text.replace(/\[\[([^\]]*)\]\]/g, '$1');
-
-  // 移除外部链接
-  text = text.replace(/\[https?:\/\/[^\s\]]+ ([^\]]+)\]/g, '$1');
-
-  // 移除分类和文件
-  text = text.replace(/\[\[(?:Category|分类|File|文件):[^\]]*\]\]/gi, '');
-
-  // 移除 HTML 标签
-  text = text.replace(/<[^>]*>/g, '');
-
-  // 移除格式标记
-  text = text.replace(/'''([^']+)'''/g, '$1'); // 粗体
-  text = text.replace(/''([^']+)''/g, '$1');   // 斜体
-
-  return text.trim();
-}
-```
-
----
-
-## 6. 数据字段映射
 
 ### 6.1 与 Readmigo 需求对照
 
@@ -251,8 +94,6 @@ function cleanWikitext(wikitext: string): string {
 
 ---
 
-## 7. 实现状态
-
 ### 7.1 代码位置
 
 | 文件 | 说明 |
@@ -261,28 +102,7 @@ function cleanWikitext(wikitext: string): string {
 | `scripts/book-ingestion/processors/chinese-difficulty-analyzer.js` | 中文难度分析 |
 | `scripts/book-ingestion/processors/text-converter.js` | 繁简转换 |
 
-### 7.2 运行方式
-
-```bash
-# 导入前 5 本书（四大名著 + 鲁迅）
-npx tsx scripts/book-ingestion/sources/wikisource-zh.ts 5
-
-# 导入全部推荐书籍
-npx tsx scripts/book-ingestion/sources/wikisource-zh.ts 99
-```
-
-### 7.3 数据库枚举
-
-```prisma
-enum BookSource {
-  WIKISOURCE_ZH  // 维基文库中文
-  // ...
-}
-```
-
 ---
-
-## 8. 技术注意事项
 
 ### 8.1 常见问题
 

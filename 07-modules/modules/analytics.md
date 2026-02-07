@@ -8,7 +8,7 @@ User analytics and reading statistics module.
 
 | Item | Description |
 |------|-------------|
-| Path | `apps/backend/src/modules/analytics/` |
+| Path | `src/modules/analytics/` |
 | Auth | JWT required |
 | Purpose | User reading statistics and progress tracking |
 
@@ -45,20 +45,18 @@ Returns aggregate user statistics.
 
 **Response: OverviewStatsDto**
 
-```typescript
-interface OverviewStatsDto {
-  totalReadingTime: number;      // Total minutes read
-  totalBooksStarted: number;     // Books added to library
-  totalBooksCompleted: number;   // Books finished
-  totalWordsRead: number;        // Estimated words read
-  totalVocabulary: number;       // Words in vocabulary
-  currentStreak: number;         // Current reading streak days
-  longestStreak: number;         // Longest streak ever
-  averageSessionLength: number;  // Avg minutes per session
-  favoriteGenre?: string;        // Most read genre
-  readingLevel?: string;         // Current reading level
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| totalReadingTime | number | Total minutes read |
+| totalBooksStarted | number | Books added to library |
+| totalBooksCompleted | number | Books finished |
+| totalWordsRead | number | Estimated words read |
+| totalVocabulary | number | Words in vocabulary |
+| currentStreak | number | Current reading streak days |
+| longestStreak | number | Longest streak ever |
+| averageSessionLength | number | Avg minutes per session |
+| favoriteGenre | string (optional) | Most read genre |
+| readingLevel | string (optional) | Current reading level |
 
 ### GET /analytics/daily
 
@@ -74,17 +72,15 @@ Returns daily reading statistics.
 
 **Response: DailyStatsDto[]**
 
-```typescript
-interface DailyStatsDto {
-  date: string;           // ISO date
-  readingTime: number;    // Minutes read
-  wordsRead: number;      // Estimated words
-  pagesRead: number;      // Pages completed
-  sessionsCount: number;  // Number of sessions
-  newVocabulary: number;  // New words added
-  booksRead: string[];    // Book IDs read that day
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| date | string | ISO date |
+| readingTime | number | Minutes read |
+| wordsRead | number | Estimated words |
+| pagesRead | number | Pages completed |
+| sessionsCount | number | Number of sessions |
+| newVocabulary | number | New words added |
+| booksRead | string[] | Book IDs read that day |
 
 ### GET /analytics/reading-trend
 
@@ -98,75 +94,44 @@ Returns reading activity trend over time.
 
 **Response: ReadingTrendDto**
 
-```typescript
-interface ReadingTrendDto {
-  trend: 'increasing' | 'stable' | 'decreasing';
-  averageDaily: number;          // Avg minutes/day
-  thisWeekTotal: number;         // This week total
-  lastWeekTotal: number;         // Last week total
-  percentChange: number;         // Week-over-week change
-  dailyData: DailyReading[];     // Daily breakdown
-  weeklyData: WeeklyReading[];   // Weekly breakdown
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| trend | enum | increasing / stable / decreasing |
+| averageDaily | number | Avg minutes/day |
+| thisWeekTotal | number | This week total |
+| lastWeekTotal | number | Last week total |
+| percentChange | number | Week-over-week change |
+| dailyData | DailyReading[] | Daily breakdown |
+| weeklyData | WeeklyReading[] | Weekly breakdown |
 
 ### GET /analytics/vocabulary-progress
 
 Returns vocabulary learning statistics.
 
-**Response:**
+**Response: VocabularyProgressDto**
 
-```typescript
-interface VocabularyProgressDto {
-  totalWords: number;           // Total saved words
-  masteredWords: number;        // Fully learned
-  learningWords: number;        // In progress
-  newWords: number;             // Recently added
-  reviewDue: number;            // Words due for review
-  weeklyProgress: {
-    date: string;
-    added: number;
-    reviewed: number;
-    mastered: number;
-  }[];
-  topCategories: {
-    category: string;
-    count: number;
-  }[];
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| totalWords | number | Total saved words |
+| masteredWords | number | Fully learned |
+| learningWords | number | In progress |
+| newWords | number | Recently added |
+| reviewDue | number | Words due for review |
+| weeklyProgress | array | Each entry: date, added, reviewed, mastered |
+| topCategories | array | Each entry: category, count |
 
 ### GET /analytics/reading-progress
 
 Returns current reading progress across books.
 
-**Response:**
+**Response: ReadingProgressDto**
 
-```typescript
-interface ReadingProgressDto {
-  currentlyReading: {
-    bookId: string;
-    title: string;
-    progress: number;      // 0-100
-    lastReadAt: string;
-    estimatedTimeLeft: number;  // Minutes
-  }[];
-  recentActivity: {
-    date: string;
-    bookId: string;
-    title: string;
-    duration: number;
-    chaptersRead: number;
-  }[];
-  completedThisMonth: number;
-  goalProgress?: {
-    dailyGoal: number;
-    todayProgress: number;
-    weeklyGoal: number;
-    weekProgress: number;
-  };
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| currentlyReading | array | Each entry: bookId, title, progress (0-100), lastReadAt, estimatedTimeLeft |
+| recentActivity | array | Each entry: date, bookId, title, duration, chaptersRead |
+| completedThisMonth | number | Books completed this month |
+| goalProgress | object (optional) | dailyGoal, todayProgress, weeklyGoal, weekProgress |
 
 ---
 

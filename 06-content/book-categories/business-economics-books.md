@@ -4,8 +4,6 @@ This research report provides a curated collection of legally free, high-quality
 
 ---
 
-## 1. Economics
-
 ### 1.1 Classical Economics (Public Domain)
 
 | Title | Author | License/Status | Source | Description | Quality |
@@ -46,8 +44,6 @@ This research report provides a curated collection of legally free, high-quality
 
 ---
 
-## 2. Business & Management
-
 ### 2.1 Management Theory & Principles
 
 | Title | Author | License | Source | Description | Quality |
@@ -85,8 +81,6 @@ This research report provides a curated collection of legally free, high-quality
 
 ---
 
-## 3. Finance & Accounting
-
 ### 3.1 Personal Finance
 
 | Title | Author | License | Source | Description | Quality |
@@ -118,8 +112,6 @@ This research report provides a curated collection of legally free, high-quality
 
 ---
 
-## 4. Public Domain Classics - Complete List
-
 ### 4.1 Foundational Economics Texts
 
 | Title | Author | Year | Source | Format | Notes |
@@ -133,8 +125,6 @@ This research report provides a curated collection of legally free, high-quality
 | **The General Theory of Employment, Interest and Money** | John Maynard Keynes | 1936 | Various (check local copyright) | PDF | Now public domain in many jurisdictions |
 
 ---
-
-## 5. Key Resource Repositories
 
 ### 5.1 Primary OER Platforms
 
@@ -167,8 +157,6 @@ This research report provides a curated collection of legally free, high-quality
 | **Good** | Useful content, may be specialized or less frequently updated |
 
 ---
-
-## 7. Recommended Reading App Integration Priorities
 
 ### Tier 1 - Essential (Highest Quality, Broadest Appeal)
 1. OpenStax Economics series (Principles of Economics 3e, Micro, Macro)

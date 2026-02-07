@@ -2,477 +2,179 @@
 
 ## 概述
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Data Models                                 │
-├─────────────────────────────────────────────────────────────────┤
-│  核心实体                                                        │
-│  ├── User (用户)                                                │
-│  ├── Book (书籍)                                                │
-│  ├── ReadingProgress (阅读进度)                                 │
-│  ├── Vocabulary (词汇)                                          │
-│  ├── Subscription (订阅)                                        │
-│  └── LearningStats (学习统计)                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
+核心实体: User, Book, Subscription, UserBook, ReadingProgress, Vocabulary, DailyStats, Device
 
 ## 实体关系图
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   Entity Relationship                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────┐         ┌─────────────┐                       │
-│  │    User     │────────▶│Subscription │                       │
-│  │             │   1:1   │             │                       │
-│  └──────┬──────┘         └─────────────┘                       │
-│         │                                                        │
-│         │ 1:N                                                    │
-│         ▼                                                        │
-│  ┌─────────────┐         ┌─────────────┐                       │
-│  │  UserBook   │────────▶│    Book     │                       │
-│  │  (Library)  │   N:1   │             │                       │
-│  └──────┬──────┘         └─────────────┘                       │
-│         │                                                        │
-│         │ 1:1                                                    │
-│         ▼                                                        │
-│  ┌─────────────┐                                                │
-│  │  Reading    │                                                │
-│  │  Progress   │                                                │
-│  └─────────────┘                                                │
-│                                                                  │
-│  ┌─────────────┐         ┌─────────────┐                       │
-│  │    User     │────────▶│ Vocabulary  │                       │
-│  │             │   1:N   │   (Word)    │                       │
-│  └─────────────┘         └─────────────┘                       │
-│                                                                  │
-│  ┌─────────────┐         ┌─────────────┐                       │
-│  │    User     │────────▶│DailyStats   │                       │
-│  │             │   1:N   │             │                       │
-│  └─────────────┘         └─────────────┘                       │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+erDiagram
+    User ||--o| Subscription : has
+    User ||--o{ UserBook : owns
+    User ||--o{ UserVocabulary : learns
+    User ||--o{ DailyStats : tracks
+    User ||--o{ Device : uses
+    User ||--o{ ReadingSession : records
+    UserBook }o--|| Book : references
+    Book }o--o| Author : writtenBy
+    Book ||--o{ Chapter : contains
+    Book ||--o{ BookCategory : categorizedAs
 ```
 
 ## User (用户)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        User Model                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  基本信息                                                        │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 用户唯一标识            │ │
-│  │  email           │ String        │ 邮箱地址 (唯一)         │ │
-│  │  displayName     │ String?       │ 显示名称                │ │
-│  │  avatarUrl       │ String?       │ 头像 URL                │ │
-│  │  accountType     │ Enum          │ GUEST / REGISTERED      │ │
-│  │  createdAt       │ DateTime      │ 创建时间                │ │
-│  │  updatedAt       │ DateTime      │ 更新时间                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  学习设置                                                        │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  englishLevel    │ Enum          │ 英语水平                │ │
-│  │  dailyGoalMinutes│ Int           │ 每日目标 (分钟)         │ │
-│  │  nativeLanguage  │ String        │ 母语                    │ │
-│  │  targetLanguage  │ String        │ 学习语言                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  统计数据                                                        │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  streakDays      │ Int           │ 当前连续天数            │ │
-│  │  longestStreak   │ Int           │ 最长连续天数            │ │
-│  │  totalReadingMins│ Int           │ 总阅读时长              │ │
-│  │  totalWordsLearned│ Int          │ 总学习词汇数            │ │
-│  │  booksCompleted  │ Int           │ 完成书籍数              │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  英语水平枚举                                                    │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  BEGINNER           │ 初学者 (A1)                        │    │
-│  │  ELEMENTARY         │ 基础 (A2)                          │    │
-│  │  INTERMEDIATE       │ 中级 (B1)                          │    │
-│  │  UPPER_INTERMEDIATE │ 中高级 (B2)                        │    │
-│  │  ADVANCED           │ 高级 (C1/C2)                       │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### 基本信息
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | 用户唯一标识 |
+| email | String? | 邮箱地址 (唯一, 访客无邮箱) |
+| appleId | String? | Apple 登录标识 |
+| googleId | String? | Google 登录标识 |
+| passwordHash | String? | 密码哈希 (邮箱注册用户) |
+| emailVerified | Boolean | 邮箱是否已验证 |
+| displayName | String? | 显示名称 |
+| avatarUrl | String? | 头像 URL |
+| role | Enum | USER / ADMIN |
+
+### 学习设置
+
+| Field | Type | Description |
+|-------|------|-------------|
+| englishLevel | Enum | BEGINNER / INTERMEDIATE / ADVANCED |
+| dailyGoalMinutes | Int | 每日目标 (分钟, 默认 15) |
+| nativeLanguage | String | 母语 (默认 zh-CN) |
+| preferredLanguage | String | UI 语言偏好 (默认 zh-Hans) |
+| learningPurpose | String? | 学习目的 |
+
+### 时间戳
+
+| Field | Type | Description |
+|-------|------|-------------|
+| createdAt | DateTime | 创建时间 |
+| updatedAt | DateTime | 更新时间 |
+| lastActiveAt | DateTime? | 最后活跃时间 |
 
 ## Book (书籍)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Book Model                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  基本信息                                                        │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 书籍唯一标识            │ │
-│  │  title           │ String        │ 书名                    │ │
-│  │  author          │ String        │ 作者名                  │ │
-│  │  authorId        │ UUID?         │ 作者 ID                 │ │
-│  │  description     │ String        │ 书籍简介                │ │
-│  │  coverUrl        │ String        │ 封面图片 URL            │ │
-│  │  coverThumbUrl   │ String?       │ 封面缩略图 URL          │ │
-│  │  language        │ String        │ 语言代码                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  内容信息                                                        │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  wordCount       │ Int           │ 总词数                  │ │
-│  │  chapterCount    │ Int           │ 章节数                  │ │
-│  │  pageCount       │ Int?          │ 页数                    │ │
-│  │  genres          │ String[]      │ 分类标签                │ │
-│  │  subjects        │ String[]      │ 主题标签                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  难度信息                                                        │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  difficultyScore │ Int           │ 难度分数 (0-100)        │ │
-│  │  fleschScore     │ Float?        │ Flesch 可读性分数       │ │
-│  │  avgSentenceLen  │ Float?        │ 平均句长                │ │
-│  │  vocabularyLevel │ Enum?         │ 词汇级别                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  有声书信息                                                      │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  hasAudiobook    │ Boolean       │ 是否有有声书            │ │
-│  │  audiobookId     │ UUID?         │ 有声书 ID               │ │
-│  │  audioDuration   │ Int?          │ 音频时长 (秒)           │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  元数据                                                          │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  status          │ Enum          │ ACTIVE / DRAFT / HIDDEN │ │
-│  │  publishedAt     │ DateTime?     │ 出版日期                │ │
-│  │  createdAt       │ DateTime      │ 创建时间                │ │
-│  │  updatedAt       │ DateTime      │ 更新时间                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### 基本信息
 
-## ReadingProgress (阅读进度)
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | 书籍唯一标识 |
+| title | String | 书名 |
+| authorId | UUID? | 作者 ID (关联 Author 表) |
+| description | String? | 书籍简介 |
+| language | String | 语言代码 (默认 en) |
+| languageVariant | String? | 语言变体 (zh-Hans, zh-Hant 等) |
+| coverUrl | String? | 封面图片 URL |
+| coverThumbUrl | String? | 封面缩略图 URL |
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   ReadingProgress Model                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 进度唯一标识            │ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  bookId          │ UUID          │ 书籍 ID                 │ │
-│  │  currentChapterId│ String        │ 当前章节 ID             │ │
-│  │  currentChapterIdx│ Int          │ 当前章节索引            │ │
-│  │  chapterProgress │ Float         │ 章节内进度 (0-1)        │ │
-│  │  overallProgress │ Int           │ 总体进度 (0-100)        │ │
-│  │  cfiPath         │ String?       │ EPUB CFI 位置           │ │
-│  │  scrollPercentage│ Float?        │ 滚动百分比              │ │
-│  │  lastReadAt      │ DateTime      │ 最后阅读时间            │ │
-│  │  createdAt       │ DateTime      │ 创建时间                │ │
-│  │  updatedAt       │ DateTime      │ 更新时间                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  CFI (Canonical Fragment Identifier)                             │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  EPUB 标准的位置标识符                                   │    │
-│  │  格式: epubcfi(/6/4[chap01]!/4/2/1:0)                   │    │
-│  │  用途: 精确定位到书籍中的任意位置                        │    │
-│  │  支持: 跨设备同步阅读位置                                │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### 内容信息
 
-## Vocabulary (词汇)
+| Field | Type | Description |
+|-------|------|-------------|
+| epubUrl | String | EPUB 文件 URL |
+| wordCount | Int? | 总词数 |
+| chapterCount | Int? | 章节数 |
+| estimatedReadingMinutes | Int? | 预计阅读时长 |
+| genres | String[] | 分类标签 |
+| subjects | String[] | 主题标签 |
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Vocabulary Model                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  基本信息                                                        │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 词汇唯一标识            │ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  word            │ String        │ 单词/短语               │ │
-│  │  definition      │ String        │ 释义                    │ │
-│  │  pronunciation   │ String?       │ 发音 (IPA)              │ │
-│  │  partOfSpeech    │ String?       │ 词性                    │ │
-│  │  examples        │ String[]      │ 例句                    │ │
-│  │  synonyms        │ String[]      │ 同义词                  │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  来源信息                                                        │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  context         │ String?       │ 原文上下文              │ │
-│  │  bookId          │ UUID?         │ 来源书籍 ID             │ │
-│  │  bookTitle       │ String?       │ 来源书籍名              │ │
-│  │  chapterId       │ String?       │ 来源章节 ID             │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  学习状态                                                        │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  masteryLevel    │ Int           │ 掌握程度 (0-100)        │ │
-│  │  reviewCount     │ Int           │ 复习次数                │ │
-│  │  correctCount    │ Int           │ 正确次数                │ │
-│  │  nextReviewAt    │ DateTime?     │ 下次复习时间            │ │
-│  │  lastReviewedAt  │ DateTime?     │ 上次复习时间            │ │
-│  │  createdAt       │ DateTime      │ 添加时间                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  掌握程度计算                                                    │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  0-20:   刚添加 / 完全不熟                               │    │
-│  │  21-40:  模糊认识                                        │    │
-│  │  41-60:  基本掌握                                        │    │
-│  │  61-80:  较好掌握                                        │    │
-│  │  81-100: 完全掌握                                        │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### 难度信息
+
+| Field | Type | Description |
+|-------|------|-------------|
+| difficultyScore | Float? | 难度分数 |
+| fleschScore | Float? | Flesch 可读性分数 |
+| cefrLevel | String? | CEFR 等级 (A1-C2) |
+
+### 中文书籍特有字段
+
+| Field | Type | Description |
+|-------|------|-------------|
+| characterCount | Int? | 汉字数 |
+| hskLevel | Int? | HSK 等级 (1-9) |
+| pinyinEnabled | Boolean | 是否支持拼音标注 |
+| dynasty | String? | 朝代 (古籍) |
+
+### 质量标记
+
+| Field | Type | Description |
+|-------|------|-------------|
+| isClassic | Boolean | 是否经典作品 |
+| isAwardWinner | Boolean | 是否获奖作品 |
+| editorialScore | Float? | 编辑评分 (0-10) |
+| doubanRating | Float? | 豆瓣评分 (0-10) |
+| goodreadsRating | Float? | Goodreads 评分 (0-5) |
+
+### 元数据
+
+| Field | Type | Description |
+|-------|------|-------------|
+| status | Enum | PENDING / PROCESSING / ACTIVE / INACTIVE / ERROR |
+| source | Enum | STANDARD_EBOOKS / GUTENBERG / INTERNET_ARCHIVE / USER_UPLOAD / CTEXT / WIKISOURCE_ZH / GUTENBERG_ZH / SHUGE |
+| publishedAt | DateTime? | 出版日期 |
+| createdAt | DateTime | 创建时间 |
+| updatedAt | DateTime | 更新时间 |
 
 ## Subscription (订阅)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Subscription Model                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 订阅唯一标识            │ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  planType        │ Enum          │ 订阅计划类型            │ │
-│  │  status          │ Enum          │ 订阅状态                │ │
-│  │  startedAt       │ DateTime      │ 开始时间                │ │
-│  │  expiresAt       │ DateTime?     │ 过期时间                │ │
-│  │  cancelledAt     │ DateTime?     │ 取消时间                │ │
-│  │  trialEndsAt     │ DateTime?     │ 试用结束时间            │ │
-│  │  originalTxId    │ String?       │ 原始交易 ID (Apple)     │ │
-│  │  productId       │ String?       │ 产品 ID                 │ │
-│  │  platform        │ Enum          │ 购买平台                │ │
-│  │  createdAt       │ DateTime      │ 创建时间                │ │
-│  │  updatedAt       │ DateTime      │ 更新时间                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  订阅计划枚举                                                    │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  FREE             │ 免费版                               │    │
-│  │  PREMIUM_MONTHLY  │ 月度订阅                             │    │
-│  │  PREMIUM_ANNUAL   │ 年度订阅                             │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  订阅状态枚举                                                    │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  ACTIVE           │ 有效                                 │    │
-│  │  EXPIRED          │ 已过期                               │    │
-│  │  CANCELLED        │ 已取消                               │    │
-│  │  TRIAL            │ 试用中                               │    │
-│  │  GRACE_PERIOD     │ 宽限期                               │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  购买平台枚举                                                    │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  APPLE            │ App Store                            │    │
-│  │  GOOGLE           │ Google Play                          │    │
-│  │  STRIPE           │ Web 支付                             │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | 订阅唯一标识 |
+| userId | UUID | 用户 ID (唯一) |
+| planType | Enum | FREE / PRO / PREMIUM |
+| status | Enum | ACTIVE / EXPIRED / CANCELLED / GRACE_PERIOD / TRIAL / TRIAL_EXPIRED |
+| source | Enum | NONE / APPLE_IAP / GOOGLE_PLAY / STRIPE / PROMO_CODE / ADMIN_GRANT |
+| startedAt | DateTime | 开始时间 |
+| expiresAt | DateTime? | 过期时间 |
+| cancelledAt | DateTime? | 取消时间 |
+| trialStartedAt | DateTime? | 试用开始时间 |
+| trialEndsAt | DateTime? | 试用结束时间 |
+| trialUsed | Boolean | 是否已使用过试用 |
 
-## LearningStats (学习统计)
+支持 Apple IAP、Google Play、Stripe 三种支付渠道，每种渠道有独立的字段记录交易信息。
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   LearningStats Models                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  DailyStats (每日统计)                                           │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 统计唯一标识            │ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  date            │ Date          │ 统计日期                │ │
-│  │  readingMinutes  │ Int           │ 阅读时长 (分钟)         │ │
-│  │  pagesRead       │ Int           │ 阅读页数                │ │
-│  │  wordsLearned    │ Int           │ 新学词汇数              │ │
-│  │  wordsReviewed   │ Int           │ 复习词汇数              │ │
-│  │  sessionsCount   │ Int           │ 阅读次数                │ │
-│  │  goalAchieved    │ Boolean       │ 目标是否达成            │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  ReadingSession (阅读会话)                                       │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 会话唯一标识            │ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  bookId          │ UUID          │ 书籍 ID                 │ │
-│  │  startTime       │ DateTime      │ 开始时间                │ │
-│  │  endTime         │ DateTime?     │ 结束时间                │ │
-│  │  durationMinutes │ Int           │ 时长 (分钟)             │ │
-│  │  startChapter    │ Int           │ 开始章节                │ │
-│  │  endChapter      │ Int           │ 结束章节                │ │
-│  │  wordsRead       │ Int           │ 阅读词数                │ │
-│  │  pagesRead       │ Int           │ 阅读页数                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  Streak (连续记录)                                               │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  currentStreak   │ Int           │ 当前连续天数            │ │
-│  │  longestStreak   │ Int           │ 最长连续天数            │ │
-│  │  lastActiveDate  │ Date          │ 最后活跃日期            │ │
-│  │  streakStartDate │ Date          │ 当前连续开始日期        │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Bookmark & Annotation (书签与标注)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                 Bookmark & Annotation Models                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Bookmark (书签)                                                 │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 书签唯一标识            │ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  bookId          │ UUID          │ 书籍 ID                 │ │
-│  │  chapterId       │ String        │ 章节 ID                 │ │
-│  │  cfiPath         │ String        │ EPUB CFI 位置           │ │
-│  │  title           │ String?       │ 书签标题                │ │
-│  │  note            │ String?       │ 书签备注                │ │
-│  │  createdAt       │ DateTime      │ 创建时间                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  Annotation (标注/高亮)                                          │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 标注唯一标识            │ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  bookId          │ UUID          │ 书籍 ID                 │ │
-│  │  chapterId       │ String        │ 章节 ID                 │ │
-│  │  cfiRange        │ String        │ CFI 范围                │ │
-│  │  selectedText    │ String        │ 选中文本                │ │
-│  │  color           │ Enum          │ 高亮颜色                │ │
-│  │  note            │ String?       │ 备注                    │ │
-│  │  createdAt       │ DateTime      │ 创建时间                │ │
-│  │  updatedAt       │ DateTime      │ 更新时间                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  高亮颜色枚举                                                    │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  YELLOW          │ 黄色                                  │    │
-│  │  GREEN           │ 绿色                                  │    │
-│  │  BLUE            │ 蓝色                                  │    │
-│  │  PINK            │ 粉色                                  │    │
-│  │  PURPLE          │ 紫色                                  │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## AI Interaction (AI 交互)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   AI Interaction Model                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 交互唯一标识            │ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  type            │ Enum          │ 交互类型                │ │
-│  │  inputText       │ String        │ 输入文本                │ │
-│  │  outputText      │ String        │ AI 输出                 │ │
-│  │  bookId          │ UUID?         │ 关联书籍                │ │
-│  │  context         │ String?       │ 上下文                  │ │
-│  │  createdAt       │ DateTime      │ 创建时间                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  交互类型枚举                                                    │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  EXPLAIN         │ 词汇解释                              │    │
-│  │  TRANSLATE       │ 翻译                                  │    │
-│  │  SIMPLIFY        │ 简化                                  │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+另支持管理员授权 (grantedBy, grantReason, grantExpiresAt) 和促销码。
 
 ## Device (设备)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                       Device Model                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────┬───────────────┬─────────────────────────┐ │
-│  │  Field           │ Type          │ Description             │ │
-│  ├──────────────────┼───────────────┼─────────────────────────┤ │
-│  │  id              │ UUID          │ 设备唯一标识            │ │
-│  │  userId          │ UUID          │ 用户 ID                 │ │
-│  │  deviceId        │ String        │ 设备标识符              │ │
-│  │  platform        │ Enum          │ 平台                    │ │
-│  │  model           │ String?       │ 设备型号                │ │
-│  │  osVersion       │ String?       │ 系统版本                │ │
-│  │  appVersion      │ String        │ 应用版本                │ │
-│  │  pushToken       │ String?       │ 推送 Token              │ │
-│  │  lastActiveAt    │ DateTime      │ 最后活跃时间            │ │
-│  │  createdAt       │ DateTime      │ 创建时间                │ │
-│  └──────────────────┴───────────────┴─────────────────────────┘ │
-│                                                                  │
-│  平台枚举                                                        │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  IOS             │ iOS 设备                              │    │
-│  │  ANDROID         │ Android 设备                          │    │
-│  │  WEB             │ Web 浏览器                            │    │
-│  │  MOBILE          │ React Native 应用                     │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | 设备唯一标识 |
+| deviceId | String | 设备标识符 (唯一) |
+| userId | UUID? | 用户 ID |
+| platform | Enum | IOS / ANDROID / WEB |
+| deviceModel | String? | 设备型号 |
+| deviceName | String? | 用户自定义设备名称 |
+| osVersion | String? | 系统版本 |
+| appVersion | String? | 应用版本 |
+| pushToken | String? | 推送通知 Token |
+| isPrimary | Boolean | 是否为主设备 |
+| isLoggedOut | Boolean | 是否已远程登出 |
+| lastActiveAt | DateTime | 最后活跃时间 |
+
+## VerificationToken (验证 Token)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String | ULID 格式 |
+| userId | UUID | 用户 ID |
+| type | Enum | EMAIL_VERIFY / PASSWORD_RESET |
+| expiresAt | DateTime | 过期时间 |
+| usedAt | DateTime? | 使用时间 |
+
+## Vocabulary (词汇)
+
+通过 UserVocabulary 模型管理，关联用户和来源书籍，包含学习状态和间隔重复数据。
+
+## LearningStats (学习统计)
+
+通过 DailyStats 和 ReadingSession 模型记录每日学习数据和阅读会话。
+
+## Annotations (批注系统)
+
+包含三种类型:
+- **Highlight** - 文本高亮
+- **Annotation** - 批注 / 笔记
+- **Bookmark** - 书签

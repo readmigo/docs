@@ -1,12 +1,8 @@
-# Project Gutenberg 调研文档
-
 ## 概述
 
 [Project Gutenberg](https://www.gutenberg.org/) 是全球最古老的数字图书馆，拥有超过 **76,000+ 本免费电子书**，主要为公共领域作品。本产品的主要书籍来源来自此网站。
 
 ---
-
-## 1. API 与客户端
 
 ### 官方支持情况
 
@@ -26,12 +22,6 @@
 | **Gutendex** | 最流行的开源方案 | Django 实现、无需 API Key、可自托管 | [gutendex.com](https://gutendex.com/) |
 | **gutenberg_api** | RESTful API | 需自托管 | [GitHub](https://github.com/GnikDroy/gutenberg_api) |
 | **RapidAPI 版本** | 商业 API | 付费、响应快 (<200ms) | [RapidAPI](https://rapidapi.com/rabahdjebbes6-VpFXFzqdF1R/api/project-gutenberg-api) |
-
-### 推荐方案：Gutendex API
-
-```
-Base URL: https://gutendex.com/
-```
 
 #### 主要端点
 
@@ -53,39 +43,6 @@ Base URL: https://gutendex.com/
 | `ids` | 指定多个ID | `?ids=11,84,1342` |
 | `mime_type` | 文件格式 | `?mime_type=text/html` |
 
-#### 响应数据结构
-
-```json
-{
-  "count": 72345,
-  "next": "https://gutendex.com/books/?page=2",
-  "previous": null,
-  "results": [
-    {
-      "id": 84,
-      "title": "Frankenstein; Or, The Modern Prometheus",
-      "authors": [
-        {
-          "name": "Shelley, Mary Wollstonecraft",
-          "birth_year": 1797,
-          "death_year": 1851
-        }
-      ],
-      "subjects": ["Frankenstein's monster (Fictitious character) -- Fiction"],
-      "bookshelves": ["Gothic Fiction", "Science Fiction"],
-      "languages": ["en"],
-      "copyright": false,
-      "media_type": "Text",
-      "formats": {
-        "application/epub+zip": "https://...",
-        "text/html": "https://..."
-      },
-      "download_count": 116037
-    }
-  ]
-}
-```
-
 ---
 
 ## 2. 分类体系 (Bookshelves)
@@ -106,28 +63,7 @@ Project Gutenberg 使用 **Bookshelves** 来组织书籍，由志愿者手工策
 | **Arts** | Music, Poetry, Plays, Drama |
 | **Other** | Philosophy, Religion, Biography, Travel, Reference, Wars, Law, Education |
 
-### 对应 Discover Tab 的分类建议
-
-```
-推荐分类映射:
-├── Popular Now (热门)     → Gutendex sort=popular
-├── Categories (类别)
-│   ├── Fiction           → topic=fiction
-│   ├── Mystery           → topic=detective OR topic=mystery
-│   ├── Romance           → topic=romance
-│   ├── Sci-Fi            → topic=science fiction
-│   ├── Fantasy           → topic=fantasy OR topic=fairy tales
-│   ├── Horror            → topic=horror OR topic=gothic
-│   ├── Adventure         → topic=adventure
-│   ├── Children's        → topic=children
-│   └── Classics          → topic=best books ever listings
-├── Popular Authors (热门作者)  → 通过 Top 100 Authors 获取
-└── Audio Books (有声书)   → LibriVox 或 AI 生成有声书
-```
-
 ---
-
-## 3. 热门排行榜
 
 ### Top 100 页面
 
@@ -167,8 +103,6 @@ Project Gutenberg 使用 **Bookshelves** 来组织书籍，由志愿者手工策
 
 ---
 
-## 4. 有声书 (Audio Books)
-
 ### 数据来源
 
 | 来源 | 描述 | 数量 |
@@ -193,13 +127,8 @@ Project Gutenberg 使用 **Bookshelves** 来组织书籍，由志愿者手工策
 ### 有声书 API 访问
 
 Gutenberg 提供有声书分类浏览：
-```
-https://www.gutenberg.org/browse/categories/1  (Human-read Audio Books)
-```
 
 ---
-
-## 5. 数据同步方案
 
 ### 方案对比
 
@@ -220,35 +149,6 @@ https://www.gutenberg.org/browse/categories/1  (Human-read Audio Books)
 
 ---
 
-## 6. Discover Tab 实现建议
-
-### 页面结构
-
-```
-Discover
-├── 🔥 Trending Now
-│   └── API: gutendex.com/books?sort=popular&limit=20
-│
-├── 📚 Categories
-│   ├── Fiction → ?topic=fiction
-│   ├── Mystery & Detective → ?topic=detective
-│   ├── Romance → ?topic=romance
-│   ├── Science Fiction → ?topic=science fiction
-│   ├── Fantasy → ?topic=fantasy
-│   ├── Horror → ?topic=gothic
-│   ├── Adventure → ?topic=adventure
-│   ├── Children's → ?topic=children
-│   ├── Classics → ?topic=best books ever listings
-│   └── Poetry → ?topic=poetry
-│
-├── ✍️ Popular Authors
-│   └── 从 Top 100 Authors 页面抓取或预设列表
-│
-└── 🎧 Audio Books
-    ├── LibriVox Human-read
-    └── AI-generated Audiobooks
-```
-
 ### 数据更新频率
 
 | 数据类型 | 建议更新频率 |
@@ -260,21 +160,12 @@ Discover
 
 ---
 
-## 7. 技术实现注意事项
-
 ### 速率限制
 
 Project Gutenberg 对自动化访问有严格限制：
 - 同一 IP 每天下载超过 100 个文件会被标记为机器人
 - 建议请求间隔: 2+ 秒
 - 推荐使用 Gutendex API 而非直接爬取
-
-### 封面图片
-
-```
-中等尺寸: https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.medium.jpg
-小尺寸:   https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.small.jpg
-```
 
 ### EPUB 下载优先级
 

@@ -25,15 +25,9 @@
 
 ---
 
-## 2. 封面图 API
-
 ### 2.1 获取方式
 
 封面图通过 `volumeInfo.imageLinks` 字段返回：
-
-```
-GET https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}&key={API_KEY}
-```
 
 ### 2.2 可用尺寸
 
@@ -47,26 +41,6 @@ GET https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}&key={API_KEY}
 | `extraLarge` | ~1280px | 高清展示 |
 
 > ⚠️ 并非所有书籍都有全部尺寸，部分书籍仅有 `smallThumbnail` 和 `thumbnail`
-
-### 2.3 响应示例
-
-```json
-{
-  "items": [
-    {
-      "id": "zyTCAlFPjgYC",
-      "volumeInfo": {
-        "title": "The Google Story",
-        "authors": ["David A. Vise"],
-        "imageLinks": {
-          "smallThumbnail": "http://books.google.com/books/content?id=zyTCAlFPjgYC&printsec=frontcover&img=1&zoom=5",
-          "thumbnail": "http://books.google.com/books/content?id=zyTCAlFPjgYC&printsec=frontcover&img=1&zoom=1"
-        }
-      }
-    }
-  ]
-}
-```
 
 ### 2.4 获取更大尺寸的技巧
 
@@ -86,14 +60,6 @@ GET https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}&key={API_KEY}
 - 部分书籍可能无封面图（`imageLinks` 字段缺失）
 
 ---
-
-## 3. 搜索 API
-
-### 3.1 基本搜索
-
-```
-GET https://www.googleapis.com/books/v1/volumes?q={query}&key={API_KEY}
-```
 
 ### 3.2 搜索参数
 
@@ -121,8 +87,6 @@ GET https://www.googleapis.com/books/v1/volumes?q={query}&key={API_KEY}
 
 ---
 
-## 4. 元数据字段
-
 ### 4.1 volumeInfo 字段映射
 
 | Google Books 字段 | Readmigo 字段 | 可用性 |
@@ -137,56 +101,11 @@ GET https://www.googleapis.com/books/v1/volumes?q={query}&key={API_KEY}
 | `industryIdentifiers` | `isbn` | ✅ 有 ISBN-10/13 |
 | `imageLinks` | `coverUrl` | ✅ 大部分有 |
 
-### 4.2 industryIdentifiers 示例
-
-```json
-{
-  "industryIdentifiers": [
-    { "type": "ISBN_10", "identifier": "0134685997" },
-    { "type": "ISBN_13", "identifier": "9780134685991" }
-  ]
-}
-```
-
 ---
-
-## 5. 与 Readmigo 集成策略
-
-### 5.1 封面图补充流程
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  场景：书籍缺少封面图                                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Step 1: 优先使用 ISBN 查询                                   │
-│  └── GET /volumes?q=isbn:{isbn13}                           │
-│                                                             │
-│  Step 2: 无 ISBN 时用标题+作者查询                            │
-│  └── GET /volumes?q=intitle:{title}+inauthor:{author}       │
-│                                                             │
-│  Step 3: 提取封面 URL                                        │
-│  └── items[0].volumeInfo.imageLinks.thumbnail               │
-│  └── 替换 http:// 为 https://                               │
-│  └── 修改 zoom=0 获取更大尺寸                                 │
-│                                                             │
-│  Step 4: 下载并上传到 R2                                      │
-│  └── 避免直接引用 Google URL（可能过期）                       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ### 5.2 推荐使用优先级
 
 封面图来源优先级：
-
-```
-1. 书籍自带封面（EPUB 内嵌）
-2. Standard Ebooks 封面
-3. Open Library Covers API
-4. Google Books API ← 作为补充来源
-5. 生成默认封面
-```
 
 ---
 

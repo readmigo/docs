@@ -1,5 +1,3 @@
-# Discover Tab 搜索功能分析
-
 ## 概述
 
 本文档梳理 Discover Tab 搜索框的功能实现以及潜在的优化方向。
@@ -24,8 +22,6 @@ graph TD
 ```
 
 ---
-
-## iOS 实现
 
 ### 搜索框 UI (DiscoverView.swift:650-703)
 
@@ -74,8 +70,6 @@ flowchart TD
 | getTrendingSearches() | /search/trending?limit={limit} | 今日趋势 |
 
 ---
-
-## 后端实现
 
 ### API 端点 (search.controller.ts)
 
@@ -153,8 +147,6 @@ flowchart TD
 
 ---
 
-## 优化建议
-
 ### 短期优化 (Low Effort)
 
 | 优化项 | 说明 |
@@ -179,8 +171,6 @@ flowchart TD
 | 语义搜索 (AI) | 向量数据库 + Embedding |
 
 ---
-
-## 相关代码文件
 
 ### iOS
 

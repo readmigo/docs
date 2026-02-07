@@ -39,72 +39,49 @@
 
 ## 2. 数据模型
 
-```typescript
-// 订阅计划
-interface SubscriptionPlan {
-  id: string;
-  productId: string;
-  name: string;
-  description: string;
-  features: string[];
-  price: string;
-  priceValue: number;
-  currency: string;
-  period: 'monthly' | 'yearly' | 'lifetime';
-  hasTrial: boolean;
-  trialDuration?: string;
-  savingsPercentage?: number;
-}
+### SubscriptionPlan
 
-// 订阅状态
-interface SubscriptionStatus {
-  isActive: boolean;
-  isPremium: boolean;
-  plan: SubscriptionPlan | null;
-  expiresAt: Date | null;
-  purchasedAt: Date | null;
-  willRenew: boolean;
-  isInTrial: boolean;
-  isInGracePeriod: boolean;
-  isCancelled: boolean;
-  entitlements: Entitlement[];
-}
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | Plan UUID |
+| productId | string | Store product identifier |
+| name / description | string | Display info |
+| features | string[] | Feature list |
+| price / priceValue / currency | string/number | Pricing info |
+| period | enum | monthly / yearly / lifetime |
+| hasTrial | boolean | Trial availability |
+| trialDuration | string (optional) | Trial length |
+| savingsPercentage | number (optional) | Savings vs monthly |
 
-// 权益
-interface Entitlement {
-  id: string;
-  name: string;
-  isActive: boolean;
-}
+### SubscriptionStatus
 
-type EntitlementType =
-  | 'premium'
-  | 'unlimited_ai'
-  | 'offline_access'
-  | 'audiobooks'
-  | 'ad_free';
+| Field | Type | Description |
+|-------|------|-------------|
+| isActive / isPremium | boolean | Active state |
+| plan | SubscriptionPlan or null | Current plan |
+| expiresAt / purchasedAt | Date or null | Key dates |
+| willRenew / isInTrial / isInGracePeriod / isCancelled | boolean | State flags |
+| entitlements | Entitlement[] | Active entitlements |
 
-// 购买结果
-interface PurchaseResult {
-  success: boolean;
-  productId?: string;
-  transactionId?: string;
-  error?: {
-    code: 'cancelled' | 'payment_failed' | 'product_unavailable' | 'network_error' | 'unknown';
-    message: string;
-  };
-}
+### EntitlementType
 
-// 免费用户限制
-interface UsageLimits {
-  aiQueriesDaily: number;
-  aiQueriesRemaining: number;
-  booksDownloaded: number;
-  maxDownloads: number;
-  vocabularyWords: number;
-  maxVocabulary: number;
-}
-```
+premium, unlimited_ai, offline_access, audiobooks, ad_free
+
+### PurchaseResult
+
+| Field | Type | Description |
+|-------|------|-------------|
+| success | boolean | Purchase outcome |
+| productId / transactionId | string (optional) | Purchase details |
+| error.code | enum (optional) | cancelled, payment_failed, product_unavailable, network_error, unknown |
+
+### UsageLimits (免费用户)
+
+| Limit | Description |
+|-------|-------------|
+| aiQueriesDaily / aiQueriesRemaining | Daily AI query quota |
+| booksDownloaded / maxDownloads | Download quota |
+| vocabularyWords / maxVocabulary | Vocabulary quota |
 
 ---
 
@@ -123,72 +100,13 @@ interface UsageLimits {
 
 ### 4.1 Billing Client 封装
 
-```kotlin
-@Singleton
-class BillingClientWrapper @Inject constructor(
-    private val context: Context
-) {
-    private var billingClient: BillingClient? = null
-    private val _products = MutableStateFlow<List<ProductDetails>>(emptyList())
-    val products: StateFlow<List<ProductDetails>> = _products.asStateFlow()
-
-    private val _purchaseResult = MutableSharedFlow<PurchaseResult>()
-    val purchaseResult: SharedFlow<PurchaseResult> = _purchaseResult.asSharedFlow()
-
-    fun initialize() {
-        billingClient = BillingClient.newBuilder(context)
-            .setListener { billingResult, purchases ->
-                handlePurchasesUpdated(billingResult, purchases)
-            }
-            .enablePendingPurchases()
-            .build()
-        connect()
-    }
-
-    suspend fun launchPurchaseFlow(activity: Activity, productDetails: ProductDetails): BillingResult {
-        val flowParams = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(
-                listOf(
-                    BillingFlowParams.ProductDetailsParams.newBuilder()
-                        .setProductDetails(productDetails)
-                        .setOfferToken(productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken ?: "")
-                        .build()
-                )
-            )
-            .build()
-        return billingClient?.launchBillingFlow(activity, flowParams)
-            ?: BillingResult.newBuilder().setResponseCode(BillingClient.BillingResponseCode.SERVICE_DISCONNECTED).build()
-    }
-
-    fun queryPurchases() { /* 查询已有购买 */ }
-}
-```
+Uses Google Play Billing Library 6.x. BillingClientWrapper manages connection, product queries, and purchase flow. Exposes products via StateFlow and purchaseResult via SharedFlow. Supports pending purchases.
 
 ### 4.2 订阅管理器
 
-```kotlin
-@Singleton
-class SubscriptionManager @Inject constructor(
-    private val billingClientWrapper: BillingClientWrapper,
-    private val receiptValidator: ReceiptValidator
-) {
-    private val _state = MutableStateFlow(SubscriptionState())
-    val state: StateFlow<SubscriptionState> = _state.asStateFlow()
+SubscriptionManager wraps BillingClientWrapper and ReceiptValidator. Exposes subscription state via StateFlow with isPremium convenience property and isFeatureAvailable check.
 
-    val isPremium: Boolean
-        get() = _state.value.isPremium
-
-    fun isFeatureAvailable(feature: PremiumFeature): Boolean = isPremium
-}
-
-enum class PremiumFeature {
-    UNLIMITED_AI_EXPLANATIONS,
-    ADVANCED_VOCABULARY,
-    OFFLINE_READING,
-    AUDIOBOOK_ACCESS,
-    AD_FREE
-}
-```
+**Premium Features**: UNLIMITED_AI_EXPLANATIONS, ADVANCED_VOCABULARY, OFFLINE_READING, AUDIOBOOK_ACCESS, AD_FREE
 
 ---
 
@@ -196,64 +114,15 @@ enum class PremiumFeature {
 
 ### 5.1 RevenueCat 服务
 
-```typescript
-import Purchases, { PurchasesPackage, CustomerInfo } from 'react-native-purchases';
-
-export async function initializePurchases(userId?: string): Promise<void> {
-  const apiKey = Platform.OS === 'ios'
-    ? 'appl_xxxxxxxxxxxx'
-    : 'goog_xxxxxxxxxxxx';
-  await Purchases.configure({ apiKey });
-  if (userId) await Purchases.logIn(userId);
-}
-
-export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-  const offerings = await Purchases.getOfferings();
-  return offerings.current?.availablePackages.map(packageToSubscriptionPlan) ?? [];
-}
-
-export async function purchaseSubscription(plan: SubscriptionPlan): Promise<PurchaseResult> {
-  try {
-    const offerings = await Purchases.getOfferings();
-    const pkg = offerings.current?.availablePackages.find(
-      p => p.product.identifier === plan.productId
-    );
-    if (!pkg) return { success: false, error: { code: 'product_unavailable', message: 'Product not found' } };
-
-    const { customerInfo } = await Purchases.purchasePackage(pkg);
-    return { success: true, productId: plan.productId, transactionId: customerInfo.originalAppUserId };
-  } catch (error) {
-    if (error.code === 'PURCHASE_CANCELLED_ERROR') {
-      return { success: false, error: { code: 'cancelled', message: 'Purchase cancelled' } };
-    }
-    return { success: false, error: { code: 'unknown', message: error.message } };
-  }
-}
-
-export async function restorePurchases(): Promise<SubscriptionStatus> {
-  const customerInfo = await Purchases.restorePurchases();
-  return customerInfoToSubscriptionStatus(customerInfo);
-}
-```
+Uses RevenueCat SDK (react-native-purchases). Key functions:
+- **initializePurchases**: Configure with platform-specific API key, log in user
+- **getSubscriptionPlans**: Fetch current offerings and map to SubscriptionPlan
+- **purchaseSubscription**: Find package by productId and execute purchase
+- **restorePurchases**: Restore previous purchases
 
 ### 5.2 Zustand Store
 
-```typescript
-export const useSubscriptionStore = create<SubscriptionState & SubscriptionActions>()(
-  persist(
-    immer((set, get) => ({
-      status: null,
-      plans: [],
-      usageLimits: { aiQueriesDaily: 10, aiQueriesRemaining: 10, booksDownloaded: 0, maxDownloads: 3, vocabularyWords: 0, maxVocabulary: 100 },
-      purchaseInProgress: false,
-
-      hasEntitlement: (type) => get().status?.entitlements.some(e => e.id === type && e.isActive) ?? false,
-      canUseAI: () => get().status?.isPremium || get().usageLimits.aiQueriesRemaining > 0,
-    })),
-    { name: 'subscription-storage', storage: createJSONStorage(() => AsyncStorage) }
-  )
-);
-```
+Persisted store with immer middleware. State: status, plans, usageLimits, purchaseInProgress. Free tier defaults: 10 AI queries/day, 3 book downloads, 100 vocabulary words. Computed: hasEntitlement, canUseAI.
 
 ---
 
@@ -261,83 +130,34 @@ export const useSubscriptionStore = create<SubscriptionState & SubscriptionActio
 
 ### 6.1 Stripe 配置
 
-```typescript
-import Stripe from 'stripe';
-import { loadStripe } from '@stripe/stripe-js';
-
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
-
-export const getStripe = () => loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-```
+Server-side Stripe SDK for payment processing. Client-side loadStripe for checkout UI.
 
 ### 6.2 Server Actions
 
-```typescript
-'use server';
-
-export async function createCheckoutSession(priceId: string, promoCode?: string): Promise<{ url: string } | { error: string }> {
-  const session = await auth();
-  if (!session?.user?.id) return { error: 'Unauthorized' };
-
-  const checkoutSession = await stripe.checkout.sessions.create({
-    customer: await getOrCreateCustomer(session.user.id),
-    mode: 'subscription',
-    payment_method_types: ['card', 'alipay', 'wechat_pay'],
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/cancel`,
-    allow_promotion_codes: true,
-  });
-
-  return { url: checkoutSession.url! };
-}
-
-export async function createPortalSession(): Promise<{ url: string } | { error: string }> {
-  const customerId = await getStripeCustomerId(session.user.id);
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: customerId,
-    return_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tab=subscription`,
-  });
-  return { url: portalSession.url };
-}
-```
+- **createCheckoutSession**: Creates Stripe checkout session with subscription mode. Supports card, Alipay, WeChat Pay. Allows promotion codes.
+- **createPortalSession**: Creates Stripe billing portal for subscription management.
 
 ### 6.3 Webhook 处理
 
-```typescript
-// app/api/webhooks/stripe/route.ts
-export async function POST(req: Request) {
-  const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+Handles Stripe webhook events:
 
-  switch (event.type) {
-    case 'checkout.session.completed':
-      await handleCheckoutCompleted(event.data.object);
-      break;
-    case 'customer.subscription.updated':
-      await handleSubscriptionUpdated(event.data.object);
-      break;
-    case 'customer.subscription.deleted':
-      await handleSubscriptionDeleted(event.data.object);
-      break;
-  }
-
-  return NextResponse.json({ received: true });
-}
-```
+| Event | Handler |
+|-------|---------|
+| checkout.session.completed | Activate subscription |
+| customer.subscription.updated | Update subscription status |
+| customer.subscription.deleted | Deactivate subscription |
 
 ---
 
 ## 7. Premium 功能列表
 
-```typescript
-const PREMIUM_FEATURES = [
-  { id: 'unlimited_ai', name: '无限 AI 查询', description: '随时随地获取智能解答' },
-  { id: 'advanced_vocabulary', name: '高级词汇功能', description: '词根词源、例句生成' },
-  { id: 'offline_reading', name: '离线阅读', description: '下载书籍随时阅读' },
-  { id: 'audiobooks', name: '有声书', description: '沉浸式听读体验' },
-  { id: 'ad_free', name: '无广告', description: '纯净阅读体验' },
-];
-```
+| ID | Name | Description |
+|----|------|-------------|
+| unlimited_ai | 无限 AI 查询 | 随时随地获取智能解答 |
+| advanced_vocabulary | 高级词汇功能 | 词根词源、例句生成 |
+| offline_reading | 离线阅读 | 下载书籍随时阅读 |
+| audiobooks | 有声书 | 沉浸式听读体验 |
+| ad_free | 无广告 | 纯净阅读体验 |
 
 ---
 

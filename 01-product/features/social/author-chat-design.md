@@ -34,34 +34,9 @@
 
 ### 2.1 AuthorChatSession 会话
 
-```typescript
-interface ChatSession {
-  id: string;              // 会话ID
-  userId: string;          // 用户ID
-  authorId: string;        // 作者ID
-  title: string;           // 会话标题
-  messageCount: number;    // 消息数量
-  totalTokens: number;     // 总消耗 Token
-  isActive: boolean;       // 是否激活
-  createdAt: Date;         // 创建时间
-  updatedAt: Date;         // 更新时间
-}
-```
 
 ### 2.2 AuthorChatMessage 消息
 
-```typescript
-interface ChatMessage {
-  id: string;              // 消息ID
-  sessionId: string;       // 会话ID
-  role: 'USER' | 'ASSISTANT';  // 角色
-  content: string;         // 内容
-  inputTokens?: number;    // 输入 Token（AI 回复）
-  outputTokens?: number;   // 输出 Token（AI 回复）
-  userRating?: number;     // 用户评分（1-5）
-  createdAt: Date;         // 创建时间
-}
-```
 
 ### 2.3 作者人格数据
 
@@ -104,39 +79,10 @@ interface ChatMessage {
 ### 3.3 请求/响应示例
 
 **创建会话**
-```json
-POST /author-chat/sessions
-{
-  "authorId": "author-123",
-  "title": "Chat with Jane Austen"
-}
-```
 
 **发送消息**
-```json
-POST /author-chat/sessions/:id/messages
-{
-  "content": "What inspired you to write Pride and Prejudice?"
-}
-```
 
 **响应**
-```json
-{
-  "userMessage": {
-    "id": "msg-1",
-    "role": "USER",
-    "content": "What inspired you to write Pride and Prejudice?",
-    "createdAt": "2025-12-28T10:00:00Z"
-  },
-  "assistantMessage": {
-    "id": "msg-2",
-    "role": "ASSISTANT",
-    "content": "My dear friend, the inspiration for Pride and Prejudice...",
-    "createdAt": "2025-12-28T10:00:01Z"
-  }
-}
-```
 
 ---
 
@@ -144,20 +90,6 @@ POST /author-chat/sessions/:id/messages
 
 ### 4.1 System Prompt 结构
 
-```typescript
-buildAuthorPersonaPrompt({
-  name,          // 作者名
-  nameZh,        // 中文名
-  bio,           // 传记
-  era,           // 时代
-  nationality,   // 国籍
-  birthPlace,    // 出生地
-  writingStyle,  // 写作风格
-  famousWorks,   // 代表作
-  literaryPeriod,// 文学时期
-  aiPersonaPrompt,// 自定义提示
-})
-```
 
 ### 4.2 对话上下文
 

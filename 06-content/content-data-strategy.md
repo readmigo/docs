@@ -4,33 +4,9 @@
 
 ---
 
-## 1. 执行摘要
-
 ### 1.1 核心结论
 
 Readmigo 作为 AI 原生英文阅读学习产品，内容数据获取应遵循以下原则：
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     内容数据分层策略                              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Layer 1: 核心内容层 (书籍文件)                                   │
-│  ├── Standard Ebooks  → 高质量 EPUB，1,000+ 精选经典              │
-│  ├── Project Gutenberg → 大规模扩展，76,000+ 公版书               │
-│  └── LibriVox         → 有声书配套，20,000+ 人声朗读              │
-│                                                                 │
-│  Layer 2: 元数据补充层                                           │
-│  ├── Open Library     → 书籍描述、原始出版日期、高清封面           │
-│  └── Wikipedia        → 作者简介、书籍背景、文学价值               │
-│                                                                 │
-│  Layer 3: 自有数据层 (AI 生成 + 用户行为)                         │
-│  ├── 难度分析         → Flesch-Kincaid、CEFR 等级                │
-│  ├── AI 内容          → 书籍简介、章节摘要、学习要点               │
-│  └── 用户数据         → 阅读时长、热度、评分                       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 ### 1.2 语言策略
 
@@ -41,8 +17,6 @@ Readmigo 作为 AI 原生英文阅读学习产品，内容数据获取应遵循�
 | **Phase 3** | 2年+ | 双语并重 | 10,000+ |
 
 ---
-
-## 2. 产品数据需求全景
 
 ### 2.1 书籍数据模型
 
@@ -59,8 +33,6 @@ Readmigo 作为 AI 原生英文阅读学习产品，内容数据获取应遵循�
 | **统计信息** | `wordCount`, `chapterCount` | EPUB 解析 | 阅读预估 |
 | **质量标记** | `isClassic`, `editorialScore` | 人工+规则 | 推荐排序 |
 | **出版信息** | `publishedAt` | OL > 推断 | 年代筛选 |
-
-### 2.2 各维度数据需求详解
 
 #### A. 书籍文件 (EPUB)
 
@@ -102,16 +74,6 @@ Readmigo 作为 AI 原生英文阅读学习产品，内容数据获取应遵循�
 
 ---
 
-## 3. 核心三大资源详解
-
-### 3.1 Standard Ebooks（首选）
-
-```
-定位: 高质量精选，核心内容库
-数量: 1,000+ 本
-网站: standardebooks.org
-```
-
 #### 核心优势
 
 | 维度 | 评价 | 说明 |
@@ -131,42 +93,7 @@ Readmigo 作为 AI 原生英文阅读学习产品，内容数据获取应遵循�
 | **OPDS Feed** | ⭐⭐⭐ | 需要 Patrons 会员 |
 | **New Releases RSS** | ⭐⭐⭐⭐ | 公开，增量更新 |
 
-#### 可获取字段
-
-```
-✅ 完整可用:
-├── title, author, description (详细)
-├── subjects, genres
-├── epubUrl (多格式), coverUrl (高清)
-├── language, publishedAt
-└── sourceUrl, Wikipedia链接
-
-⚠️ 需自行处理:
-├── wordCount, chapterCount (解析 EPUB)
-├── difficultyScore (文本分析)
-└── 热度数据 (SE 不公开)
-```
-
-#### 使用策略
-
-```
-Phase 1 (MVP):
-└── 导入全部 ~1,000 本作为核心书库
-
-持续更新:
-└── 监控 New Releases RSS，每日增量同步
-```
-
 ---
-
-### 3.2 Project Gutenberg（扩展）
-
-```
-定位: 大规模扩展，海量经典
-数量: 76,000+ 本
-网站: gutenberg.org
-API: gutendex.com (第三方)
-```
 
 #### 核心优势
 
@@ -195,66 +122,7 @@ API: gutendex.com (第三方)
 | **RDF 目录** | ⭐⭐⭐⭐ | 批量元数据 |
 | **rsync 镜像** | ⭐⭐ | 存储需求大 |
 
-#### Gutendex API 速查
-
-```bash
-# 热门书籍
-GET https://gutendex.com/books?sort=popular&languages=en
-
-# 按分类
-GET https://gutendex.com/books?topic=fiction&languages=en
-
-# 搜索
-GET https://gutendex.com/books?search=shakespeare
-```
-
-#### 响应字段
-
-```json
-{
-  "id": 84,
-  "title": "Frankenstein",
-  "authors": [{"name": "Shelley, Mary", "birth_year": 1797, "death_year": 1851}],
-  "subjects": ["Gothic Fiction", "Horror tales"],
-  "bookshelves": ["Science Fiction"],
-  "languages": ["en"],
-  "formats": {
-    "application/epub+zip": "https://...",
-    "image/jpeg": "https://..."
-  },
-  "download_count": 116037
-}
-```
-
-#### 使用策略
-
-```
-Phase 1 (MVP):
-├── 导入 Top 1000 热门英语书籍
-└── 优先选择 SE 没有的作品
-
-Phase 2 (扩展):
-├── 扩展到 Top 5000
-├── 按分类补充各类型书籍
-└── 使用 OL 补充元数据和封面
-
-筛选标准:
-├── download_count > 1000
-├── languages = "en"
-├── 优先选择 SE 未覆盖的
-└── 封面存在且质量可接受
-```
-
 ---
-
-### 3.3 LibriVox（有声书）
-
-```
-定位: 有声书配套，听读结合
-数量: 20,000+ 录音
-网站: librivox.org
-API: librivox.org/api/feed/audiobooks
-```
 
 #### 核心优势
 
@@ -273,44 +141,7 @@ API: librivox.org/api/feed/audiobooks
 | **录音风格** | ⭐⭐ | 不统一 |
 | **专业制作** | ⭐⭐ | 无后期处理 |
 
-#### API 速查
-
-```bash
-# 获取有声书列表
-GET https://librivox.org/api/feed/audiobooks/?format=json&limit=50
-
-# 获取详情（含章节）
-GET https://librivox.org/api/feed/audiobooks/?id=52&extended=1&format=json
-
-# 按作者搜索
-GET https://librivox.org/api/feed/audiobooks/author/Shakespeare?format=json
-```
-
-#### 使用策略
-
-```
-Phase 1:
-├── 为 SE/PG 书籍匹配 LibriVox 有声书
-├── 通过 url_text_source 关联 PG ID
-└── 存储音频 URL（不下载实际文件）
-
-功能规划:
-├── Phase 1: 基础播放 + 章节导航
-├── Phase 2: 听读同步
-└── Phase 3: 跟读评分
-```
-
 ---
-
-## 4. 元数据补充策略
-
-### 4.1 Open Library（主要补充源）
-
-```
-定位: 元数据补充，丰富书籍信息
-数量: 2000万+ editions 元数据
-网站: openlibrary.org
-```
 
 #### 可补充数据
 
@@ -322,30 +153,6 @@ Phase 1:
 | **作者照片** | 无 | ✅ 有 |
 | **高清封面** | PG 部分缺 | ✅ 质量好 |
 | **ISBN** | 无 | ✅ 有（用于去重） |
-
-#### 补充流程
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  元数据补充流程                                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Step 1: 匹配书籍                                            │
-│  └── GET /search.json?title={title}&author={author}         │
-│                                                             │
-│  Step 2: 获取 Work 详情                                      │
-│  └── GET /works/{olid}.json                                 │
-│  └── 提取: description, first_publish_year, subjects        │
-│                                                             │
-│  Step 3: 获取作者详情（如需）                                 │
-│  └── GET /authors/{olid}.json                               │
-│  └── 提取: bio, birth_date, death_date, wikipedia           │
-│                                                             │
-│  Step 4: 获取封面（如缺失）                                   │
-│  └── https://covers.openlibrary.org/b/olid/{olid}-L.jpg     │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ### 4.2 Wikipedia（背景信息）
 
@@ -360,8 +167,6 @@ Phase 1:
 
 ---
 
-## 5. 自有数据层
-
 ### 5.1 AI 生成内容
 
 | 内容 | 生成时机 | 用途 |
@@ -370,22 +175,6 @@ Phase 1:
 | **章节摘要** | 按需生成 | 快速预览 |
 | **学习要点** | 阅读完成后 | 学习反馈 |
 | **难词预览** | 开始阅读前 | 难度预估 |
-
-### 5.2 难度分析
-
-```
-分析维度:
-├── Flesch-Kincaid 可读性分数
-├── 平均句长
-├── 词汇复杂度（syllables/word）
-├── 生词密度（相对词频表）
-└── 映射到 CEFR 等级 (A1-C2)
-
-输出字段:
-├── difficultyScore (0-10)
-├── fleschScore (0-100)
-└── cefrLevel (A1/A2/B1/B2/C1/C2)
-```
 
 ### 5.3 用户行为数据
 
@@ -398,124 +187,19 @@ Phase 1:
 
 ---
 
-## 6. 运营分发策略
-
-### 6.1 Discover Tab 数据来源
-
-```
-Discover Tab 结构:
-├── 🔥 Trending Now
-│   └── 数据: 用户行为热度 + PG 下载量
-│
-├── 📚 Categories
-│   ├── Fiction      → SE/PG subjects 映射
-│   ├── Mystery      → topic=detective
-│   ├── Romance      → topic=romance
-│   ├── Sci-Fi       → topic=science fiction
-│   ├── Fantasy      → topic=fantasy
-│   ├── Horror       → topic=gothic
-│   ├── Adventure    → topic=adventure
-│   ├── Children's   → topic=children
-│   ├── Classics     → isClassic=true
-│   └── Poetry       → topic=poetry
-│
-├── ✍️ Popular Authors
-│   └── 数据: 作者书籍热度聚合
-│
-├── 📖 Editor's Picks
-│   └── 数据: 人工策划书单
-│
-└── 🎧 Audiobooks
-    └── 数据: LibriVox 匹配的书籍
-```
-
-### 6.2 热度计算
-
-```python
-# 热度分计算公式
-popularity_score = (
-    0.3 * normalize(pg_download_count) +     # PG 外部热度
-    0.3 * normalize(user_reading_minutes) +   # 内部阅读时长
-    0.2 * normalize(user_favorites) +         # 收藏数
-    0.1 * normalize(completion_rate) +        # 完读率
-    0.1 * freshness_decay(last_activity)      # 时间衰减
-)
-```
-
-### 6.3 质量分计算
-
-```python
-# 质量分计算公式
-quality_score = (
-    0.4 * source_quality +          # SE=1.0, PG=0.7
-    0.3 * editorial_score / 10 +    # 编辑评分
-    0.15 * is_classic +             # 经典标记
-    0.15 * has_complete_metadata    # 元数据完整度
-)
-```
-
----
-
-## 7. 英语内容阶段规划
-
 ### 7.1 Phase 1: MVP（0-6个月）
 
 **目标**: 1,000 本高质量英语经典
-
-```
-内容来源:
-├── Standard Ebooks 全量导入 (~1,000本)
-└── 质量保证，用户体验优先
-
-元数据:
-├── SE 原生元数据为主
-├── OL 补充封面和描述
-└── 自行分析难度等级
-
-有声书:
-├── 为 Top 200 书籍匹配 LibriVox
-└── 基础播放功能
-```
 
 ### 7.2 Phase 2: 扩展（6-12个月）
 
 **目标**: 5,000 本英语书籍
 
-```
-内容来源:
-├── SE 持续同步
-├── PG Top 3000-4000 热门
-└── 筛选标准：download_count > 5000
-
-元数据:
-├── OL 批量补充描述
-├── AI 生成缺失简介
-└── 优化难度分析算法
-
-有声书:
-├── 匹配扩展到 1000+ 本
-├── 听读同步功能
-```
-
 ### 7.3 Phase 3: 成熟（12-24个月）
 
 **目标**: 10,000+ 英语书籍
 
-```
-内容来源:
-├── PG 持续扩展
-├── IA 公共领域补充
-└── 按分类平衡覆盖
-
-高级功能:
-├── 个性化推荐成熟
-├── 用户生成内容（书评、笔记）
-└── 跟读评分功能
-```
-
 ---
-
-## 8. 中文内容扩展规划（Phase 2+）
 
 ### 8.1 中文公版书资源
 
@@ -538,23 +222,7 @@ quality_score = (
 | 古文注释 | `hasAnnotations` | 理解辅助 |
 | 繁简标注 | `originalScript` | traditional/simplified |
 
-### 8.3 中文扩展时间线
-
-```
-Phase 2 (12-18个月):
-├── 试点：100-200 本中文经典
-├── 《论语》《道德经》《三字经》等
-└── 验证中文阅读学习需求
-
-Phase 3 (18-24个月):
-├── 扩展：1000+ 中文书籍
-├── 完善 HSK 难度体系
-└── 中文有声书对接
-```
-
 ---
-
-## 9. 数据管道架构
 
 ### 9.1 整体流程
 
@@ -606,27 +274,6 @@ flowchart LR
 | Batch Processor | P2 | 批量处理优化 |
 
 ---
-
-## 10. 总结与行动项
-
-### 10.1 核心原则
-
-```
-1. 质量优先于数量
-   └── SE 1000本 > PG 随机 5000本
-
-2. 元数据完整性
-   └── 缺失描述的书籍用户体验差
-
-3. 分层获取
-   └── 核心内容 → 元数据补充 → AI 生成
-
-4. 英语优先
-   └── 前期专注英语，验证后扩展中文
-
-5. 增量更新
-   └── 建立自动化同步机制
-```
 
 ### 10.2 短期行动项（1-3个月）
 

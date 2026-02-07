@@ -4,21 +4,6 @@ A comprehensive, hierarchical classification system for open source, Creative Co
 
 ---
 
-## System Overview
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    BOOK CLASSIFICATION SYSTEM                    │
-├─────────────────────────────────────────────────────────────────┤
-│  Tier 1: Primary Categories (12 main domains)                   │
-│  Tier 2: Secondary Categories (subcategories within domains)    │
-│  Tier 3: Topics/Tags (specific subjects, themes, keywords)      │
-│  Metadata: Attributes (level, era, language, license, format)   │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
 ## Tier 1: Primary Categories (12 Domains)
 
 | ID | Category | Description | Primary Sources |
@@ -37,8 +22,6 @@ A comprehensive, hierarchical classification system for open source, Creative Co
 | 12 | **Health & Wellness** | Medicine, fitness, nutrition, mental health | OpenStax, LibreTexts |
 
 ---
-
-## Tier 2: Secondary Categories (Detailed Breakdown)
 
 ### 01. Literature & Fiction
 
@@ -186,8 +169,6 @@ A comprehensive, hierarchical classification system for open source, Creative Co
 
 ---
 
-## Tier 3: Topics, Themes & Tags
-
 ### Literary Themes
 - Love & Romance
 - Death & Mortality
@@ -237,8 +218,6 @@ A comprehensive, hierarchical classification system for open source, Creative Co
 
 ---
 
-## Metadata Attributes
-
 ### Reading Level
 
 | Level | Description | Typical Audience |
@@ -282,8 +261,6 @@ A comprehensive, hierarchical classification system for open source, Creative Co
 
 ---
 
-## Category Statistics
-
 ### Volume by Primary Category
 
 | Category | Estimated Volume | Top Source |
@@ -318,73 +295,6 @@ A comprehensive, hierarchical classification system for open source, Creative Co
 
 ---
 
-## Data Model (For App Implementation)
-
-### Book Entity
-
-```json
-{
-  "id": "string",
-  "title": "string",
-  "authors": ["string"],
-  "categories": {
-    "primary": "01",
-    "secondary": ["01.01", "01.05"],
-    "tags": ["romance", "regency", "social-criticism"]
-  },
-  "metadata": {
-    "readingLevel": 2,
-    "license": "public-domain",
-    "language": "en",
-    "originalLanguage": "en",
-    "publicationYear": 1813,
-    "era": "19th-century",
-    "region": "british",
-    "wordCount": 122000,
-    "estimatedReadTime": "8-10 hours"
-  },
-  "formats": ["epub", "pdf", "html", "audio"],
-  "sources": [
-    {
-      "name": "Project Gutenberg",
-      "url": "https://gutenberg.org/ebooks/1342",
-      "format": "epub"
-    }
-  ],
-  "quality": {
-    "rating": 5,
-    "indicators": ["foundational", "university-curriculum", "film-adaptations"]
-  },
-  "translations": {
-    "available": true,
-    "languages": ["zh", "es", "fr", "de", "ja"]
-  }
-}
-```
-
-### Category Entity
-
-```json
-{
-  "code": "01.01",
-  "name": "Literary Classics",
-  "parent": "01",
-  "description": "Canonical works of literature recognized for lasting significance",
-  "icon": "book-open",
-  "color": "#8B4513",
-  "bookCount": 5000,
-  "topAuthors": ["Dickens", "Austen", "Tolstoy", "Dostoevsky"],
-  "goldenAge": {
-    "period": "1837-1901",
-    "name": "Victorian Era"
-  }
-}
-```
-
----
-
-## Source Priority
-
 ### Tier 1 Sources (Highest Quality)
 
 | Source | Specialty | License |
@@ -416,8 +326,6 @@ A comprehensive, hierarchical classification system for open source, Creative Co
 
 ---
 
-## Implementation Recommendations
-
 ### Phase 1: Core Categories
 1. Literature & Fiction (highest volume, universal appeal)
 2. Philosophy & Ethics (foundational, educational)
@@ -448,8 +356,6 @@ A comprehensive, hierarchical classification system for open source, Creative Co
 8. **Translation Support** - Indicate available languages
 
 ---
-
-## Appendix: Category Mapping from Research
 
 ### From Public Domain Book Categories
 - Novels → 01.01 Literary Classics

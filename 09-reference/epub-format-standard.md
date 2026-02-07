@@ -19,35 +19,6 @@ EPUB (Electronic Publication) 是由 W3C 维护的开放电子书标准。当前
 
 EPUB 本质是一个 **ZIP 压缩包**，扩展名改为 `.epub`。
 
-```
-book.epub (ZIP)
-│
-├── mimetype                    # 必须：MIME 类型声明
-├── META-INF/
-│   ├── container.xml           # 必须：指向 Package Document
-│   └── encryption.xml          # 可选：DRM 加密信息
-│
-└── OEBPS/                      # 内容目录（名称可变）
-    ├── content.opf             # 必须：Package Document
-    ├── toc.xhtml               # 必须：导航文档
-    ├── toc.ncx                 # 可选：EPUB 2 兼容导航
-    │
-    ├── text/                   # 内容文档
-    │   ├── cover.xhtml
-    │   ├── titlepage.xhtml
-    │   ├── chapter-1.xhtml
-    │   └── ...
-    │
-    ├── css/                    # 样式表
-    │   └── style.css
-    │
-    ├── images/                 # 图片资源
-    │   ├── cover.jpg
-    │   └── ...
-    │
-    └── fonts/                  # 字体文件（可选）
-        └── ...
-```
 
 ---
 
@@ -55,9 +26,6 @@ book.epub (ZIP)
 
 ### 1. mimetype
 
-```
-application/epub+zip
-```
 
 **要求**：
 - 必须是 ZIP 包的第一个文件
@@ -68,14 +36,6 @@ application/epub+zip
 
 位于 `META-INF/container.xml`，指向 Package Document 位置。
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>
-```
 
 ### 3. Package Document (content.opf)
 
@@ -196,13 +156,6 @@ SE 是在 EPUB 3 基础上的**出版级增强标准**，要求更严格。
 
 ### SE 工具链
 
-```
-se create-draft    # 创建书籍骨架
-se lint            # 验证符合性
-se build           # 构建最终 EPUB
-se typogrify       # 排版增强
-se semanticate     # 语义标注
-```
 
 官方手册：https://standardebooks.org/manual/latest
 

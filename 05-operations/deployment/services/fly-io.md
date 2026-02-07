@@ -6,29 +6,18 @@
 
 ## 1. 服务概览
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Fly.io Platform                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  服务类型      边缘计算 / 容器托管平台                          │
-│  官网          https://fly.io                                   │
-│  定价模式      按使用量计费 + 免费套餐                          │
-│                                                                  │
-│  核心特性                                                        │
-│  ├── 全球边缘部署 - 30+ 数据中心                                │
-│  ├── 自动扩缩容 - 基于流量自动调整                              │
-│  ├── 内置负载均衡 - Anycast 路由                                │
-│  ├── 零停机部署 - 蓝绿部署策略                                  │
-│  └── 私有网络 - 6PN 内部网络                                    │
-│                                                                  │
-│  Readmigo 使用                                                  │
-│  ├── API 服务部署                                               │
-│  ├── Workers 后台任务                                           │
-│  └── 多环境隔离 (Production/Staging/Debug)                      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+| 项目 | 值 |
+|------|-----|
+| 服务类型 | 边缘计算 / 容器托管平台 |
+| 官网 | https://fly.io |
+| 定价模式 | 按使用量计费 + 免费套餐 |
+
+核心特性:
+- 全球边缘部署 (30+ 数据中心)
+- 自动扩缩容
+- 内置负载均衡 (Anycast 路由)
+- 零停机滚动部署
+- 私有网络 (6PN)
 
 ---
 
@@ -37,11 +26,9 @@
 ```mermaid
 graph TD
     A["用户请求"] --> B["Fly.io Edge<br>(Anycast DNS)"]
-    B --> C1["Tokyo (nrt)"]
-    B --> C2["Singapore (sin)"]
-    B --> C3["Sydney (syd)"]
-    C1 & C2 & C3 --> D["Primary Region (Singapore)<br>API Pod x2 + Workers Pod (BullMQ)"]
-    D --> E1["Neon DB"]
+    B --> C["Tokyo (nrt)<br>Primary Region"]
+    C --> D["readmigo-api<br>shared-cpu-2x, 2GB"]
+    D --> E1["Neon DB<br>(Singapore)"]
     D --> E2["Upstash Redis"]
     D --> E3["R2 Storage"]
 ```
@@ -50,114 +37,50 @@ graph TD
 
 ## 3. 应用配置
 
-### 3.1 Readmigo 应用列表
+### 3.1 Readmigo 应用
 
-| 应用名称 | 类型 | 区域 | 配置 | 用途 |
-|----------|------|------|------|------|
-| readmigo-api | API | sin | shared-cpu-1x, 512MB | 生产 API 服务 |
-| readmigo-workers | Worker | sin | shared-cpu-1x, 512MB | 后台任务处理 |
-| readmigo-staging-api | API | sin | shared-cpu-1x, 256MB | 预发布环境 |
-| readmigo-debug-api | API | sin | shared-cpu-1x, 256MB | 调试环境 |
+| 配置项 | 值 |
+|--------|-----|
+| 应用名称 | readmigo-api |
+| 区域 | nrt (Tokyo) |
+| VM | shared-cpu-2x, 2GB |
+| 部署策略 | rolling |
+| 内部端口 | 8080 |
+| 健康检查 | /api/v1/health |
+| 最小实例 | 1 (auto start/stop) |
+| 并发限制 | hard: 250, soft: 200 |
 
-### 3.2 fly.toml 配置示例
+> 注: 项目仅有一个 `fly.toml` 配置文件。不存在 `fly.workers.toml`、`fly.staging.toml`、`fly.debugging.toml` 等。
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    fly.toml 核心配置                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  app = "readmigo-api"                                           │
-│  primary_region = "sin"                                         │
-│                                                                  │
-│  [build]                                                        │
-│    dockerfile = "Dockerfile"                                    │
-│                                                                  │
-│  [http_service]                                                 │
-│    internal_port = 3000                                         │
-│    force_https = true                                           │
-│    auto_stop_machines = true                                    │
-│    auto_start_machines = true                                   │
-│    min_machines_running = 1                                     │
-│                                                                  │
-│  [[vm]]                                                         │
-│    cpu_kind = "shared"                                          │
-│    cpus = 1                                                     │
-│    memory_mb = 512                                              │
-│                                                                  │
-│  [env]                                                          │
-│    NODE_ENV = "production"                                      │
-│    PORT = "3000"                                                │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### 3.2 环境变量
+
+| 变量 | 值 |
+|------|-----|
+| ENVIRONMENT | production |
+| LOG_LEVEL | warn |
+| PORT | 8080 |
+
+其余敏感变量通过 Fly.io Secrets 管理。
+
+### 3.3 Release Command
+
+部署时自动执行数据库迁移:
+
+| 步骤 | 命令 |
+|------|------|
+| Release | `npx prisma migrate deploy --schema ./packages/database/prisma/schema.prisma` |
 
 ---
 
-## 4. 环境隔离
+## 4. 网络配置
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    多环境部署架构                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │  Production Environment                                     ││
-│  │                                                              ││
-│  │  App: readmigo-api                                          ││
-│  │  URL: api.readmigo.app                                      ││
-│  │  Machines: 2 (auto-scale)                                   ││
-│  │  Memory: 512MB each                                         ││
-│  │                                                              ││
-│  │  App: readmigo-workers                                      ││
-│  │  Machines: 1                                                ││
-│  │  Memory: 512MB                                              ││
-│  └─────────────────────────────────────────────────────────────┘│
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │  Staging Environment                                        ││
-│  │                                                              ││
-│  │  App: readmigo-staging-api                                  ││
-│  │  URL: staging-api.readmigo.app                              ││
-│  │  Machines: 1                                                ││
-│  │  Memory: 256MB                                              ││
-│  └─────────────────────────────────────────────────────────────┘│
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │  Debug Environment                                          ││
-│  │                                                              ││
-│  │  App: readmigo-debug-api                                    ││
-│  │  URL: debug-api.readmigo.app                                ││
-│  │  Machines: 1                                                ││
-│  │  Memory: 256MB                                              ││
-│  └─────────────────────────────────────────────────────────────┘│
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### 4.1 域名
 
----
+| 域名 | 说明 |
+|------|------|
+| readmigo-api.fly.dev | Production API (Fly.io 默认域名) |
 
-## 5. 网络配置
-
-### 5.1 域名绑定
-
-| 域名 | 应用 | 证书 |
-|------|------|------|
-| api.readmigo.app | readmigo-api | 自动 TLS |
-| staging-api.readmigo.app | readmigo-staging-api | 自动 TLS |
-| debug-api.readmigo.app | readmigo-debug-api | 自动 TLS |
-
-### 5.2 内部网络 (6PN)
-
-```mermaid
-graph LR
-    A["API Pod<br>readmigo-api.internal"] -- "6PN" --- B["Workers Pod<br>readmigo-workers.internal"]
-```
-
----
-
-## 6. 自动扩缩容
-
-### 6.1 扩缩容配置
+### 4.2 自动扩缩容
 
 ```mermaid
 graph LR
@@ -171,94 +94,52 @@ graph LR
 
 ---
 
-## 7. 部署流程
-
-### 7.1 CI/CD 流程
+## 5. 部署流程
 
 ```mermaid
 graph TD
-    A["GitHub Push (main)"] --> B["GitHub Actions<br>Checkout / Setup Node / Install / Build / Test"]
-    B --> C["Docker Build<br>构建镜像"]
-    C --> D["Fly.io Deploy<br>flyctl deploy --remote-only"]
-    D --> E["Health Check<br>验证部署成功"]
+    A["GitHub Push (main)"] --> B["GitHub Actions CI<br>Lint & Build"]
+    B --> C["Deploy Workflow<br>flyctl deploy --remote-only"]
+    C --> D["Release Command<br>prisma migrate deploy"]
+    D --> E["Health Check<br>/api/v1/health"]
 ```
 
-### 7.2 部署命令
+---
+
+## 6. 监控与日志
+
+### 6.1 内置监控指标
+
+| 类别 | 指标 |
+|------|------|
+| 系统 | CPU 使用率、内存使用率、网络 I/O、磁盘 I/O |
+| 应用 | HTTP 请求数、响应时间 (P50/P90/P99)、错误率、连接数 |
+
+### 6.2 常用命令
 
 | 命令 | 说明 |
 |------|------|
-| `flyctl deploy` | 部署应用 |
 | `flyctl status` | 查看应用状态 |
 | `flyctl logs` | 查看应用日志 |
 | `flyctl ssh console` | SSH 连接到实例 |
-| `flyctl scale count 2` | 调整实例数量 |
+| `flyctl scale count N` | 调整实例数量 |
 | `flyctl secrets set KEY=value` | 设置环境变量 |
+| `flyctl machines list` | 查看机器列表 |
+| `flyctl apps restart readmigo-api` | 重启应用 |
 
 ---
 
-## 8. 监控与日志
+## 7. 成本估算
 
-### 8.1 内置监控
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Fly.io 监控指标                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  系统指标                                                       │
-│  ├── CPU 使用率                                                 │
-│  ├── 内存使用率                                                 │
-│  ├── 网络 I/O                                                   │
-│  └── 磁盘 I/O                                                   │
-│                                                                  │
-│  应用指标                                                       │
-│  ├── HTTP 请求数                                                │
-│  ├── 响应时间 (P50/P90/P99)                                    │
-│  ├── 错误率                                                     │
-│  └── 连接数                                                     │
-│                                                                  │
-│  查看方式                                                       │
-│  ├── Fly.io Dashboard                                           │
-│  ├── Grafana (可选集成)                                         │
-│  └── flyctl status                                              │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 8.2 日志管理
-
-| 命令 | 说明 |
-|------|------|
-| `flyctl logs` | 实时日志流 |
-| `flyctl logs --app readmigo-api` | 指定应用日志 |
-| `flyctl logs -n 100` | 最近 100 条日志 |
+| 资源 | 配置 | 费用/月 |
+|------|------|---------|
+| API 实例 | shared-cpu-2x, 2GB | ~$15-20 |
+| 带宽 | 出站流量 | ~$1 |
+| **总计** | - | **~$20** |
 
 ---
 
-## 9. 成本估算
-
-### 9.1 月度成本
-
-| 资源 | 配置 | 单价 | 数量 | 费用/月 |
-|------|------|------|------|---------|
-| API 实例 | shared-cpu-1x, 512MB | ~$5 | 2 | ~$10 |
-| Workers 实例 | shared-cpu-1x, 512MB | ~$5 | 1 | ~$5 |
-| Staging | shared-cpu-1x, 256MB | ~$2 | 1 | ~$2 |
-| Debug | shared-cpu-1x, 256MB | ~$2 | 1 | ~$2 |
-| 带宽 | 出站流量 | $0.02/GB | 50GB | ~$1 |
-| **总计** | - | - | - | **~$20** |
-
-### 9.2 免费套餐
-
-- 3 个 shared-cpu-1x 实例
-- 每月 160GB 出站带宽
-- 3GB 持久存储
-
----
-
-## 10. 故障排查
-
-### 10.1 常见问题
+## 8. 故障排查
 
 | 问题 | 可能原因 | 解决方案 |
 |------|----------|----------|
@@ -267,36 +148,17 @@ graph TD
 | OOM 错误 | 内存不足 | 增加实例内存 |
 | 连接超时 | 网络问题 | 检查健康检查配置 |
 
-### 10.2 调试命令
-
-```bash
-# 查看实例状态
-flyctl status -a readmigo-api
-
-# SSH 到实例
-flyctl ssh console -a readmigo-api
-
-# 查看机器列表
-flyctl machines list -a readmigo-api
-
-# 重启应用
-flyctl apps restart readmigo-api
-
-# 查看 secrets
-flyctl secrets list -a readmigo-api
-```
-
 ---
 
-## 11. 相关文档
+## 9. 相关文档
 
 | 文档 | 说明 |
 |------|------|
 | [neon.md](./neon.md) | Neon 数据库服务 |
 | [upstash.md](./upstash.md) | Upstash Redis 服务 |
-| [be-environment-overview.md](../be-environment-overview.md) | 环境隔离总览 |
+| [environments.md](../environments.md) | 环境配置 |
 | [cicd-configuration-plan.md](../cicd-configuration-plan.md) | CI/CD 配置 |
 
 ---
 
-*最后更新: 2025-12-31*
+*最后更新: 2026-02-07*

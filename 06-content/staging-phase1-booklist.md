@@ -31,8 +31,6 @@
 
 ---
 
-## 一、电子书清单 (300本) | Section 1: Ebooks (300 titles)
-
 ### 1.1 P0 核心必选 - 多榜单重叠作品 (50本) | P0 Core Required - Multi-List Overlap (50 titles)
 
 > 入选 3+ 权威榜单，代表最高文学价值
@@ -406,8 +404,6 @@
 
 ---
 
-## 二、有声书清单 (150本) | Section 2: Audiobooks (150 titles)
-
 ### 2.1 Tier 1 - 超级热门 (50本) | Tier 1 - Super Popular (50 titles)
 
 > 播放量 500万+ 的有声书，必须包含
@@ -578,8 +574,6 @@
 
 ---
 
-## 三、作者清单 (100位) | Section 3: Authors (100)
-
 ### 3.1 文学巨匠 - 必选 (30位) | Literary Masters - Required (30 authors)
 
 | # | 作者 Author | 国籍 Nationality | 时代 Era | 电子书数 Ebooks | 代表作 Representative Work |
@@ -696,8 +690,6 @@
 | 100 | Henrik Ibsen | 挪威 Norway | 戏剧 Drama | A Doll's House 玩偶之家 |
 
 ---
-
-## 四、执行检查清单 | Section 4: Execution Checklist
 
 ### 4.1 电子书导入检查 | Ebook Import Checklist
 

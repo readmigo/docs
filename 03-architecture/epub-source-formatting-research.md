@@ -1,35 +1,8 @@
-# EPUB 源格式差异研究报告
-
 ## 调研目标
 
 分析 Standard Ebooks 与 Project Gutenberg 两种 EPUB 来源的格式差异，制定统一的精排版处理方案。
 
 ---
-
-## 一、EPUB 结构对比
-
-### 1.1 文件组织结构
-
-```
-Standard Ebooks                          Project Gutenberg
-├── mimetype                             ├── mimetype
-├── META-INF/                            ├── META-INF/
-│   └── container.xml                    │   └── container.xml
-├── epub/                                └── OEBPS/
-│   ├── content.opf                          ├── *.css
-│   ├── css/                                 ├── *_cover.jpg
-│   │   ├── core.css                         ├── *_*.jpg (大量图片)
-│   │   ├── local.css                        ├── *_*.htm.html (多章合并)
-│   │   └── se.css                           ├── pgepub.css
-│   ├── images/                              └── wrap0000.html
-│   │   ├── cover.jpg
-│   │   ├── titlepage.png
-│   │   └── logo.png
-│   └── text/
-│       ├── chapter-1.xhtml
-│       ├── chapter-2.xhtml
-│       └── ... (每章独立文件)
-```
 
 ### 1.2 关键差异
 
@@ -43,29 +16,7 @@ Standard Ebooks                          Project Gutenberg
 
 ---
 
-## 二、HTML 结构对比
-
 ### 2.1 Standard Ebooks 章节结构
-
-```html
-<?xml version="1.0" encoding="utf-8"?>
-<html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:epub="http://www.idpf.org/2007/ops"
-      lang="en-GB"
-      epub:prefix="z3998: http://www.daisy.org/z3998/2012/vocab/structure/">
-  <head>
-    <title>I</title>
-    <link href="../css/core.css" rel="stylesheet"/>
-    <link href="../css/local.css" rel="stylesheet"/>
-  </head>
-  <body epub:type="bodymatter z3998:fiction">
-    <section id="chapter-1" role="doc-chapter" epub:type="chapter">
-      <h2 epub:type="ordinal z3998:roman">I</h2>
-      <p>It is a truth universally acknowledged...</p>
-    </section>
-  </body>
-</html>
-```
 
 **特点：**
 - EPUB 3.0 语义属性 (`epub:type`, `role`)
@@ -74,38 +25,6 @@ Standard Ebooks                          Project Gutenberg
 - 无装饰性元素
 
 ### 2.2 Project Gutenberg 章节结构
-
-```html
-<?xml version='1.0' encoding='utf-8'?>
-<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.1//EN'>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
-<head>
-  <title>Pride and prejudice | Project Gutenberg</title>
-  <link href="0.css" rel="stylesheet"/>
-  <link href="pgepub.css" rel="stylesheet"/>
-  <meta name="generator" content="Ebookmaker 0.13.8"/>
-</head>
-<body class="x-ebookmaker x-ebookmaker-2">
-  <!-- Gutenberg Boilerplate -->
-  <div class="pg-boilerplate pgheader" id="pg-header">
-    <h2>The Project Gutenberg eBook of Pride and Prejudice</h2>
-    <div>This ebook is for the use of anyone anywhere...</div>
-    <div id="pg-start-separator">
-      <span>*** START OF THE PROJECT GUTENBERG EBOOK ***</span>
-    </div>
-  </div>
-
-  <!-- 章节内容 -->
-  <h2 id="Chapter_I">
-    <img src="*_i_030.jpg"/>  <!-- 装饰图片 -->
-    Chapter I.
-  </h2>
-  <p class="nind">
-    <span class="letra">I</span>T is a truth...  <!-- Drop Cap -->
-  </p>
-</body>
-</html>
-```
 
 **特点：**
 - XHTML 1.1 声明
@@ -116,40 +35,7 @@ Standard Ebooks                          Project Gutenberg
 
 ---
 
-## 三、CSS 样式对比
-
 ### 3.1 Standard Ebooks CSS
-
-```css
-/* core.css - 排版基础 */
-body {
-    font-variant-numeric: oldstyle-nums;
-    hyphens: auto;
-    text-wrap: pretty;
-}
-
-p {
-    margin: 0;
-    text-indent: 1em;
-}
-
-h1, h2, h3, h4, h5, h6 {
-    break-after: avoid;
-    page-break-after: avoid;
-    break-inside: avoid;
-    font-variant: small-caps;
-    hyphens: none;
-    margin: 3em 0;
-    text-align: center;
-}
-
-hr {
-    border: none;
-    border-top: 1px solid;
-    width: 25%;
-    margin: 1.5em auto;
-}
-```
 
 **设计特点：**
 - 使用 CSS 断页控制 (`break-after`, `page-break-after`)
@@ -160,40 +46,6 @@ hr {
 
 ### 3.2 Project Gutenberg CSS
 
-```css
-/* 0.css - 基础样式 */
-body {
-    margin-left: 4%;
-    margin-right: 6%;
-}
-
-p {
-    margin-top: 0.2em;
-    margin-bottom: 0.2em;
-    text-align: justify;
-    text-indent: 4%;
-}
-
-.letra {
-    font-size: 250%;
-    margin-top: -1%;
-}
-
-.figcenter {
-    margin: 3% auto;
-    text-align: center;
-}
-
-/* pgepub.css - 阅读器兼容 */
-h2 {
-    page-break-before: always;
-}
-
-#pg-header {
-    page-break-after: always;
-}
-```
-
 **设计特点：**
 - 百分比边距（不适合手机）
 - 两端对齐 (`text-align: justify`)
@@ -202,8 +54,6 @@ h2 {
 - Gutenberg boilerplate 分页隔离
 
 ---
-
-## 四、问题分类与影响
 
 ### 4.1 Gutenberg 专有问题
 
@@ -234,157 +84,6 @@ h2 {
 
 ---
 
-## 五、EPUB 源文件预处理方案
-
-### 5.1 Gutenberg 书籍处理流程
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Gutenberg EPUB 预处理 Pipeline                    │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  Step 1: Boilerplate 移除                                           │
-│  ├─ 删除 .pg-boilerplate, #pg-header, #pg-footer                   │
-│  ├─ 删除 "*** START OF THE PROJECT GUTENBERG EBOOK ***" 分隔线     │
-│  └─ 保留纯文本内容                                                  │
-│                                                                     │
-│  Step 2: 章节拆分                                                   │
-│  ├─ 解析 TOC (NCX/NAV)                                             │
-│  ├─ 按 anchor ID 拆分单文件为多章节                                │
-│  └─ 每章节独立存储                                                  │
-│                                                                     │
-│  Step 3: Drop Cap 标准化                                            │
-│  ├─ 检测 img.dropcap + p.dropcap 组合                              │
-│  ├─ 转换为统一 CSS first-letter 实现                               │
-│  └─ 移除装饰图片（可选保留为配图）                                  │
-│                                                                     │
-│  Step 4: 样式清理                                                   │
-│  ├─ 移除 Gutenberg 专用 class (nind, letra, blk, pginternal)       │
-│  ├─ 转换百分比边距为固定值                                          │
-│  └─ 保留语义化样式 (figcenter, caption)                            │
-│                                                                     │
-│  Step 5: 图片处理                                                   │
-│  ├─ 重命名为语义化名称                                              │
-│  ├─ 压缩优化 (max 1200px)                                          │
-│  └─ 装饰图片分类（封面/插图/Drop Cap）                             │
-│                                                                     │
-│  Step 6: 添加封面章节                                               │
-│  └─ 与 Standard Ebooks 处理一致                                    │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 5.2 Standard Ebooks 处理流程
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                  Standard Ebooks 预处理 Pipeline                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  Step 1: 添加封面章节                                               │
-│  ├─ 检测是否存在 Cover 章节                                        │
-│  ├─ 提取 cover.jpg 创建独立 Cover 章节                             │
-│  └─ 调整章节顺序 (Cover = order 1)                                 │
-│                                                                     │
-│  Step 2: 标题去重                                                   │
-│  ├─ 比较章节 HTML 内 H2 与 TOC 标题                                │
-│  └─ 移除重复标题                                                    │
-│                                                                     │
-│  Step 3: 样式保留                                                   │
-│  └─ 保留 SE 语义化属性 (epub:type, role)                           │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 六、阅读器端处理方案
-
-### 6.1 CSS 样式注入
-
-```css
-/* 通用样式 - reader-template.ts */
-
-/* 图片防溢出 */
-img {
-    max-width: 100%;
-    max-height: 80vh;
-    height: auto;
-    width: auto;
-    object-fit: contain;
-}
-
-/* Drop Cap 统一实现 */
-p.dropcap::first-letter,
-.chapter-content > p:first-of-type::first-letter {
-    float: left;
-    font-size: 3.5em;
-    line-height: 0.8;
-    padding-right: 0.1em;
-    margin-top: 0.05em;
-}
-
-/* 隐藏 Gutenberg Drop Cap 图片 */
-img.dropcap {
-    display: none;
-}
-
-/* 封面全屏 */
-img.cover, img.x-ebookmaker-cover {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    margin: 0;
-}
-
-/* 图片居中 */
-.figcenter, div.figcenter {
-    text-align: center;
-    margin: 1em auto;
-}
-
-/* 说明文字 */
-.caption, .caption p {
-    font-size: 0.85em;
-    color: var(--text-secondary);
-    text-align: center;
-    margin-top: 0.5em;
-}
-```
-
-### 6.2 分页算法优化
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                     分页算法关键改进                                 │
-├────────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│  1. 内容扁平化                                                      │
-│  ├─ 忽略容器元素 (section, div.wrapper)                           │
-│  └─ 提取可见内容块 (p, h1-h6, img, table)                         │
-│                                                                    │
-│  2. 超长元素分割                                                    │
-│  ├─ 检测元素高度 > pageHeight                                      │
-│  ├─ 按单词边界分割长段落                                           │
-│  └─ 确保句子完整，避免单词截断                                     │
-│                                                                    │
-│  3. 智能填充                                                        │
-│  ├─ 尽量填满当前页剩余空间                                         │
-│  ├─ 避免保守移动导致大段空白                                       │
-│  └─ 孤行保护（页首/页尾至少 2 行）                                 │
-│                                                                    │
-│  4. 特殊元素处理                                                    │
-│  ├─ 封面图片独占一页                                               │
-│  ├─ 标题与首段保持同页                                             │
-│  └─ 图片 + 说明文字不分离                                          │
-│                                                                    │
-└────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 七、Apple Books 对标分析
-
 ### 7.1 Apple Books 排版特点
 
 | 特性 | Apple Books 实现 | 当前阅读器状态 |
@@ -398,34 +97,7 @@ img.cover, img.x-ebookmaker-cover {
 | **字体选择** | 系统字体 + 自定义 | 可配置 |
 | **深色模式** | 平滑过渡 | 已支持 |
 
-### 7.2 需要改进的点
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                    向 Apple Books 对齐的改进点                       │
-├────────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│  优先级 1 (影响阅读体验)                                            │
-│  ├─ 分页算法优化 - 消除内容截断和大段空白                          │
-│  ├─ 边距动态调整 - 根据屏幕宽度计算最佳边距                        │
-│  └─ 行高优化 - 使用 1.5x 比例                                      │
-│                                                                    │
-│  优先级 2 (提升体验)                                                │
-│  ├─ 图片点击放大 - 查看高清原图                                    │
-│  ├─ 翻页动画优化 - 更流畅的过渡效果                                │
-│  └─ 字体选择 - 提供更多字体选项                                    │
-│                                                                    │
-│  优先级 3 (锦上添花)                                                │
-│  ├─ 阅读进度同步 - 跨设备位置同步                                  │
-│  ├─ 注释高亮 - 文本选择和标注                                      │
-│  └─ 字典查词 - 长按查词功能                                        │
-│                                                                    │
-└────────────────────────────────────────────────────────────────────┘
-```
-
 ---
-
-## 八、Standard Ebooks 是否完美？
 
 ### 8.1 Standard Ebooks 的优点
 
@@ -449,8 +121,6 @@ img.cover, img.x-ebookmaker-cover {
 Standard Ebooks 在源文件质量上明显优于 Gutenberg，但仍需阅读器端处理才能达到最佳手机显示效果。
 
 ---
-
-## 九、实施建议
 
 ### 9.1 短期优化 (Pipeline 改进)
 
@@ -480,8 +150,6 @@ Standard Ebooks 在源文件质量上明显优于 Gutenberg，但仍需阅读器
 | 阅读进度同步 | P3 | 高 |
 
 ---
-
-## 十、参考资料
 
 ### 已记录问题清单
 

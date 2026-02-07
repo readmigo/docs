@@ -4,8 +4,6 @@ A curated collection of legally free, high-quality technology books for the Read
 
 ---
 
-## 1. Computer Science & Programming
-
 ### 1.1 Python
 
 | Title | Author | License | URL | Description | Quality Indicator |
@@ -82,8 +80,6 @@ A curated collection of legally free, high-quality technology books for the Read
 
 ---
 
-## 2. Web Development
-
 ### 2.1 HTML & CSS
 
 | Title | Author | License | URL | Description | Quality Indicator |
@@ -111,8 +107,6 @@ A curated collection of legally free, high-quality technology books for the Read
 | **The Node Beginner Book** | Manuel Kiessling | Free | [nodebeginner.org](https://www.nodebeginner.org/) | Complete web application tutorial | Popular beginner resource |
 
 ---
-
-## 3. Data Science & AI
 
 ### 3.1 Machine Learning
 
@@ -143,8 +137,6 @@ A curated collection of legally free, high-quality technology books for the Read
 | **Introduction to Statistical Learning** | James, Witten, Hastie, Tibshirani | Free | [statlearning.com](https://www.statlearning.com/) | Statistical learning with R applications | Stanford authors; widely adopted |
 
 ---
-
-## 4. DevOps & Infrastructure
 
 ### 4.1 Linux/Unix
 
@@ -183,8 +175,6 @@ A curated collection of legally free, high-quality technology books for the Read
 
 ---
 
-## 5. Security
-
 ### 5.1 Cybersecurity
 
 | Title | Author | License | URL | Description | Quality Indicator |
@@ -203,8 +193,6 @@ A curated collection of legally free, high-quality technology books for the Read
 
 ---
 
-## 6. Database
-
 ### 6.1 SQL & Relational Databases
 
 | Title | Author | License | URL | Description | Quality Indicator |
@@ -216,8 +204,6 @@ A curated collection of legally free, high-quality technology books for the Read
 | **Use The Index, Luke** | Markus Winand | CC BY-NC-ND 3.0 | [use-the-index-luke.com](https://use-the-index-luke.com/) | SQL indexing and performance | Standard performance reference |
 
 ---
-
-## 7. Mobile Development
 
 ### 7.1 iOS & Swift
 
@@ -241,8 +227,6 @@ A curated collection of legally free, high-quality technology books for the Read
 | **Flutter Documentation** | Google | CC BY 4.0 | [docs.flutter.dev](https://docs.flutter.dev/) | Official Flutter documentation | Google official |
 
 ---
-
-## 8. Other Technical Fields
 
 ### 8.1 Electronics & Hardware
 
@@ -308,8 +292,6 @@ These curated lists contain thousands of additional free programming books:
 | GFDL | GNU Free Documentation License | Yes | Yes | Yes |
 
 ---
-
-## Notes for Readmigo Integration
 
 ### Format Availability
 Most books are available in multiple formats suitable for e-readers:

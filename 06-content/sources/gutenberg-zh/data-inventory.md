@@ -24,19 +24,7 @@
 | 有封面图片 | 需要繁简转换 |
 | 与英文 Gutenberg 共享基础设施 | 元数据为英文 |
 
-### 对 Readmigo 的价值
-
-```
-✅ 中文古典文学核心内容来源
-✅ 四大名著、二十四史等经典全覆盖
-✅ EPUB 格式可直接使用
-✅ 支持中文难度分析和 HSK 等级标注
-✅ 繁简转换后适合简体中文用户
-```
-
 ---
-
-## 2. 书籍分类
 
 ### 2.1 四大名著
 
@@ -108,81 +96,11 @@
 
 ---
 
-## 3. 数据获取方式
-
-### 3.1 EPUB 下载 URL
-
-```
-# 优先格式 - EPUB3 带图片
-https://www.gutenberg.org/ebooks/{id}.epub3.images
-
-# 备选格式 - EPUB 带图片
-https://www.gutenberg.org/ebooks/{id}.epub.images
-
-# 备选格式 - EPUB 无图片
-https://www.gutenberg.org/ebooks/{id}.epub.noimages
-
-# 缓存目录格式
-https://www.gutenberg.org/cache/epub/{id}/pg{id}.epub
-```
-
-### 3.2 封面图片 URL
-
-```
-# 中等尺寸封面
-https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.medium.jpg
-
-# 小尺寸缩略图
-https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.small.jpg
-```
-
 ### 3.3 元数据获取
 
 通过网页抓取获取元数据：
 
-```
-书籍详情页: https://www.gutenberg.org/ebooks/{id}
-
-可提取字段:
-- 标题 (itemprop="name")
-- 作者 (itemprop="creator")
-- 主题 (itemprop="about")
-- 语言 (itemprop="inLanguage")
-```
-
 ---
-
-## 4. 数据处理流程
-
-### 4.1 导入流程
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Step 1: 遍历预定义书籍列表                                    │
-│  └── 使用 CHINESE_BOOKS 数组中的 ID 列表                      │
-│                                                             │
-│  Step 2: 下载 EPUB 文件                                       │
-│  └── 尝试多种 URL 格式                                        │
-│  └── 缓存到本地 ./downloads/gutenberg-zh/                     │
-│                                                             │
-│  Step 3: 解析 EPUB                                           │
-│  └── 提取章节、元数据                                         │
-│  └── 繁体转简体                                              │
-│                                                             │
-│  Step 4: 难度分析                                            │
-│  └── 使用 ChineseDifficultyAnalyzer                          │
-│  └── 计算 HSK 等级、平均笔画数                                 │
-│                                                             │
-│  Step 5: 上传到 R2                                           │
-│  └── EPUB: epubs/gutenberg-zh/{id}.epub                      │
-│  └── 封面: covers/gutenberg-zh/{id}.jpg                      │
-│                                                             │
-│  Step 6: 存入数据库                                           │
-│  └── source: GUTENBERG_ZH                                    │
-│  └── 创建 Book 和 Chapter 记录                                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ### 4.2 中文处理特性
 
@@ -195,8 +113,6 @@ https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.small.jpg
 | **类型判断** | 基于主题和标题自动分类 |
 
 ---
-
-## 5. 数据字段映射
 
 ### 5.1 与 Readmigo 需求对照
 
@@ -219,29 +135,6 @@ https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.small.jpg
 
 ---
 
-## 6. 分类体系
-
-### 6.1 自动分类逻辑
-
-```typescript
-// 基于标题判断
-四大名著: ['红楼梦', '西游记', '三国演义', '水浒传'] → '古典小说'
-戏剧: ['西厢记', '牡丹亭', '长生殿', '桃花扇'] → '戏剧'
-诗词: 标题含 '诗' 或 '词' → '诗词'
-笔记小说: ['聊斋', '奇观', '拍案', '笔记'] → '短篇小说'
-现代文学: ['呐喊', '彷徨', '朝花夕拾'] → '现代文学'
-
-// 基于主题判断
-fiction, novel → '古典小说'
-history → '历史'
-philosophy → '哲学'
-poetry, poems → '诗词'
-```
-
----
-
-## 7. 实现状态
-
 ### 7.1 代码位置
 
 | 文件 | 说明 |
@@ -250,25 +143,6 @@ poetry, poems → '诗词'
 | `scripts/book-ingestion/processors/chinese-difficulty-analyzer.js` | 中文难度分析 |
 | `scripts/book-ingestion/processors/text-converter.js` | 繁简转换 |
 | `scripts/book-ingestion/processors/epub-parser.js` | EPUB 解析 |
-
-### 7.2 运行方式
-
-```bash
-# 导入前 20 本书
-npx tsx scripts/book-ingestion/sources/gutenberg-zh.ts 20
-
-# 导入全部书籍
-npx tsx scripts/book-ingestion/sources/gutenberg-zh.ts 999
-```
-
-### 7.3 数据库枚举
-
-```prisma
-enum BookSource {
-  GUTENBERG_ZH  // Project Gutenberg 中文
-  // ...
-}
-```
 
 ---
 

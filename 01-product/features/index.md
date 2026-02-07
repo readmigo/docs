@@ -121,16 +121,15 @@ Features 模块包含 Readmigo 的各种特色功能：
 ## 代码位置
 
 ### 后端服务（已实现）
-- `apps/backend/src/modules/quotes/` - 金句服务 ✅
-- `apps/backend/src/modules/postcards/` - 明信片服务 ✅
-- `apps/backend/src/modules/author-chat/` - 作者对话服务 ✅
-- `apps/backend/src/modules/support/` - 客户支持服务 ✅
+- `src/modules/quotes/` - 金句服务
+- `src/modules/postcards/` - 明信片服务
+- `src/modules/author-chat/` - 作者对话服务 (AI 驱动, 计划废弃)
+- `src/modules/support/` - 客户支持服务
 
 ### 后端服务（待开发）
-- `apps/backend/src/modules/badges/` - 勋章服务
-- `apps/backend/src/modules/medals/` - 成就勋章服务
-- `apps/backend/src/modules/annual-report/` - 年度报告服务
-- `apps/backend/src/modules/characters/` - 人物关系服务
+- 勋章服务 - 待规划
+- 年度报告服务 - 待规划
+- 人物关系服务 - 待规划
 
 ### iOS 客户端
 - `ios/Readmigo/Features/Badges/` - 勋章功能

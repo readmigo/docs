@@ -1,12 +1,8 @@
-# Project Gutenberg 官方客户端可行性分析
-
 ## 概述
 
 本文档评估将 ReadMigo 打造成 Project Gutenberg 官方客户端的可行性。
 
 ---
-
-## 1. 现状分析
 
 ### Project Gutenberg 官方立场
 
@@ -33,8 +29,6 @@
 
 ---
 
-## 2. 成为官方合作伙伴的路径
-
 ### 联系方式
 
 | 渠道 | 信息 |
@@ -43,34 +37,7 @@
 | 执行董事 | Eric Hellman (Project Gutenberg Literary Archive Foundation) |
 | 邮寄地址 | Project Gutenberg Literary Archive Foundation, 41 Watchung Plaza #516, Montclair NJ 07042 |
 
-### 建议的合作提案
-
-```
-提案框架:
-
-1. 价值主张
-   - 为 Project Gutenberg 提供现代化的移动阅读体验
-   - 增加 PG 内容的可及性和用户覆盖
-   - 提供用户行为数据反馈（匿名统计）
-
-2. 技术贡献
-   - 开源阅读器核心代码
-   - 贡献元数据修正和改进
-   - 协助内容质量提升
-
-3. 品牌合作
-   - 使用 "Powered by Project Gutenberg" 标识
-   - 在 App 内推广 PG 使命和志愿者招募
-   - 引导用户捐赠支持 PG
-
-4. 运营模式
-   - 非营利或社会企业形式
-   - 或商业实体 + 利润分享
-```
-
 ---
-
-## 3. 可行性评估
 
 ### 优势 (Strengths)
 
@@ -101,32 +68,6 @@
 
 ---
 
-## 4. 推荐策略：分阶段推进
-
-```
-Phase 1: 独立优质客户端 (0-6个月)
-├── 不使用 PG 商标
-├── 标注 "Books from Project Gutenberg"
-├── 打造最佳 Gutenberg 阅读体验
-└── 积累用户口碑和数据
-
-Phase 2: 申请成为 Listed Affiliate (6-12个月)
-├── 联系 PG 展示产品成果
-├── 提供用户增长数据
-├── 贡献技术或内容改进
-└── 申请加入 Affiliates 列表
-
-Phase 3: 深度合作伙伴 (12个月+)
-├── 获得官方推荐
-├── 使用 "Powered by Project Gutenberg"
-├── 参与 PG 社区活动
-└── 探索更深入合作形式
-```
-
----
-
-## 5. 法律与合规要点
-
 ### 商标使用规则
 
 | 情况 | 要求 |
@@ -145,8 +86,6 @@ Phase 3: 深度合作伙伴 (12个月+)
 
 ---
 
-## 6. 竞品参考
-
 ### 现有 Gutenberg 相关 App
 
 | App | 平台 | 模式 | 评价 |
@@ -164,8 +103,6 @@ Phase 3: 深度合作伙伴 (12个月+)
 - 没有社交和学习功能
 
 ---
-
-## 7. 结论与建议
 
 ### 可行性结论
 

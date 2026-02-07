@@ -1,12 +1,8 @@
-# 内容数据源
-
 ## 概述
 
 本目录包含 Readmigo 使用和研究过的所有内容数据源文档。
 
 ---
-
-## 主要数据源
 
 ### Standard Ebooks (主用)
 
@@ -32,8 +28,6 @@
 | [content-value-analysis.md](standard-ebooks/content-value-analysis.md) | 内容价值分析 |
 
 ---
-
-## 研究数据源
 
 ### 英文公版书
 

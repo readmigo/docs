@@ -165,62 +165,9 @@ R. A. Radford 是一位英国经济学家。二战期间他曾被德军俘虏，
 
 ### 文章元数据结构
 
-```typescript
-interface IntensiveReadingArticle {
-  id: string;
-
-  // 基本信息
-  titleZh: string;           // 中文标题
-  titleEn: string;           // 英文标题
-  author: string;            // 作者
-  authorBio?: string;        // 作者简介
-  year: number;              // 发表年份
-  wordCount: number;         // 字数
-
-  // 分类
-  category: 'economics' | 'philosophy' | 'literature' | 'science' | 'history';
-  tags: string[];            // 标签
-  difficulty: 1 | 2 | 3 | 4 | 5;  // 难度等级
-
-  // 内容
-  summary: string;           // 内容简介
-  keyConcepts: string[];     // 核心概念
-  discussionQuestions?: string[];  // 思考题
-
-  // 资源
-  sourceUrl?: string;        // 原文链接
-  audioUrl?: string;         // 音频朗读
-
-  // 状态
-  status: 'draft' | 'published';
-  copyrightStatus: 'public_domain' | 'licensed' | 'fair_use';
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
 
 ### 用户进度追踪
 
-```typescript
-interface UserArticleProgress {
-  userId: string;
-  articleId: string;
-
-  // 阅读进度
-  readingProgress: number;   // 0-100%
-  lastReadAt?: Date;
-  completedAt?: Date;
-
-  // 学习数据
-  wordsLearned: number;      // 从本文学习的单词数
-  highlightsCount: number;   // 高亮数量
-  notesCount: number;        // 笔记数量
-
-  // 评估
-  comprehensionScore?: number;  // 理解测试得分
-}
-```
 
 ### 阅读界面功能
 

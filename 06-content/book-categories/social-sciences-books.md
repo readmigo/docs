@@ -15,10 +15,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 
 ---
 
-## Psychology
-
-### Open Textbooks
-
 #### Psychology 2e (OpenStax)
 - **Author:** Rose M. Spielman, William J. Jenkins, Marilyn D. Lovett et al.
 - **License:** Creative Commons Attribution 4.0 (CC BY 4.0)
@@ -53,8 +49,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 - **URL:** https://opentext.wsu.edu/abnormal-psych/
 - **Description:** Tackles mental disorders in 15 modules, updated through DSM-5-TR. Covers major psychological disorders with clinical examples and contemporary research.
 - **Quality Indicator:** Updated to current diagnostic criteria, peer-reviewed
-
-### Public Domain Classics
 
 #### The Principles of Psychology (Volumes 1 & 2)
 - **Author:** William James
@@ -121,10 +115,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 
 ---
 
-## Sociology
-
-### Open Textbooks
-
 #### Introduction to Sociology 3e (OpenStax)
 - **Author:** Tonja R. Conerly, Kathleen Holmes, and Asha Lal Tamang
 - **License:** Creative Commons Attribution 4.0 (CC BY 4.0)
@@ -160,8 +150,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 - **Description:** Examines major social problems in contemporary society including poverty, crime, health, education, and environmental issues.
 - **Quality Indicator:** Peer-reviewed, Open Textbook Library
 
-### Public Domain Classics
-
 #### The Elementary Forms of the Religious Life
 - **Author:** Emile Durkheim
 - **License:** Public Domain
@@ -191,10 +179,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 - **Quality Indicator:** Foundational text in political economy and sociology
 
 ---
-
-## Anthropology
-
-### Open Textbooks
 
 #### Introduction to Anthropology (OpenStax)
 - **Author:** Jennifer Hasty, David G. Lewis, and Marjorie M. Snipes
@@ -239,10 +223,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 - **Quality Indicator:** Equity-focused approach
 
 ---
-
-## Political Science
-
-### Public Domain Classics
 
 #### The Prince
 - **Author:** Niccolo Machiavelli
@@ -314,8 +294,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 - **Description:** Hobbes's foundational work on social contract theory, arguing for strong central authority to prevent the "war of all against all."
 - **Quality Indicator:** One of the most important works in Western political philosophy
 
-### Open Textbooks
-
 #### International Relations
 - **Author:** E-International Relations
 - **License:** Creative Commons (Open Access)
@@ -352,10 +330,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 - **Quality Indicator:** Open University publication
 
 ---
-
-## Education
-
-### Open Textbooks
 
 #### Educational Psychology
 - **Author:** Kelvin Seifert and Rosemary Sutton
@@ -413,8 +387,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 - **Description:** Handbook for faculty interested in practicing open pedagogy by involving students in creating open educational resources.
 - **Quality Indicator:** Practical guide for open pedagogy
 
-### Public Domain Classics
-
 #### Democracy and Education
 - **Author:** John Dewey
 - **License:** Public Domain
@@ -423,10 +395,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 - **Quality Indicator:** Foundational text in progressive education
 
 ---
-
-## Linguistics
-
-### Open Textbooks
 
 #### Essentials of Linguistics (2nd Edition)
 - **Author:** Catherine Anderson et al.
@@ -471,8 +439,6 @@ A curated collection of legally free, high-quality textbooks and classic works i
 - **Quality Indicator:** Community-maintained, continuously updated
 
 ---
-
-## Additional Resources
 
 ### Major OER Repositories
 

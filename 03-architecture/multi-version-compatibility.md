@@ -1,7 +1,3 @@
-# 多版本兼容架构方案
-
-## 背景
-
 ### 业务需求
 
 - 已发布的 v1.x 版本完全不受影响
@@ -9,16 +5,6 @@
 - 用户数据统一，无数据孤岛
 - 支持每年 50+ 版本发布
 - 支持 1 亿用户规模
-
-### 核心原则
-
-```
-内容版本化，而非架构版本化：
-- 统一后端服务
-- 统一数据库
-- 统一用户数据
-- 只有内容文件按版本区分
-```
 
 ---
 
@@ -61,41 +47,6 @@ graph TB
 
 ---
 
-## 保护已发布版本
-
-### 核心原则
-
-```
-v1.x 客户端看到的一切都不变：
-- 相同的 API 端点
-- 相同的响应格式
-- 相同的内容文件
-```
-
-### 内容文件保护
-
-```
-R2 存储规则：
-
-1. content.html 文件永不修改、永不删除
-2. 新格式使用新文件名 content-v2.html
-3. v1.x 客户端请求时返回 content.html
-4. v2.x 客户端请求时返回 content-v2.html (如存在)
-```
-
-### API 版本路由
-
-```
-GET /chapters/{id}/content
-     │
-     ├── Header: X-App-Version: 1.x.x
-     │      → 返回 content.html URL
-     │
-     └── Header: X-App-Version: 2.x.x
-            → 返回 content-v2.html URL (如存在)
-            → 否则返回 content.html URL (降级)
-```
-
 ### 风险隔离清单
 
 | 风险点 | 隔离措施 | 验证方法 |
@@ -106,8 +57,6 @@ GET /chapters/{id}/content
 | 阅读进度/书签失效 | 进度按章节 ID 存储，与内容格式无关 | 升级前后进度对比测试 |
 
 ---
-
-## 数据库设计
 
 ### 变更原则
 
@@ -122,35 +71,7 @@ GET /chapters/{id}/content
 | `chapters` | `content_v2_url` | VARCHAR | v2 内容文件 URL |
 | `chapters` | `has_v2_content` | BOOLEAN | 是否有 v2 内容 |
 
-### Migration 示例
-
-```sql
--- 只新增，不修改
-ALTER TABLE chapters ADD COLUMN content_v2_url VARCHAR;
-ALTER TABLE chapters ADD COLUMN has_v2_content BOOLEAN DEFAULT false;
-
--- 创建索引优化查询
-CREATE INDEX idx_chapters_has_v2 ON chapters(has_v2_content) WHERE has_v2_content = true;
-```
-
 ---
-
-## R2 存储设计
-
-### 目录结构
-
-```
-/books/
-  └── {bookId}/
-      ├── cover.jpg
-      ├── metadata.json
-      └── chapters/
-          └── {chapterId}/
-              ├── content.html       ← v1 格式 (永不修改)
-              ├── content-v2.html    ← v2 格式 (新增)
-              └── images/
-                  └── ...
-```
 
 ### 文件命名规则
 
@@ -161,8 +82,6 @@ CREATE INDEX idx_chapters_has_v2 ON chapters(has_v2_content) WHERE has_v2_conten
 | v3+ | `content-v3.html` | 未来扩展 |
 
 ---
-
-## 渐进式内容升级
 
 ### 升级流程
 
@@ -175,23 +94,7 @@ graph TB
     P1 --> P2 --> P3
 ```
 
-### 降级策略
-
-```
-v2.x 客户端请求内容时:
-
-if (chapter.has_v2_content) {
-    return chapter.content_v2_url    // 返回 v2 格式
-} else {
-    return chapter.content_url       // 降级到 v1 格式
-}
-
-确保 v2.x 客户端在存量书籍未升级时仍能正常阅读
-```
-
 ---
-
-## 实施计划
 
 ### 阶段一：后端改造
 
@@ -222,8 +125,6 @@ if (chapter.has_v2_content) {
 
 ---
 
-## 版本生命周期
-
 ### 内容格式版本
 
 | 格式版本 | 状态 | 说明 |
@@ -246,8 +147,6 @@ if (chapter.has_v2_content) {
 
 ---
 
-## 成本评估
-
 ### 统一架构成本
 
 | 资源 | 月费用 | 说明 |
@@ -269,17 +168,6 @@ if (chapter.has_v2_content) {
 
 ---
 
-## 回滚方案
-
-### 后端回滚
-
-```
-# 版本路由逻辑问题时
-# 修改代码，所有请求返回 v1 内容
-# 部署更新
-fly deploy
-```
-
 ### 内容回滚
 
 - v1 内容文件永不删除
@@ -289,45 +177,6 @@ fly deploy
 
 - App Store 支持版本回退审核
 - 或发布 hotfix 版本
-
----
-
-## 附录
-
-### API 版本检测实现
-
-```typescript
-// 从请求头获取客户端版本
-function getClientVersion(req: Request): string {
-  return req.headers['x-app-version'] || '1.0.0';
-}
-
-// 判断是否使用 v2 内容
-function shouldUseV2Content(clientVersion: string): boolean {
-  const [major] = clientVersion.split('.');
-  return parseInt(major) >= 2;
-}
-
-// 获取章节内容 URL
-function getChapterContentUrl(chapter: Chapter, clientVersion: string): string {
-  if (shouldUseV2Content(clientVersion) && chapter.has_v2_content) {
-    return chapter.content_v2_url;
-  }
-  return chapter.content_url;
-}
-```
-
-### iOS 版本号 Header 实现
-
-```swift
-// APIClient.swift
-extension URLRequest {
-    mutating func addAppVersionHeader() {
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-        self.setValue(version, forHTTPHeaderField: "X-App-Version")
-    }
-}
-```
 
 ---
 

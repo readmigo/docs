@@ -13,8 +13,6 @@
 
 ---
 
-## 验证内容
-
 ### batch-enrichment-script-analysis.md
 - 新架构概述：章节从数据库迁移到 R2
 - 存储优化效果：节省 70% 数据库空间（384 MB）

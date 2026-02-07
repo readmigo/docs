@@ -1,87 +1,14 @@
-# Project Gutenberg 发现页设计
-
 ## 概述
 
 本文档定义 ReadMigo 发现页（Discovery Tab）的数据结构和展示规范，基于 Project Gutenberg 官方数据。
 
 ---
 
-## 页面结构
-
-```
-┌────────────────────────────────────────────────────────────┐
-│  🔍 Search Bar                                              │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Section 1: Hero Banner (编辑精选)                          │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  📖 Featured Book of the Week                        │  │
-│  │     Pride and Prejudice                              │  │
-│  │     by Jane Austen                                   │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                            │
-│  Section 2: Trending Now (热门榜单)                         │
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐                       │
-│  │ 1  │ │ 2  │ │ 3  │ │ 4  │ │ 5  │  ───►                 │
-│  └────┘ └────┘ └────┘ └────┘ └────┘                       │
-│                                                            │
-│  Section 3: Categories (分类入口)                           │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐          │
-│  │Fiction  │ │Mystery  │ │Sci-Fi   │ │Romance  │          │
-│  └─────────┘ └─────────┘ └─────────┘ └─────────┘          │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐          │
-│  │Horror   │ │Adventure│ │Children │ │Philosophy│         │
-│  └─────────┘ └─────────┘ └─────────┘ └─────────┘          │
-│                                                            │
-│  Section 4: Popular Authors (热门作者)                      │
-│  ○ Shakespeare  ○ Dickens  ○ Austen  ○ Twain              │
-│                                                            │
-│  Section 5: Audio Books (有声书)                            │
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐                              │
-│  │ 🎙 │ │ 🎙 │ │ 🤖 │ │ 🎙 │  ───►                        │
-│  └────┘ └────┘ └────┘ └────┘                              │
-│                                                            │
-│  Section 6: New Arrivals (新书上架)                         │
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐                              │
-│  │NEW │ │NEW │ │NEW │ │NEW │  ───►                        │
-│  └────┘ └────┘ └────┘ └────┘                              │
-│                                                            │
-│  Section 7: Curated Collections (编辑精选集)                │
-│  ┌──────────────────┐ ┌──────────────────┐                │
-│  │ Harvard Classics │ │ Best Books Ever  │                │
-│  └──────────────────┘ └──────────────────┘                │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Section 1: Hero Banner (编辑精选)
-
 ### 用途
 首屏视觉焦点，突出单本精选书籍
 
 ### 数据来源
 编辑手动配置 + 热门书籍轮换
-
-### 数据结构
-
-```typescript
-interface HeroBanner {
-  type: 'featured_book' | 'collection' | 'author' | 'event';
-  book?: {
-    id: number;
-    title: string;
-    author: string;
-    coverUrl: string;
-    tagline: string;      // 如 "The Gothic Masterpiece"
-  };
-  backgroundColor: string;
-  textColor: string;
-  validFrom: Date;
-  validTo: Date;
-}
-```
 
 ### 运营策略
 
@@ -95,33 +22,11 @@ interface HeroBanner {
 
 ---
 
-## Section 2: Trending Now (热门榜单)
-
 ### 用途
 展示当前最受欢迎的书籍
 
 ### 数据来源
 Gutendex API `sort=popular`
-
-### 数据结构
-
-```typescript
-interface TrendingSection {
-  title: "Trending Now" | "热门阅读";
-  books: TrendingBook[];
-  refreshInterval: "daily";
-}
-
-interface TrendingBook {
-  rank: number;           // 1-20
-  id: number;
-  title: string;
-  author: string;
-  coverUrl: string;
-  downloadCount: number;
-  trend: 'up' | 'down' | 'stable';  // 与上周对比
-}
-```
 
 ### Top 20 热门书籍数据
 
@@ -150,28 +55,11 @@ interface TrendingBook {
 
 ---
 
-## Section 3: Categories (分类入口)
-
 ### 用途
 快速进入各类别书籍
 
 ### 数据来源
 预定义分类 + Gutendex `topic` 查询
-
-### 数据结构
-
-```typescript
-interface Category {
-  id: string;
-  name: string;
-  nameCN: string;
-  icon: string;
-  color: string;
-  query: string;           // Gutendex API 查询参数
-  bookCount: number;
-  featuredBooks: number[]; // 精选书籍 ID
-}
-```
 
 ### 主要分类配置
 
@@ -192,31 +80,11 @@ interface Category {
 
 ---
 
-## Section 4: Popular Authors (热门作者)
-
 ### 用途
 以作者为入口引导阅读
 
 ### 数据来源
 PG Top 100 Authors
-
-### 数据结构
-
-```typescript
-interface AuthorCard {
-  name: string;
-  displayName: string;
-  birthYear: number;
-  deathYear: number;
-  avatarUrl: string;       // 作家画像
-  nationality: string;
-  era: string;             // Victorian, Romantic, etc.
-  totalDownloads: number;
-  bookCount: number;
-  topBooks: number[];      // Top 3 书籍 ID
-  tags: string[];          // ["Classic", "British", "Romance"]
-}
-```
 
 ### Top 20 热门作者数据
 
@@ -245,33 +113,11 @@ interface AuthorCard {
 
 ---
 
-## Section 5: Audio Books (有声书)
-
 ### 用途
 推广有声书功能，增加使用场景
 
 ### 数据来源
 LibriVox API + Microsoft AI Audiobooks
-
-### 数据结构
-
-```typescript
-interface AudioBookSection {
-  humanRead: AudioBook[];   // LibriVox 人声
-  aiGenerated: AudioBook[]; // Microsoft AI
-}
-
-interface AudioBook {
-  bookId: number;
-  title: string;
-  author: string;
-  narrator: string;        // 朗读者或 "AI Generated"
-  duration: number;        // 分钟
-  audioType: 'human' | 'ai';
-  audioUrl: string;
-  coverUrl: string;
-}
-```
 
 ### 推荐有声书 (LibriVox 人声)
 
@@ -288,57 +134,19 @@ interface AudioBook {
 
 ---
 
-## Section 6: New Arrivals (新书上架)
-
 ### 用途
 展示最新添加的书籍
 
 ### 数据来源
 PG RSS Feed (`today.rss`)
 
-### 数据结构
-
-```typescript
-interface NewArrivalsSection {
-  title: "New Arrivals" | "新书上架";
-  books: NewBook[];
-  lastUpdated: Date;
-}
-
-interface NewBook {
-  id: number;
-  title: string;
-  author: string;
-  addedDate: Date;
-  coverUrl: string;
-  isNew: boolean;  // 7天内为 true
-}
-```
-
 ### API 端点
 `https://www.gutenberg.org/cache/epub/feeds/today.rss`
 
 ---
 
-## Section 7: Curated Collections (编辑精选集)
-
 ### 用途
 高质量主题书单，提升内容发现
-
-### 数据结构
-
-```typescript
-interface Collection {
-  id: string;
-  title: string;
-  titleCN: string;
-  description: string;
-  coverImage: string;
-  bookIds: number[];
-  bookCount: number;
-  curatedBy: 'editor' | 'gutenberg' | 'community';
-}
-```
 
 ### 预设精选集
 

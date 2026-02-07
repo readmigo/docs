@@ -1,31 +1,29 @@
 # 05-operations
 
-运维侧完整文档库：部署、环境、监控、基础设施与操作手册。
-
-> 📊 **文档数量**: 48 个文件
+运维侧文档库：部署、环境、监控、基础设施与操作手册。
 
 ---
 
 ## 目录结构
 
-| 子目录 | 说明 | 文件数 |
-|--------|------|--------|
-| [deployment/](./deployment/) | 部署与环境管理 | 25+ |
-| [infrastructure/](./infrastructure/) | 基础设施（数据库、存储、域名） | 7 |
-| [monitoring/](./monitoring/) | 监控与可观测性 | 8 |
-| [runbooks/](./runbooks/) | 操作手册 | 2 |
-| [automation/](./automation/) | 自动化与工作流 | 2 |
+| 子目录 | 说明 |
+|--------|------|
+| [deployment/](./deployment/) | 部署与环境管理 |
+| [infrastructure/](./infrastructure/) | 基础设施（数据库、存储、域名） |
+| [monitoring/](./monitoring/) | 监控与可观测性 |
+| [runbooks/](./runbooks/) | 操作手册 |
+| [automation/](./automation/) | 自动化与工作流 |
 
 ---
 
-## 环境架构（4层）
+## 环境架构（2层）
 
-| 环境 | 用途 | API域名 |
-|------|------|---------|
+| 环境 | 用途 | API 地址 |
+|------|------|----------|
 | **Local** | 本地开发 | localhost:3000 |
-| **Debugging** | 功能调试 | debug-api.readmigo.app |
-| **Staging** | 预发布测试 | staging-api.readmigo.app |
-| **Production** | 生产环境 | api.readmigo.app |
+| **Production** | 生产环境 | readmigo-api.fly.dev |
+
+> 项目曾使用 4 环境架构 (Local/Debug/Staging/Production)，于 2026-01 简化为 2 环境。
 
 ---
 
@@ -33,35 +31,36 @@
 
 | 服务 | 供应商 | 区域 |
 |------|--------|------|
-| **计算** | Fly.io | Tokyo |
-| **数据库** | Neon PostgreSQL | Tokyo |
-| **缓存** | Upstash Redis | Tokyo |
+| **计算** | Fly.io | Tokyo (nrt) |
+| **数据库** | Neon PostgreSQL | Singapore |
+| **缓存** | Upstash Redis | - |
 | **存储** | Cloudflare R2 | Global |
+| **CDN** | cdn.readmigo.app | Global |
 | **监控** | Sentry | - |
-| **DNS/CDN** | Cloudflare | Global |
 
 ---
 
 ## 关键文档
 
 ### 部署
+
 | 文档 | 描述 |
 |------|------|
-| [environments.md](./deployment/environments.md) | 4层环境完整配置 |
-| [cicd-configuration-plan.md](./deployment/cicd-configuration-plan.md) | CI/CD + 零停机部署 |
-| [ios-app-store-submission.md](./deployment/ios-app-store-submission.md) | iOS发布流程 |
+| [environments.md](./deployment/environments.md) | 2 层环境完整配置 |
+| [cicd-configuration-plan.md](./deployment/cicd-configuration-plan.md) | CI/CD 配置 |
 
 ### 基础设施
+
 | 文档 | 描述 |
 |------|------|
-| [database.md](./infrastructure/database.md) | Neon PostgreSQL（87+模型） |
-| [cloudflare-r2.md](./infrastructure/cloudflare-r2.md) | R2对象存储使用指南 |
+| [database.md](./infrastructure/database.md) | Neon PostgreSQL |
+| [cloudflare-r2.md](./infrastructure/cloudflare-r2.md) | R2 对象存储 |
 
 ### 监控
+
 | 文档 | 描述 |
 |------|------|
 | [performance-optimization.md](./monitoring/performance-optimization.md) | 性能优化计划 |
-| [100k-dau-performance-plan.md](./monitoring/100k-dau-performance-plan.md) | 10万DAU扩展计划 |
 
 ---
 
@@ -71,4 +70,3 @@
 - **CI/CD**: deployment/cicd-configuration-plan.md
 - **数据库**: infrastructure/database.md
 - **性能**: monitoring/performance-optimization.md
-

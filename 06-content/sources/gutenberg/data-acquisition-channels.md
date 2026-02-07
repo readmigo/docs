@@ -1,5 +1,3 @@
-# Project Gutenberg 数据获取渠道
-
 ## 概述
 
 本文档从产品和运营角度，全面盘点 Project Gutenberg 官方渠道可获取的数据资源，评估其对 ReadMigo 产品的价值和必要性。
@@ -32,15 +30,6 @@
 | **类型** | 开源 Django 应用，可自托管 |
 | **特点** | 无需 API Key，免费使用 |
 
-#### API 端点
-
-```
-Base URL: https://gutendex.com
-
-GET /books              # 获取书籍列表
-GET /books/{id}         # 获取单本书籍详情
-```
-
 #### 查询参数
 
 | 参数 | 类型 | 描述 | 示例 |
@@ -55,56 +44,7 @@ GET /books/{id}         # 获取单本书籍详情
 | `ids` | string | 指定多个ID | `?ids=11,84,1342` |
 | `mime_type` | string | 文件格式过滤 | `?mime_type=text/html` |
 
-#### 响应数据结构
-
-```json
-{
-  "count": 72345,
-  "next": "https://gutendex.com/books/?page=2",
-  "previous": null,
-  "results": [
-    {
-      "id": 84,
-      "title": "Frankenstein; Or, The Modern Prometheus",
-      "authors": [
-        {
-          "name": "Shelley, Mary Wollstonecraft",
-          "birth_year": 1797,
-          "death_year": 1851
-        }
-      ],
-      "subjects": ["Gothic Fiction", "Horror tales"],
-      "bookshelves": ["Gothic Fiction", "Science Fiction"],
-      "languages": ["en"],
-      "copyright": false,
-      "media_type": "Text",
-      "formats": {
-        "application/epub+zip": "https://www.gutenberg.org/ebooks/84.epub.images",
-        "text/html": "https://www.gutenberg.org/ebooks/84.html.images",
-        "image/jpeg": "https://www.gutenberg.org/cache/epub/84/pg84.cover.medium.jpg"
-      },
-      "download_count": 116037
-    }
-  ]
-}
-```
-
 ---
-
-## 核心数据资产详解
-
-### 书籍内容数据
-
-#### 官方下载端点
-
-```
-EPUB3 带图: https://www.gutenberg.org/ebooks/{id}.epub3.images
-EPUB 带图:  https://www.gutenberg.org/ebooks/{id}.epub.images
-EPUB 无图:  https://www.gutenberg.org/ebooks/{id}.epub.noimages
-缓存版本:   https://www.gutenberg.org/cache/epub/{id}/pg{id}.epub
-HTML 格式:  https://www.gutenberg.org/files/{id}/{id}-h/{id}-h.htm
-纯文本:     https://www.gutenberg.org/files/{id}/{id}-0.txt
-```
 
 #### 数据规模
 
@@ -117,21 +57,6 @@ HTML 格式:  https://www.gutenberg.org/files/{id}/{id}-h/{id}-h.htm
 | 每日新增 | 10-50 本 | 由志愿者校对完成 |
 
 ---
-
-### 元数据
-
-#### OPDS Feed
-
-```
-基础 URL: https://www.gutenberg.org/ebooks/search.opds/
-
-查询参数:
-├── sort_order=downloads    # 按下载量排序（热门书籍）
-├── sort_order=release_date # 按发布日期排序（最新书籍）
-├── start_index=1           # 分页起始位置
-├── query=dickens           # 搜索关键词
-└── language=en             # 语言筛选
-```
 
 #### 可获取的元数据字段
 
@@ -151,13 +76,6 @@ HTML 格式:  https://www.gutenberg.org/files/{id}/{id}-h/{id}-h.htm
 
 #### RDF Catalog (完整元数据)
 
-```
-下载地址: https://www.gutenberg.org/cache/epub/feeds/rdf-files.tar.bz2
-大小: ~300MB (压缩) / ~1.5GB (解压)
-格式: 每本书一个 RDF/XML 文件
-更新: 每日
-```
-
 **RDF 提供的额外信息:**
 - 详细的 Dublin Core 元数据
 - 完整的 Subject 和 Bookshelf 标签
@@ -165,17 +83,6 @@ HTML 格式:  https://www.gutenberg.org/files/{id}/{id}-h/{id}-h.htm
 - 贡献者信息 (translator, editor 等)
 
 ---
-
-### 封面图片
-
-#### 官方图片 URL
-
-```
-封面图片来源:
-├── 中等尺寸: https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.medium.jpg
-├── 小尺寸:   https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.small.jpg
-└── EPUB内嵌: 从 EPUB 文件中提取
-```
 
 #### 数据质量评估
 
@@ -195,8 +102,6 @@ HTML 格式:  https://www.gutenberg.org/files/{id}/{id}-h/{id}-h.htm
 | 高质量需求 | 对接 Open Library Covers API 补充 |
 
 ---
-
-### 排行榜与统计数据
 
 #### 官方排行榜页面
 
@@ -218,15 +123,6 @@ HTML 格式:  https://www.gutenberg.org/files/{id}/{id}-h/{id}-h.htm
 
 ---
 
-### 分类体系 (Bookshelves & Subjects)
-
-#### 官方分类来源
-
-```
-Bookshelves 浏览: https://www.gutenberg.org/ebooks/bookshelf/
-Subjects 来源: RDF Catalog 中的 dcterms:subject 字段
-```
-
 #### 主要分类映射
 
 | Gutenberg 分类 | 产品分类建议 | 书籍数量估计 |
@@ -247,8 +143,6 @@ Subjects 来源: RDF Catalog 中的 dcterms:subject 字段
 
 ---
 
-### 有声书数据
-
 #### 官方有声书来源
 
 | 来源 | 数量 | 类型 | 产品价值 |
@@ -256,31 +150,7 @@ Subjects 来源: RDF Catalog 中的 dcterms:subject 字段
 | **LibriVox** | 20,648+ | 人声朗读 | ⭐⭐⭐⭐⭐ |
 | **Microsoft AI** | ~5,000 | AI 合成 | ⭐⭐⭐⭐ |
 
-#### LibriVox 数据获取
-
-```
-官方 API: https://librivox.org/api/feed/audiobooks
-关联方式: 通过 Gutenberg Book ID 或书名匹配
-
-可获取数据:
-├── 音频文件 URL (MP3)
-├── 章节列表
-├── 朗读者信息
-├── 总时长
-└── 录音质量等级
-```
-
 ---
-
-### 增量更新数据 (RSS Feed)
-
-#### 官方 RSS Feed
-
-```
-每日新书: http://www.gutenberg.org/cache/epub/feeds/today.rss
-格式: RSS 2.0 / Atom
-内容: 当日新增/更新的书籍列表
-```
 
 #### RSS 数据字段
 
@@ -293,8 +163,6 @@ Subjects 来源: RDF Catalog 中的 dcterms:subject 字段
 | `<dc:creator>` | 作者 | 展示 |
 
 ---
-
-## 数据获取策略建议
 
 ### 数据源优先级
 
@@ -320,8 +188,6 @@ Subjects 来源: RDF Catalog 中的 dcterms:subject 字段
 | 致谢要求 | 建议注明来源 | App 内标注 "Books from Project Gutenberg" |
 
 ---
-
-## 数据盘点总结
 
 ### 核心数据清单
 

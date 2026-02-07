@@ -886,19 +886,10 @@ This section contains ready-to-use content formatted specifically for App Store 
 ### App Information
 
 **App Name**
-```
-Readmigo: AI English Reading
-```
 
 **Subtitle** (30 characters max)
-```
-Classic books with AI coach
-```
 
 **Promotional Text** (170 characters max)
-```
-Read English classics with confidence. Get instant AI help with words, sentences, and vocabulary. Access 100,000+ books free. Start learning today!
-```
 
 **Character count:** 168
 
@@ -908,73 +899,11 @@ Read English classics with confidence. Get instant AI help with words, sentences
 
 **App Store Compatible Version (No Special Characters):**
 
-```
-Read Classic English Literature with Confidence
-
-Struggling to read English books? Meet your AI reading coach.
-
-Readmigo is designed for non-native English speakers who want to read classic literature without language barriers. Our intelligent AI provides instant help - right when you need it.
-
-SMART READING ASSISTANCE
-- Tap any word for context-aware explanations
-- Simplify complex sentences into plain English
-- Translate difficult passages to your language
-- Ask questions about what you're reading
-- Get personalized recommendations based on your level
-
-BUILD YOUR VOCABULARY
-- Save words while reading automatically
-- Study with smart flashcards
-- Master vocabulary with spaced repetition
-- Track your learning progress
-- See your retention statistics
-
-100,000+ CLASSIC BOOKS
-- Shakespeare, Austen, Dickens, and more
-- Beautifully formatted EPUB books
-- Curated collections by genre and difficulty
-- Import your own EPUB files
-- Sync progress across devices
-
-PREMIUM READING EXPERIENCE
-- Customizable themes and fonts
-- Page or scroll reading modes
-- Offline reading support
-- Reading statistics and insights
-- Distraction-free interface
-
-WHO IS READMIGO FOR?
-- English learners improving through reading
-- Students preparing for academic English
-- Literature enthusiasts reading original texts
-- Professionals enhancing language skills
-- Anyone who loves books but struggles with English
-
-FREE TO START
-Try Readmigo with 10 free books and 5 daily AI assists. Upgrade to Pro for unlimited access to our complete library and unlimited AI assistance.
-
-START READING TODAY
-Download Readmigo and discover how AI makes English literature accessible to everyone.
-
-SUBSCRIPTION INFORMATION
-- Pro: $7.99/month or $49.99/year
-- Payment charged to iTunes Account at confirmation of purchase
-- Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period
-- Account charged for renewal within 24 hours prior to the end of the current period
-- Subscriptions managed by user; auto-renewal may be turned off in Account Settings after purchase
-- Any unused portion of a free trial period forfeited when user purchases a subscription
-
-Privacy Policy: https://readmigo.com/privacy
-Terms of Service: https://readmigo.com/terms
-```
 
 ---
 
 ### Keywords (100 characters max)
 
-```
-english reading,learn english,classic books,ai learning,vocabulary,ebook reader,literature,flashcards
-```
 
 **Character count:** 99
 
@@ -982,25 +911,16 @@ english reading,learn english,classic books,ai learning,vocabulary,ebook reader,
 
 ### Support URL
 
-```
-https://readmigo.com/support
-```
 
 ---
 
 ### Marketing URL (Optional)
 
-```
-https://readmigo.com
-```
 
 ---
 
 ### Copyright
 
-```
-2025 Readmigo Inc.
-```
 
 ---
 
@@ -1011,106 +931,29 @@ https://readmigo.com
 **Sign-in required:** Yes
 
 **Username (for review):**
-```
-appreviewer@readmigo.com
-```
 
 **Password (for review):**
-```
-[Create a secure test account password - not included in this document for security]
-```
 
 #### Contact Information
 
 **First Name:**
-```
-[Your First Name]
-```
 
 **Last Name:**
-```
-[Your Last Name]
-```
 
 **Phone Number:**
-```
-[Your Contact Phone]
-```
 
 **Email:**
-```
-support@readmigo.com
-```
 
 #### Notes (4,000 characters max)
 
-```
-Thank you for reviewing Readmigo!
-
-TESTING INSTRUCTIONS:
-
-1. Sign In
-   - Use the provided test account credentials
-   - Sign in with Apple is also available for testing
-
-2. Browse Books
-   - Tap "Explore" to see our curated book collections
-   - Try searching for "Shakespeare" or "Pride and Prejudice"
-   - Free tier includes 10 books - no subscription needed for initial testing
-
-3. Test AI Features (5 free assists/day on free tier)
-   - Open any book
-   - Tap any word to see AI explanation
-   - Long-press a sentence to see simplification option
-   - Tap the AI chat icon to ask questions about the content
-
-4. Test Vocabulary Learning
-   - When viewing a word explanation, tap "Save Word"
-   - Go to "Learn" tab to see saved words
-   - Tap "Start Review" to test flashcard feature
-
-5. Test Subscription (Optional)
-   - Pro subscription can be tested using sandbox account
-   - Pro unlocks unlimited books and unlimited AI assists
-   - 7-day free trial available
-
-KEY FEATURES TO REVIEW:
-✓ AI-powered word explanations (context-aware, not just dictionary)
-✓ Sentence simplification
-✓ Vocabulary saving and flashcard system
-✓ Reading progress tracking
-✓ Book search and discovery
-✓ Offline reading (Pro feature)
-
-CONTENT SOURCE:
-All books are public domain classics from Project Gutenberg and Standard Ebooks. No copyright issues.
-
-AI SERVICES:
-We use multiple AI providers (DeepSeek, OpenAI, Anthropic) with content filtering and safety measures in place.
-
-PRIVACY & DATA:
-- Reading data is private to each user
-- We don't share user data with third parties for marketing
-- Full privacy policy: https://readmigo.com/privacy
-
-If you have any questions during review, please contact support@readmigo.com
-
-Thank you!
-```
 
 ---
 
 ### Version Release
 
 **Version Number:**
-```
-1.0
-```
 
 **Release Option:**
-```
-Automatically release this version after App Review
-```
 
 ---
 
@@ -1118,24 +961,6 @@ Automatically release this version after App Review
 
 For version 1.0:
 
-```
-Welcome to Readmigo!
-
-This is our first release bringing AI-powered English reading to learners worldwide.
-
-NEW IN VERSION 1.0:
-• 100,000+ classic books from Project Gutenberg
-• AI reading assistant for instant word explanations
-• Sentence simplification with context preservation
-• Smart vocabulary learning with flashcards
-• Spaced repetition algorithm for retention
-• Beautiful, customizable reading experience
-• Offline reading support (Pro)
-• Reading progress tracking and statistics
-• Pro subscription with 7-day free trial
-
-Start reading with confidence today!
-```
 
 ---
 

@@ -4,8 +4,6 @@ This guide presents legally free, high-quality educational resources organized b
 
 ---
 
-## 1. PHYSICS
-
 ### Classical Mechanics
 
 | Title | Author(s) | License | Source | Description | Quality |
@@ -56,8 +54,6 @@ This guide presents legally free, high-quality educational resources organized b
 
 ---
 
-## 2. CHEMISTRY
-
 ### General Chemistry
 
 | Title | Author(s) | License | Source | Description | Quality |
@@ -91,8 +87,6 @@ This guide presents legally free, high-quality educational resources organized b
 | **The Chemical History of a Candle** | Michael Faraday | 1861 | [Project Gutenberg](https://www.gutenberg.org/ebooks/bookshelf/211) | Famous lectures on combustion chemistry | Historic Classic |
 
 ---
-
-## 3. BIOLOGY
 
 ### General Biology
 
@@ -129,8 +123,6 @@ This guide presents legally free, high-quality educational resources organized b
 
 ---
 
-## 4. EARTH SCIENCES
-
 ### Geology
 
 | Title | Author(s) | License | Source | Description | Quality |
@@ -155,8 +147,6 @@ This guide presents legally free, high-quality educational resources organized b
 | **Introduction to Environmental Sciences and Sustainability** | Various | CC | [OER Commons](https://oercommons.org/) | Ecology, biodiversity, climate change, sustainability | Good |
 
 ---
-
-## 5. MATHEMATICS
 
 ### Calculus
 
@@ -195,8 +185,6 @@ This guide presents legally free, high-quality educational resources organized b
 | **Significant Statistics** | John Morgan | CC | [Open Textbook Library](https://open.umn.edu/opentextbooks/subjects/statistics) | Introduction to statistics for non-math majors | Good |
 
 ---
-
-## Key Resource Platforms
 
 ### Primary Platforms
 

@@ -53,19 +53,6 @@ flowchart TD
 
 ### 2.3 职责边界
 
-```
-账号体系的边界:
-├── "你是谁" (身份识别)
-├── "你从哪来" (登录渠道)
-├── "你的基本信息" (Profile)
-└── "你是否有权操作" (认证)
-
-会员体系的边界:
-├── "你能用什么功能" (权限)
-├── "你能用多少" (配额)
-├── "你付了多少钱" (订阅)
-└── "你还能用多久" (有效期)
-```
 
 ---
 
@@ -264,46 +251,9 @@ flowchart TD
 
 ### 6.1 核心表结构
 
-```sql
--- 账号体系核心表
-User {
-    id: UUID (PK)
-    email: String?
-    appleId: String?        -- Apple 身份标识
-    googleId: String?       -- Google 身份标识
-    displayName: String?
-    avatarUrl: String?
-    englishLevel: Enum
-    dailyGoalMinutes: Int
-    createdAt: DateTime
-    updatedAt: DateTime
-    lastActiveAt: DateTime?
-}
-
--- 会员体系核心表
-Subscription {
-    id: UUID (PK)
-    userId: UUID (FK -> User, UNIQUE)  -- 1:1 关系
-    planType: Enum (FREE, PRO, PREMIUM)
-    status: Enum (ACTIVE, EXPIRED, CANCELLED, GRACE_PERIOD)
-    originalTransactionId: String?     -- Apple IAP 交易ID
-    latestReceiptData: String?
-    startedAt: DateTime
-    expiresAt: DateTime?
-    cancelledAt: DateTime?
-}
-```
 
 ### 6.2 关联关系
 
-```
-User (1) ─────────────── (1) Subscription
-  │                              │
-  │ 1:N                          │
-  ▼                              ▼
-UserBook, UserVocabulary    Usage Statistics
-ReadingSession, etc.        (aiCallsToday, etc.)
-```
 
 ---
 

@@ -44,8 +44,6 @@ graph TD
 
 ---
 
-## 架构与设计
-
 ### 核心架构
 | 文档 | 说明 |
 |------|------|
@@ -62,47 +60,33 @@ graph TD
 
 ### 模块架构 (37+ 模块)
 
-```text
-apps/backend/src/modules/
-├── 核心服务 ─────────────────────────────────────────────────
-│   ├── auth/              认证 (Apple/Google OAuth + JWT)
-│   ├── users/             用户管理、账户体系
-│   ├── devices/           设备追踪、跨设备同步
-│   └── subscriptions/     订阅管理 (IAP 验证)
-│
-├── 阅读与内容 ───────────────────────────────────────────────
-│   ├── books/             书籍目录 (539+ 本)
-│   ├── chapters/          章节内容
-│   ├── reading/           阅读会话、进度追踪
-│   ├── bookmarks/         书签
-│   └── import/            内容入库
-│
-├── 学习系统 ─────────────────────────────────────────────────
-│   ├── vocabulary/        词汇 (SM-2 间隔重复)
-│   ├── characters/        角色关系图谱 (Wikidata 融合)
-│   ├── annual-report/     年度阅读报告
-│   └── medal-system/      成就徽章系统
-│
-├── AI 服务 ──────────────────────────────────────────────────
-│   ├── ai/                多供应商 LLM 路由
-│   └── author-chat/       作者人设聊天
-│
-├── 有声书 ───────────────────────────────────────────────────
-│   └── audiobooks/        有声书 (LibriVox/Archive)
-│
-├── 社区功能 ─────────────────────────────────────────────────
-│   ├── agora/             社区动态、评论、点赞
-│   ├── messages/          FAQ、用户消息
-│   ├── recommendations/   内容推荐
-│   └── postcards/         数字明信片
-│
-└── 运营管理 ─────────────────────────────────────────────────
-    ├── admin/             管理后台
-    ├── analytics/         用户分析
-    ├── logs/              日志系统
-    ├── jobs/              后台任务 (BullMQ)
-    └── search/            全文搜索
-```
+| 模块类别 | 模块 | 说明 |
+|---------|------|------|
+| **核心服务** | auth | 认证 (Apple/Google OAuth + JWT) |
+| | users | 用户管理、账户体系 |
+| | devices | 设备追踪、跨设备同步 |
+| | subscriptions | 订阅管理 (IAP 验证) |
+| **阅读与内容** | books | 书籍目录 (539+ 本) |
+| | chapters | 章节内容 |
+| | reading | 阅读会话、进度追踪 |
+| | bookmarks | 书签 |
+| | import | 内容入库 |
+| **学习系统** | vocabulary | 词汇 (SM-2 间隔重复) |
+| | characters | 角色关系图谱 (Wikidata 融合) |
+| | annual-report | 年度阅读报告 |
+| | medal-system | 成就徽章系统 |
+| **AI 服务** | ai | 多供应商 LLM 路由 |
+| | author-chat | 作者人设聊天 |
+| **有声书** | audiobooks | 有声书 (LibriVox/Archive) |
+| **社区功能** | agora | 社区动态、评论、点赞 |
+| | messages | FAQ、用户消息 |
+| | recommendations | 内容推荐 |
+| | postcards | 数字明信片 |
+| **运营管理** | admin | 管理后台 |
+| | analytics | 用户分析 |
+| | logs | 日志系统 |
+| | jobs | 后台任务 (BullMQ) |
+| | search | 全文搜索 |
 
 ### 文档
 | 文档 | 说明 |
@@ -112,8 +96,6 @@ apps/backend/src/modules/
 | [数据库设计](../api/database-design.md) | PostgreSQL 数据模型 (60+ 表) |
 
 ---
-
-## AI 服务
 
 ### 多供应商路由策略
 
@@ -134,8 +116,6 @@ apps/backend/src/modules/
 
 ---
 
-## 客户端
-
 ### 平台矩阵
 
 | 平台 | 技术栈 | 最低版本 | 状态 |
@@ -147,23 +127,22 @@ apps/backend/src/modules/
 
 ### iOS 功能模块 (32+)
 
-```
-ios/Readmigo/Features/
-├── Library/         书架管理
-├── Reader/          EPUB/PDF/TXT 阅读器 (WKWebView)
-├── Learning/        词汇学习、间隔重复
-├── Audiobooks/      有声书播放、下载
-├── Agora/           社区动态
-├── Authors/         作者资料、AI 聊天
-├── Characters/      角色图谱
-├── Medals/          成就系统
-├── AnnualReport/    年度报告
-├── Postcards/       明信片
-├── Messages/        消息中心
-├── Devices/         设备同步
-├── Help/            帮助中心
-└── CarPlay/         车载支持 (开发中)
-```
+| 模块 | 说明 |
+|------|------|
+| Library | 书架管理 |
+| Reader | EPUB/PDF/TXT 阅读器 (WKWebView) |
+| Learning | 词汇学习、间隔重复 |
+| Audiobooks | 有声书播放、下载 |
+| Agora | 社区动态 |
+| Authors | 作者资料、AI 聊天 |
+| Characters | 角色图谱 |
+| Medals | 成就系统 |
+| AnnualReport | 年度报告 |
+| Postcards | 明信片 |
+| Messages | 消息中心 |
+| Devices | 设备同步 |
+| Help | 帮助中心 |
+| CarPlay | 车载支持 (开发中) |
 
 ### 文档
 | 文档 | 说明 |
@@ -172,8 +151,6 @@ ios/Readmigo/Features/
 | [iOS阅读器引擎](../ios/reader-engine.md) | 核心阅读引擎实现 |
 
 ---
-
-## 内容系统
 
 ### 数据源
 
@@ -206,8 +183,6 @@ graph LR
 
 ---
 
-## 基础设施
-
 ### 部署架构
 
 | 服务 | 平台 | 域名 |
@@ -230,14 +205,13 @@ graph LR
 
 ### CI/CD 流水线
 
-```
-GitHub Actions
-├── ci.yml                  自动化测试 + 代码检查
-├── deploy.yml              推送自动部署
-├── deploy-staging.yml      预发布部署
-├── deploy-production.yml   生产部署 (手动确认)
-└── db-sync.yml             数据库同步
-```
+| Workflow | 说明 |
+|----------|------|
+| ci.yml | 自动化测试 + 代码检查 |
+| deploy.yml | 推送自动部署 |
+| deploy-staging.yml | 预发布部署 |
+| deploy-production.yml | 生产部署 (手动确认) |
+| db-sync.yml | 数据库同步 |
 
 ### 文档
 | 文档 | 说明 |
@@ -279,8 +253,6 @@ GitHub Actions
 | 账户系统 | [system-design.md](../account/system-design.md) |
 
 ---
-
-## 按角色导航
 
 ### 前端开发
 - [客户端架构](./client-architecture.md)

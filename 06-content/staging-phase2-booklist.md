@@ -15,8 +15,6 @@
 
 ---
 
-## 一、电子书清单 (400本) | Section 1: Ebooks (400 titles)
-
 ### 1.1 英国维多利亚时代扩展 (50本) | British Victorian Era Extension (50 titles)
 
 | # | 书名 Title | 作者 Author | 中文译名 | LibriVox | 来源 Source |
@@ -474,8 +472,6 @@
 
 ---
 
-## 二、有声书清单 (200本) | Section 2: Audiobooks (200 titles)
-
 ### 2.1 Tier 2 热门 - 100万-500万播放 (70本) | Tier 2 Popular - 1M-5M Plays (70 titles)
 
 | # | 书名 Title | 作者 Author | 中文译名 | 播放量 Plays | 时长 Duration |
@@ -692,8 +688,6 @@
 | 50 | The Lost Prince | F.H. Burnett | 失落的王子 | 儿童 Children | 10h |
 
 ---
-
-## 三、作者清单 (200位) | Section 3: Authors (200)
 
 ### 3.1 英国文学补充 (50位) | British Literature Supplement (50 authors)
 
@@ -921,8 +915,6 @@
 | 200 | Julien Green | 法国/美国 France/USA | Moïra 莫伊拉 | 15+ |
 
 ---
-
-## 四、执行检查清单 | Section 4: Execution Checklist
 
 ### 4.1 电子书导入检查 | Ebook Import Checklist
 

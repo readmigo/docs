@@ -1,372 +1,70 @@
 # 书籍内容处理
 
-### 14.1 EPUB清洗流程
+## EPUB 清洗流程
 
 ```mermaid
 flowchart LR
     A["解压<br>EPUB"] --> B["清洗<br>HTML"] --> C["优化<br>资源"] --> D["重打包<br>EPUB"]
 ```
 
-### 14.2 HTML内容清洗规则
+## HTML 内容清洗规则
 
-```typescript
-// scripts/book-processing/html-cleaner.ts
+| 规则类别 | 说明 |
+|---------|------|
+| **移除元素** | Gutenberg 法律声明、广告链接、空白元素 |
+| **移除属性** | 内联样式 (style)、过时属性 (bgcolor, align, border 等) |
+| **文本替换** | Non-breaking space、智能引号、Em/En dash、多余空白 |
+| **允许元素** | 标准 HTML 语义元素 (div, p, h1-h6, a, img, table, blockquote 等) |
 
-interface CleaningRules {
-  // 移除元素
-  removeElements: string[];
-  // 移除属性
-  removeAttributes: string[];
-  // 替换规则
-  replacements: Array<{ pattern: RegExp; replacement: string }>;
-  // 保留元素
-  allowedElements: string[];
-}
+## 元数据提取与增强
 
-const gutenbergCleaningRules: CleaningRules = {
-  removeElements: [
-    // Gutenberg 法律声明
-    'pre:contains("Project Gutenberg")',
-    'p:contains("This eBook is for the use of anyone")',
-    'p:contains("START OF THE PROJECT GUTENBERG")',
-    'p:contains("END OF THE PROJECT GUTENBERG")',
+| 元数据类别 | 字段 | 说明 |
+|-----------|------|------|
+| **基础信息** | title, author, language, publishedYear | 从 content.opf 提取 |
+| **分类信息** | subjects, bookshelves, genres | 来源分类映射 |
+| **内容分析** | wordCount, chapterCount, estimatedReadingMinutes | EPUB 解析计算 |
+| **难度信息** | difficultyScore (1-5), fleschScore, cefrLevel | 文本分析算法 |
+| **章节信息** | number, title, wordCount, difficultyScore | 逐章节提取 |
 
-    // 广告和链接
-    'a[href*="gutenberg.org"]',
-    'div.pg-boilerplate',
+### 难度评估维度
 
-    // 空白元素
-    'p:empty',
-    'div:empty',
-  ],
+| 指标 | 计算方式 | 说明 |
+|------|---------|------|
+| Flesch Reading Ease | 206.835 - 1.015 * avgSentenceLength - 84.6 * avgSyllablesPerWord | 可读性分数 (0-100) |
+| 词汇复杂度 | 非常见词比例 (基于前3000常见词表) | 生词密度 |
+| 综合难度 | Flesch 分数区间 + 词汇复杂度调整 | 最终评分 1.0-5.0 |
 
-  removeAttributes: [
-    'style',           // 内联样式
-    'bgcolor',         // 过时属性
-    'align',
-    'border',
-    'cellpadding',
-    'cellspacing',
-    'width',
-    'height',
-  ],
+| Flesch Score | 难度等级 | 对应 difficultyScore |
+|-------------|---------|---------------------|
+| >= 80 | Very Easy | 1.0 |
+| >= 60 | Easy | 2.0 |
+| >= 40 | Medium | 3.0 |
+| >= 20 | Hard | 4.0 |
+| < 20 | Very Hard | 5.0 |
 
-  replacements: [
-    // 修复常见编码问题
-    { pattern: /\u00a0/g, replacement: ' ' },           // Non-breaking space
-    { pattern: /[\u2018\u2019]/g, replacement: "'" },   // Smart quotes
-    { pattern: /[\u201c\u201d]/g, replacement: '"' },   // Smart double quotes
-    { pattern: /\u2014/g, replacement: '—' },           // Em dash
-    { pattern: /\u2013/g, replacement: '–' },           // En dash
+## AI 增强元数据生成
 
-    // 移除多余空白
-    { pattern: /\n{3,}/g, replacement: '\n\n' },
-    { pattern: / {2,}/g, replacement: ' ' },
-  ],
+| AI 生成内容 | 输入 | 用途 |
+|------------|------|------|
+| 书籍简介 (2-3句) | 书籍前5000字样本 | Discover 展示 |
+| 主题标签 (3-5个) | 文本分析 | 分类推荐 |
+| 关键角色 | 文本分析 | 角色图谱 |
+| 历史/文化背景 | 元数据 + 文本 | 阅读引导 |
+| 目标读者等级 | 难度分析 | 个性化推荐 |
+| 相似书籍 (3-5本) | 内容匹配 | 关联推荐 |
 
-  allowedElements: [
-    'html', 'head', 'body', 'title', 'meta', 'link',
-    'div', 'p', 'span', 'br', 'hr',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'a', 'img',
-    'ul', 'ol', 'li',
-    'table', 'thead', 'tbody', 'tr', 'th', 'td',
-    'blockquote', 'pre', 'code',
-    'em', 'strong', 'i', 'b', 'u', 's',
-    'sup', 'sub',
-    'figure', 'figcaption',
-  ],
-};
+- AI Provider: DeepSeek (主) / OpenAI (备)
+- 批量处理: 每批10本，批间间隔60秒
+- 成本控制: 分批处理，速率限制
 
-/**
- * 清洗 HTML 内容
- */
-async function cleanHtml(html: string, rules: CleaningRules): Promise<string> {
-  const $ = cheerio.load(html);
+## 关键词汇提取
 
-  // 1. 移除指定元素
-  for (const selector of rules.removeElements) {
-    $(selector).remove();
-  }
-
-  // 2. 移除指定属性
-  $('*').each((_, el) => {
-    for (const attr of rules.removeAttributes) {
-      $(el).removeAttr(attr);
-    }
-  });
-
-  // 3. 应用替换规则
-  let content = $.html();
-  for (const { pattern, replacement } of rules.replacements) {
-    content = content.replace(pattern, replacement);
-  }
-
-  // 4. 移除空白元素 (二次清理)
-  const $cleaned = cheerio.load(content);
-  $cleaned('p:empty, div:empty, span:empty').remove();
-
-  return $cleaned.html();
-}
-```
-
-### 14.3 元数据提取与增强
-
-```typescript
-// scripts/book-processing/metadata-extractor.ts
-
-interface BookMetadata {
-  // 基础信息
-  title: string;
-  author: string;
-  authorBirthYear?: number;
-  authorDeathYear?: number;
-  language: string;
-  publishedYear?: number;
-
-  // 分类信息
-  subjects: string[];
-  bookshelves: string[];
-  genres: string[];
-
-  // 内容分析
-  wordCount: number;
-  chapterCount: number;
-  estimatedReadingMinutes: number;
-
-  // 难度信息
-  difficultyScore: number;        // 1.0 - 5.0
-  fleschScore: number;            // Flesch Reading Ease
-  avgSentenceLength: number;
-  avgWordLength: number;
-  vocabularyComplexity: number;
-
-  // 章节信息
-  chapters: ChapterMeta[];
-
-  // AI增强 (可选，后续生成)
-  aiSummary?: string;
-  aiThemes?: string[];
-  aiKeyCharacters?: string[];
-  aiHistoricalContext?: string;
-}
-
-interface ChapterMeta {
-  number: number;
-  title: string;
-  wordCount: number;
-  difficultyScore: number;
-  spinePosition: number;
-}
-
-/**
- * 难度计算算法
- */
-function calculateDifficulty(text: string): DifficultyMetrics {
-  const sentences = splitIntoSentences(text);
-  const words = splitIntoWords(text);
-
-  // Flesch Reading Ease Score
-  const avgSentenceLength = words.length / sentences.length;
-  const avgSyllablesPerWord = countSyllables(words) / words.length;
-  const fleschScore = 206.835 - (1.015 * avgSentenceLength) - (84.6 * avgSyllablesPerWord);
-
-  // 词汇复杂度 (基于常见词汇表)
-  const commonWords = loadCommonWordList(3000);  // 前3000常见词
-  const uncommonWordRatio = words.filter(w => !commonWords.has(w.toLowerCase())).length / words.length;
-
-  // 综合难度评分 (1.0 - 5.0)
-  let difficultyScore: number;
-  if (fleschScore >= 80) difficultyScore = 1.0;       // Very Easy
-  else if (fleschScore >= 60) difficultyScore = 2.0;  // Easy
-  else if (fleschScore >= 40) difficultyScore = 3.0;  // Medium
-  else if (fleschScore >= 20) difficultyScore = 4.0;  // Hard
-  else difficultyScore = 5.0;                         // Very Hard
-
-  // 根据词汇复杂度调整
-  difficultyScore += uncommonWordRatio * 0.5;
-  difficultyScore = Math.min(5.0, Math.max(1.0, difficultyScore));
-
-  return {
-    fleschScore,
-    avgSentenceLength,
-    avgWordLength: words.join('').length / words.length,
-    vocabularyComplexity: uncommonWordRatio,
-    difficultyScore: Math.round(difficultyScore * 100) / 100,
-  };
-}
-
-/**
- * 提取章节信息
- */
-async function extractChapters(epubPath: string): Promise<ChapterMeta[]> {
-  const epub = await EPub.createAsync(epubPath);
-  const chapters: ChapterMeta[] = [];
-
-  for (let i = 0; i < epub.flow.length; i++) {
-    const item = epub.flow[i];
-    const content = await epub.getChapterAsync(item.id);
-    const text = extractText(content);
-
-    chapters.push({
-      number: i + 1,
-      title: item.title || `Chapter ${i + 1}`,
-      wordCount: countWords(text),
-      difficultyScore: calculateDifficulty(text).difficultyScore,
-      spinePosition: i,
-    });
-  }
-
-  return chapters;
-}
-```
-
-### 14.4 AI增强元数据生成
-
-```typescript
-// scripts/book-processing/ai-enhancement.ts
-
-/**
- * AI生成书籍增强信息
- */
-async function generateAIMetadata(book: Book): Promise<AIEnhancedMetadata> {
-  const sampleContent = await getSampleContent(book, 5000); // 前5000字
-
-  const prompt = `
-Analyze this book excerpt and provide:
-1. A 2-3 sentence summary suitable for a book catalog
-2. Main themes (3-5 themes)
-3. Key characters with brief descriptions
-4. Historical/cultural context (if applicable)
-5. Target reader level (beginner/intermediate/advanced English learner)
-6. Similar books recommendation (3-5 classic books)
-
-Book: "${book.title}" by ${book.author}
-Excerpt:
-${sampleContent}
-
-Respond in JSON format.
-`;
-
-  const response = await callAI(prompt, 'deepseek');
-  return JSON.parse(response);
-}
-
-/**
- * 批量生成AI元数据 (成本控制)
- */
-async function batchGenerateAIMetadata(books: Book[]): Promise<void> {
-  // 分批处理，控制成本
-  const batchSize = 10;
-  const delayBetweenBatches = 60000; // 1分钟
-
-  for (let i = 0; i < books.length; i += batchSize) {
-    const batch = books.slice(i, i + batchSize);
-
-    await Promise.all(batch.map(async (book) => {
-      try {
-        const aiMeta = await generateAIMetadata(book);
-        await prisma.book.update({
-          where: { id: book.id },
-          data: { aiMetadata: aiMeta },
-        });
-      } catch (error) {
-        console.error(`Failed to generate AI metadata for ${book.title}:`, error);
-      }
-    }));
-
-    // 速率限制
-    if (i + batchSize < books.length) {
-      await sleep(delayBetweenBatches);
-    }
-  }
-}
-```
-
-### 14.5 关键词汇提取
-
-```typescript
-// scripts/book-processing/vocabulary-extractor.ts
-
-interface ExtractedVocabulary {
-  word: string;
-  frequency: number;           // 在本书中出现次数
-  globalFrequency: number;     // 全局词频排名
-  importance: 'core' | 'recommended' | 'advanced';
-  contexts: string[];          // 例句上下文
-}
-
-/**
- * 提取书籍关键词汇
- */
-async function extractKeyVocabulary(bookContent: string): Promise<ExtractedVocabulary[]> {
-  const words = tokenize(bookContent);
-  const wordFreq = new Map<string, number>();
-  const wordContexts = new Map<string, string[]>();
-
-  // 1. 统计词频
-  const sentences = splitIntoSentences(bookContent);
-  for (const sentence of sentences) {
-    const sentenceWords = tokenize(sentence);
-    for (const word of sentenceWords) {
-      const normalized = word.toLowerCase();
-      wordFreq.set(normalized, (wordFreq.get(normalized) || 0) + 1);
-
-      // 保存上下文
-      if (!wordContexts.has(normalized)) {
-        wordContexts.set(normalized, []);
-      }
-      if (wordContexts.get(normalized)!.length < 3) {
-        wordContexts.get(normalized)!.push(sentence);
-      }
-    }
-  }
-
-  // 2. 加载全局词频表 (COCA / BNC)
-  const globalFreqList = await loadGlobalFrequencyList();
-
-  // 3. 筛选关键词汇
-  const vocabulary: ExtractedVocabulary[] = [];
-
-  for (const [word, freq] of wordFreq) {
-    // 排除过于简单的词 (前1000常见词)
-    const globalRank = globalFreqList.get(word) || 100000;
-    if (globalRank < 1000) continue;
-
-    // 排除出现次数太少的词
-    if (freq < 2) continue;
-
-    // 排除非英文词
-    if (!/^[a-z]+$/.test(word)) continue;
-
-    // 确定重要性级别
-    let importance: 'core' | 'recommended' | 'advanced';
-    if (globalRank < 3000) importance = 'core';
-    else if (globalRank < 8000) importance = 'recommended';
-    else importance = 'advanced';
-
-    vocabulary.push({
-      word,
-      frequency: freq,
-      globalFrequency: globalRank,
-      importance,
-      contexts: wordContexts.get(word) || [],
-    });
-  }
-
-  // 4. 按重要性和频率排序
-  vocabulary.sort((a, b) => {
-    const importanceOrder = { core: 0, recommended: 1, advanced: 2 };
-    if (importanceOrder[a.importance] !== importanceOrder[b.importance]) {
-      return importanceOrder[a.importance] - importanceOrder[b.importance];
-    }
-    return b.frequency - a.frequency;
-  });
-
-  // 5. 返回前200个关键词
-  return vocabulary.slice(0, 200);
-}
-```
+| 处理步骤 | 说明 |
+|---------|------|
+| 1. 词频统计 | 按句子分词，统计每个词出现次数 |
+| 2. 全局词频对比 | 对比 COCA/BNC 全局词频表 |
+| 3. 筛选过滤 | 排除前1000常见词、出现 < 2次的词、非英文词 |
+| 4. 重要性分级 | core (< 3000)、recommended (< 8000)、advanced (8000+) |
+| 5. 排序输出 | 按重要性和频率排序，返回前200个关键词 |
 
 ---
-

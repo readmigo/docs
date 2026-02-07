@@ -13,25 +13,6 @@
 
 ---
 
-## 1. 分析范围
-
-### 1.1 代码库位置
-
-```
-/tmp/ebook-tools/
-├── standard-ebooks/
-│   ├── tools/      # 40+ CLI 命令的 Python 工具集
-│   ├── web/        # 网站 + 阅读器 CSS
-│   └── manual/     # 排版规范手册
-├── project-gutenberg/
-│   ├── ebookmaker/ # PG 官方转换工具
-│   ├── libgutenberg/  # 共享库 (元数据、数据库)
-│   └── ebookconverter/ # 批量转换编排器
-└── other-tools/
-    ├── epub.js/    # JS 阅读器引擎
-    └── ebook-fonts/ # 电子书字体
-```
-
 ### 1.2 决策维度
 
 | 维度 | 权重 | 说明 |
@@ -42,16 +23,7 @@
 | 段落级操作 | ⭐⭐⭐⭐ | 支持双击段落展示翻译结果 |
 | TTS/音文同步 | ⭐⭐⭐ | 支持 TTS 阅读和音文同步 |
 
-### 1.3 业务流程映射
-
-```
-流程1: 多来源文件 → 清洗 → 规范化 → 段落级翻译 → 手机展示 → 双击段落展示翻译
-流程2: 多来源文件 → 清洗 → 规范化 → 手机展示 → TTS阅读 → 音文同步
-```
-
 ---
-
-## 2. Standard Ebooks 项目
 
 ### 2.1 tools/ - 核心工具集
 
@@ -69,38 +41,9 @@
 
 **高复用价值** - 可直接移植为 TypeScript
 
-```
-转换规则:
-├── 直引号 → 弯引号 (smartypants)
-├── -- → — (em dash)
-├── ... → … (ellipsis)
-├── 1/4 → ¼ (fractions)
-├── Mr. + space → Mr. + NO_BREAK_SPACE
-├── 'tis → 'tis (contractions)
-└── ` → ' (PG backtick fix)
-
-Unicode 常量:
-├── WORD_JOINER = \u2060 (防止 em-dash 前断行)
-├── HAIR_SPACE = \u200a (引号间隙)
-├── NO_BREAK_SPACE = \u00a0 (缩写后不断行)
-└── SHY_HYPHEN = \u00ad (软连字符)
-```
-
 #### 2.1.2 PG Boilerplate 清洗 (create_draft.py)
 
 **高复用价值** - PG 源文件处理核心
-
-```python
-# 新版 PG HTML 结构
-//section[contains(@class, 'pg-boilerplate')]
-
-# 旧版 PG HTML 结构
-//*[re:test(text(), '\\*\\*\\*\\s*START OF')]
-//*[re:test(text(), 'End of (the )?Project Gutenberg')]
-
-# Producer 信息提取
-r"Produced by|Credits\s*:\s*"
-```
 
 ### 2.2 web/ - CSS 样式
 
@@ -128,22 +71,9 @@ r"Produced by|Credits\s*:\s*"
 
 ---
 
-## 3. Project Gutenberg 项目
-
 ### 3.1 ebookmaker/ - 官方转换工具
 
 **架构**:
-```
-Input (HTML/TXT/RST)
-    ↓
-ParserFactory → 格式检测 + 解析
-    ↓
-Spider → 依赖收集 (图片等)
-    ↓
-HTMLParser → 清洗 + 规范化
-    ↓
-WriterFactory → 多格式输出
-```
 
 #### 3.1.1 HTML 清洗模块 (HTMLParser.py)
 
@@ -162,18 +92,6 @@ WriterFactory → 多格式输出
 
 **高复用价值** - BeautifulSoup 实现，容错性强
 
-```python
-# Header 标记
-"START OF THIS PROJECT GUTENBERG"
-
-# Footer 标记
-"END OF THIS PROJECT GUTENBERG"
-"*** END OF THE PROJECT GUTENBERG EBOOK"
-
-# 德语变体
-"Ende dieses Projekt Gutenberg"
-```
-
 #### 3.1.3 纯文本解析 (GutenbergTextParser.py)
 
 **中等复用价值** - 700+ 行启发式文本结构检测
@@ -182,22 +100,9 @@ WriterFactory → 多格式输出
 - 缩进模式分析
 - 押韵检测 (可选)
 
-### 3.2 libgutenberg/ - 共享库
-
 #### 3.2.1 元数据模块 (DublinCore.py)
 
 **中等复用价值** - Dublin Core 标准实现
-
-```
-DublinCore {
-  title, subtitle, alt_title
-  authors: [{name, birthdate, deathdate, role}]
-  languages: [Language]
-  subjects: [LCSH]
-  release_date, update_date
-  encoding, downloads
-}
-```
 
 #### 3.2.2 全局常量 (GutenbergGlobals.py)
 
@@ -219,58 +124,21 @@ DublinCore {
 
 ---
 
-## 4. 其他工具项目
-
-### 4.1 epub.js - JS 阅读器引擎
-
 #### 4.1.1 分页算法
 
 **高参考价值** - CSS Multi-Column 实现
-
-```javascript
-// 核心 CSS
-column-width: ${pageWidth}px
-column-gap: ${gap}px
-column-axis: horizontal
-column-fill: auto
-
-// 页数计算
-spreads = Math.ceil(totalLength / pageLength)
-pages = spreads * divisor  // divisor=2 for double-page
-```
 
 #### 4.1.2 触摸处理 (snap.js)
 
 **高参考价值** - 滑动翻页实现
 
-```javascript
-// 滑动检测
-velocity > 0.2 && distance > 10px → 翻页
-duration: 80ms (easeInCubic)
-
-// 被动事件监听 (性能优化)
-{ passive: true }
-```
-
 #### 4.1.3 CFI 定位 (epubcfi.js)
 
 **中等参考价值** - 精确位置标识
 
-```
-epubcfi(/6/4[chap01]!/4[body]/10[para],/2/1:1,/3:4)
-         ↑spine    ↑element path    ↑character offset
-```
-
 #### 4.1.4 文本选择 (contents.js)
 
 **高参考价值** - 双击段落交互基础
-
-```javascript
-// 选择变更监听
-selectionchange + 250ms debounce
-→ getSelection()
-→ Range → CFI
-```
 
 ### 4.2 ebook-fonts - 阅读字体
 
@@ -283,8 +151,6 @@ selectionchange + 250ms debounce
 | Modified line-height | 针对电子阅读优化 |
 
 ---
-
-## 5. 复用决策矩阵
 
 ### 5.1 按功能模块
 
@@ -299,8 +165,6 @@ selectionchange + 250ms debounce
 | **文本选择** | epub.js contents.js | 自研 | 参考实现 |
 | **元数据** | PG DublinCore | SE | 参考结构 |
 | **软连字符** | SE hyphenate | Hypher | 使用库 |
-
-### 5.2 按业务流程
 
 #### 流程1: 段落级翻译展示
 
@@ -342,8 +206,6 @@ graph TB
 
 ---
 
-## 6. Readmigo Pipeline 设计建议
-
 ### 6.1 推荐架构
 
 ```mermaid
@@ -366,33 +228,6 @@ graph TB
 | **CleanModule** | Boilerplate移除、废弃标签替换 | SE + PG |
 | **NormalizeModule** | 标点规范、编码统一、ID注入 | SE typography |
 | **ReaderEngine** | 分页、触摸、选择、TTS同步 | epub.js 参考 |
-
-### 6.3 TypeScript 移植清单
-
-```typescript
-// 从 SE typography.py 移植
-export const UNICODE = {
-  WORD_JOINER: '\u2060',
-  HAIR_SPACE: '\u200a',
-  NO_BREAK_SPACE: '\u00a0',
-  SHY_HYPHEN: '\u00ad',
-  EM_DASH: '\u2014',
-  EN_DASH: '\u2013',
-  ELLIPSIS: '\u2026',
-};
-
-// 从 SE create_draft.py 移植
-export const PG_BOILERPLATE = {
-  NEW_STRUCTURE: 'section.pg-boilerplate',
-  OLD_START: /\*\*\*\s*START OF (THIS|THE) PROJECT GUTENBERG/i,
-  OLD_END: /End of (the )?Project Gutenberg/i,
-};
-
-// 从 PG HTMLParser.py 移植
-export const DEPRECATED_ELEMENTS = [
-  'font', 'center', 'blink', 'marquee', 'strike', 'big', 'small'
-];
-```
 
 ### 6.4 手机优先考虑
 

@@ -4,8 +4,6 @@ This research compiles legally free, high-quality resources suitable for a readi
 
 ---
 
-## 1. Visual Arts
-
 ### Art History (Public Domain Classics)
 
 | Title | Author | License/Status | Source | Description | Quality |
@@ -45,8 +43,6 @@ This research compiles legally free, high-quality resources suitable for a readi
 | **Seeing Through Photographs** | MoMA | CC BY-NC-SA 4.0 | Coursera/MoMA | 100 photographs from MoMA collection, 180 years of photo history | Very High |
 
 ---
-
-## 2. Music
 
 ### Music Theory
 
@@ -90,8 +86,6 @@ This research compiles legally free, high-quality resources suitable for a readi
 
 ---
 
-## 3. Design
-
 ### Graphic Design
 
 | Title | Author | License | Source | Description | Quality |
@@ -129,8 +123,6 @@ This research compiles legally free, high-quality resources suitable for a readi
 
 ---
 
-## 4. Architecture
-
 ### Architectural History (Public Domain Classics)
 
 | Title | Author | License/Status | Source | Description | Quality |
@@ -150,8 +142,6 @@ This research compiles legally free, high-quality resources suitable for a readi
 | **Getty Virtual Library** | Getty Museum | Free Access | [Getty](https://www.getty.edu/publications/virtuallibrary/) | 300+ books on art, architecture, conservation | Very High |
 
 ---
-
-## 5. Film & Media
 
 ### Film Theory & Studies
 
@@ -180,8 +170,6 @@ This research compiles legally free, high-quality resources suitable for a readi
 
 ---
 
-## 6. Creative Writing
-
 ### Fiction Writing (Public Domain)
 
 | Title | Author | License/Status | Source | Description | Quality |
@@ -205,8 +193,6 @@ This research compiles legally free, high-quality resources suitable for a readi
 | **Public Domain Poetry Archive** | Various poets | Public Domain | [Poets.org](https://poets.org/) | 9,000+ public domain poems | Very High |
 
 ---
-
-## Key Resource Repositories
 
 ### Primary Open Textbook Sources
 - **[Open Textbook Library](https://open.umn.edu/opentextbooks/)** - Peer-reviewed open textbooks, University of Minnesota

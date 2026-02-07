@@ -8,7 +8,7 @@ Backend administration module for content and user management.
 
 | Item | Description |
 |------|-------------|
-| Path | `apps/backend/src/modules/admin/` |
+| Path | `src/modules/admin/` |
 | Auth | None (internal use only) |
 | Access | Admin dashboard only |
 
@@ -198,45 +198,41 @@ flowchart TD
 
 ### Book Query Filters
 
-```typescript
-interface BookQueryDto {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  search?: string;
-  status?: string;
-  source?: string;
-  minDifficulty?: number;
-  maxDifficulty?: number;
-  language?: string;
-  contentLanguage?: 'en' | 'zh';
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| page | number | Page number |
+| limit | number | Items per page |
+| sortBy | string | Sort field |
+| sortOrder | asc / desc | Sort direction |
+| search | string | Search in title/author |
+| status | string | Filter by status |
+| source | string | Filter by source |
+| minDifficulty | number | Min difficulty score |
+| maxDifficulty | number | Max difficulty score |
+| language | string | Filter by language |
+| contentLanguage | en / zh | Content language filter |
 
 ### User Query Filters
 
-```typescript
-interface UserQueryDto {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  search?: string;
-  englishLevel?: string;
-  planType?: string;
-  accountType?: 'GUEST' | 'REGISTERED';
-  status?: 'ACTIVE' | 'SUSPENDED' | 'MERGED' | 'PENDING_DELETION' | 'DELETED';
-  deviceId?: string;
-  appleId?: string;
-  googleId?: string;
-  subscriptionStatus?: string;
-  hasSubscription?: boolean;
-  createdAfter?: string;
-  createdBefore?: string;
-  hasBoundAccount?: boolean;
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| page | number | Page number |
+| limit | number | Items per page |
+| sortBy | string | Sort field |
+| sortOrder | asc / desc | Sort direction |
+| search | string | Search email, name, ID |
+| englishLevel | string | English level filter |
+| planType | string | Subscription plan |
+| accountType | GUEST / REGISTERED | Account type |
+| status | enum | ACTIVE, SUSPENDED, MERGED, PENDING_DELETION, DELETED |
+| deviceId | string | Exact device ID match |
+| appleId | string | Exact Apple ID match |
+| googleId | string | Exact Google ID match |
+| subscriptionStatus | string | Subscription status |
+| hasSubscription | boolean | Has active subscription |
+| createdAfter | ISO date | Created after date |
+| createdBefore | ISO date | Created before date |
+| hasBoundAccount | boolean | Has linked account |
 
 ---
 

@@ -34,13 +34,6 @@ Feedbooks 曾是 OPDS 协议的主要贡献者和示范实现：
 
 ### 1.4 对 Readmigo 的价值
 
-```
-价值: ⭐ (低)
-原因:
-- 已关闭，无法获取新数据
-- 备份数据与 PG/SE 重叠
-- 不推荐作为数据源
-```
 
 ---
 
@@ -65,14 +58,6 @@ Feedbooks 曾是 OPDS 协议的主要贡献者和示范实现：
 
 ### 2.3 对 Readmigo 的价值
 
-```
-价值: ⭐⭐ (低-中)
-原因:
-- 无 API，数据获取困难
-- 内容与 Gutenberg 高度重叠
-- 可参考其编辑推荐列表
-- 不推荐作为主要数据源
-```
 
 ### 2.4 可利用价值
 
@@ -98,27 +83,9 @@ Feedbooks 曾是 OPDS 协议的主要贡献者和示范实现：
 
 WikiSource 使用 MediaWiki API：
 
-```
-Base URL: https://en.wikisource.org/w/api.php
-
-示例:
-?action=query&titles=Pride_and_Prejudice&format=json
-```
 
 ### 3.3 对 Readmigo 的价值
 
-```
-价值: ⭐⭐ (低-中)
-优势:
-- 多语言支持
-- 社区校对质量
-- 有 API
-
-劣势:
-- 格式为 Wiki 标记，非 EPUB
-- 需要复杂处理才能转换
-- 与 PG/SE 内容重叠
-```
 
 ---
 
@@ -140,13 +107,6 @@ Base URL: https://en.wikisource.org/w/api.php
 
 ### 4.3 对 Readmigo 的价值
 
-```
-价值: ⭐ (低)
-原因:
-- 无独特内容，都是聚合
-- 无 API
-- 直接使用 LibriVox/PG 更好
-```
 
 ---
 
@@ -168,26 +128,9 @@ Base URL: https://en.wikisource.org/w/api.php
 
 ### 5.3 注意事项
 
-```
-⚠️ 法律风险
-- 在加拿大属公共领域
-- 在美国可能仍受版权保护
-- Readmigo 面向全球用户需谨慎
-```
 
 ### 5.4 对 Readmigo 的价值
 
-```
-价值: ⭐⭐ (中)
-优势:
-- 有些书籍 PG 没有
-- 格式化质量好
-
-劣势:
-- 版权复杂，需逐本确认
-- 无 API
-- 需要法律评估
-```
 
 ---
 
@@ -207,10 +150,6 @@ Base URL: https://en.wikisource.org/w/api.php
 
 ### 6.3 对 Readmigo 的价值
 
-```
-价值: ⭐ (极低)
-原因: 已关闭，不再维护
-```
 
 ---
 
@@ -259,22 +198,6 @@ Base URL: https://en.wikisource.org/w/api.php
 
 对于 Readmigo 项目：
 
-```
-推荐策略:
-
-1. 专注核心三大资源:
-   ├── Standard Ebooks (高质量)
-   ├── Project Gutenberg (大规模)
-   └── LibriVox (有声书)
-
-2. 元数据补充:
-   └── Open Library (描述、封面、作者信息)
-
-3. 其他资源价值有限:
-   └── 与核心资源重叠
-   └── 无 API 或已关闭
-   └── 开发成本不值得
-```
 
 ---
 

@@ -78,22 +78,6 @@
 | **语言** | 英文 |
 
 **数据结构**:
-```json
-{
-  "bid": "book_id",
-  "book_title": "书名",
-  "chapter_id": "章节ID",
-  "text": "原始章节文本",
-  "summary": [
-    {
-      "source": "cliffsnotes",
-      "text": "章节摘要",
-      "analysis": "分析"
-    }
-  ],
-  "is_aggregate": false
-}
-```
 
 **优势**:
 - **章节级别摘要** - 这是关键优势！
@@ -121,10 +105,6 @@
 | **文档** | [Open Library API](https://openlibrary.org/developers/api) |
 
 **API 示例**:
-```
-GET https://openlibrary.org/works/OL45883W.json
-GET https://openlibrary.org/search.json?q=the+lord+of+the+rings
-```
 
 **优势**:
 - 免费公开 API
@@ -147,14 +127,6 @@ GET https://openlibrary.org/search.json?q=the+lord+of+the+rings
 | **文档** | [DBpedia](https://www.dbpedia.org/) |
 
 **SPARQL 查询示例**:
-```sparql
-SELECT ?book ?title ?author WHERE {
-  ?book a dbo:Book .
-  ?book rdfs:label ?title .
-  ?book dbo:author ?author .
-  FILTER (lang(?title) = "en")
-}
-```
 
 **优势**:
 - 结构化知识图谱
@@ -273,20 +245,6 @@ SELECT ?book ?title ?author WHERE {
 | **工具** | [acdzh/douban-book-api](https://github.com/acdzh/douban-book-api) |
 
 **可获取数据**:
-```json
-{
-  "title": "书名",
-  "author": ["作者"],
-  "book_intro": "内容简介（重要！）",
-  "author_intro": "作者简介",
-  "catalog": ["目录章节列表"],
-  "original_texts": ["原文摘录"],
-  "labels": ["标签"],
-  "rating": { "star": 4.5, "count": 12345 },
-  "comments": ["短评"],
-  "reviews": ["长书评"]
-}
-```
 
 **优势**:
 - **中文书籍最权威数据源**
@@ -456,32 +414,6 @@ flowchart TD
 
 ### 5.1 分阶段实施
 
-```
-Phase 1: MVP (公版经典)
-├── 数据源: CMU Book Summary + BookSum
-├── 书籍范围: 100 本英文经典
-├── 实现方式: 半自动解析 + 人工审核
-├── 时间线粒度: 章节级
-└── 预计工期: 4-6 周
-
-Phase 2: 扩展 (英文公版)
-├── 数据源: WikiPlots + Wikipedia
-├── 书籍范围: 1,000 本英文公版
-├── 实现方式: 规则化自动解析
-└── 预计工期: 4-8 周
-
-Phase 3: 中文支持
-├── 数据源: 豆瓣读书 + 中文维基百科 + 人工标注
-├── 书籍范围: 100 本中文经典
-├── 实现方式: 人工策展为主
-└── 预计工期: 需评估成本
-
-Phase 4: 热门 IP
-├── 数据源: Fandom Wiki 提取
-├── 书籍范围: 热门小说 (需版权评估)
-├── 实现方式: 半自动提取
-└── 预计工期: 需法律评估
-```
 
 ### 5.2 技术架构调整
 
@@ -529,13 +461,6 @@ flowchart LR
 
 **推荐混合方案**:
 
-```
-公版经典 (英文)     →  BookSum + 规则解析 + 人工审核
-热门 IP             →  Fandom Wiki + 人工整理 (需法律评估)
-中文经典            →  豆瓣(目录+简介+摘录) + 人工标注事件
-中文当代书籍        →  豆瓣(目录+简介) + 规则解析 + 人工审核
-当代/新书 (英文)    →  暂不支持 或 AI辅助方案
-```
 
 **豆瓣数据使用策略**:
 1. 通过 ISBN 匹配书籍，获取 `catalog` 作为章节骨架

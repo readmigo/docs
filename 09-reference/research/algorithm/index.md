@@ -28,37 +28,36 @@ Algorithm 模块包含 Readmigo 的各种算法实现：
 ### 书籍排序算法
 | 功能 | 状态 | 说明 |
 |------|------|------|
-| 算法设计 | ✅ 已完成 | 8个评分维度 |
+| 算法设计 | ✅ 已完成 | 质量分 + 热度分 + 新鲜度分 |
 | 后端实现 | ✅ 已完成 | RecommendationModule |
-| 定时任务 | ✅ 已完成 | 每日更新排序 |
+| 定时任务 | ✅ 已完成 | 评分更新 + 缓存刷新 |
 | API接口 | ✅ 已完成 | 推荐接口已上线 |
 
 ### 评分维度
 
 | 维度 | 权重 | 说明 |
 |------|------|------|
-| 下载量 | 25% | Gutenberg 下载数据 |
-| 评分 | 20% | 用户评分 |
-| 经典度 | 15% | 是否经典名著 |
-| 新鲜度 | 10% | 最近添加/更新 |
-| 完整度 | 10% | 元数据完整性 |
-| 可读性 | 10% | 难度评估 |
-| 互动量 | 5% | 收藏/评论数 |
-| 编辑推荐 | 5% | 人工推荐权重 |
+| 质量分 (QualityScore) | 35% | 内容质量评估 |
+| 热度分 (PopularityScore) | 50% | 用户互动热度 |
+| 新鲜度分 (FreshnessScore) | 15% | 最近添加/更新 |
 
 ---
 
 ## 代码位置
 
 ### 后端服务
-- `apps/backend/src/modules/recommendation/` - 推荐服务
+- `src/modules/recommendation/` - 推荐服务
   - `recommendation.service.ts` - 推荐逻辑
-  - `ranking.service.ts` - 排序算法
-  - `recommendation.controller.ts` - API接口
+  - `recommendation.controller.ts` - API 接口
+  - `services/score-calculator.ts` - 评分计算器
+  - `services/book-score.service.ts` - 书籍评分服务
+  - `services/book-stats.service.ts` - 统计收集服务
+  - `services/discover-cache.service.ts` - 发现页缓存
 
 ### 定时任务
-- `apps/backend/src/jobs/` - 定时任务
-  - `update-rankings.job.ts` - 排名更新任务
+- `src/modules/recommendation/jobs/` - 定时任务
+  - `update-book-scores.job.ts` - 评分更新任务
+  - `refresh-discover-cache.job.ts` - 缓存刷新任务
 
 ---
 

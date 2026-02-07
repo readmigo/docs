@@ -18,25 +18,6 @@ Skills 是存放在 `~/.claude/` 目录下的指令模板，Claude 会根据上�
 
 ### 目录结构
 
-```
-~/.claude/
-├── commands/           # 208+ slash commands
-│   ├── orchestration/  # 任务编排
-│   ├── dev/           # 开发工作流
-│   ├── test/          # 测试相关
-│   ├── security/      # 安全审计
-│   └── ...
-├── agents/            # 124+ AI agents
-│   ├── code-auditor.md
-│   ├── security-auditor.md
-│   └── ...
-├── superpowers/       # 核心开发技能
-│   └── skills/
-│       ├── brainstorming/
-│       ├── systematic-debugging/
-│       └── ...
-└── hooks/             # 事件钩子
-```
 
 ### 调用方式
 
@@ -82,10 +63,6 @@ flowchart TD
 5. 写入 `docs/plans/YYYY-MM-DD-<topic>-design.md`
 
 **示例**:
-```
-/brainstorming
-我想为用户添加一个阅读进度同步功能
-```
 
 ---
 
@@ -139,12 +116,6 @@ flowchart TD
 **何时使用**: 2+ 个独立任务，无依赖关系
 
 **示例**:
-```
-/dispatching-parallel-agents
-任务1: 审查认证模块
-任务2: 审查支付模块
-任务3: 审查用户模块
-```
 
 ---
 
@@ -190,23 +161,10 @@ flowchart TD
 #### 每日工作流
 
 **开始工作**:
-```
-/orchestration/resume          # 查看上次进度
-/orchestration/status --today  # 检查今日优先级
-```
 
 **完成任务**:
-```
-/orchestration/move TASK-003 qa   # 标记为待测试
-/orchestration/commit             # 提交代码
-```
 
 **结束工作**:
-```
-/orchestration/commit   # 提交未完成的工作
-/orchestration/status   # 查看整体进度
-/orchestration/sync     # 确保 Git 同步
-```
 
 ---
 
@@ -214,40 +172,6 @@ flowchart TD
 
 #### 代理分类
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                        代理生态系统                           │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────────────┐  ┌─────────────────────┐            │
-│  │  Code Quality Suite │  │  Development Suite  │            │
-│  │  ─────────────────  │  │  ─────────────────  │            │
-│  │  • code-auditor     │  │  • test-engineer    │            │
-│  │  • security-auditor │  │  • project-architect│            │
-│  │  • performance-aud. │  │  • task-decomposer  │            │
-│  │  • architecture-aud.│  │  • task-orchestrator│            │
-│  └─────────────────────┘  └─────────────────────┘            │
-│                                                              │
-│  ┌─────────────────────┐  ┌─────────────────────┐            │
-│  │  Operations Suite   │  │  Strategic Suite    │            │
-│  │  ─────────────────  │  │  ─────────────────  │            │
-│  │  • integration-mgr  │  │  • strategic-analyst│            │
-│  │  • release-manager  │  │  • dependency-anlzr │            │
-│  │  • devops-engineer  │  │                     │            │
-│  └─────────────────────┘  └─────────────────────┘            │
-│                                                              │
-│  ┌─────────────────────┐                                     │
-│  │  Marketing Suite    │                                     │
-│  │  ─────────────────  │                                     │
-│  │  • marketing-strat. │                                     │
-│  │  • growth-hacker    │                                     │
-│  │  • content-creator  │                                     │
-│  │  • aso-specialist   │                                     │
-│  │  • market-researcher│                                     │
-│  └─────────────────────┘                                     │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
 
 #### 代理能力矩阵
 
@@ -265,21 +189,10 @@ flowchart TD
 #### 代理链模式
 
 **模式 1: 顺序分析**
-```
-code-auditor → security-auditor → performance-auditor → test-engineer
-```
 
 **模式 2: 并行分析**
-```
-        ┌→ security-auditor ─┐
-Issue ──┼→ performance-auditor ├→ Report
-        └→ architecture-auditor ┘
-```
 
 **模式 3: 迭代改进**
-```
-code-auditor → Fix Issues → code-auditor → test-engineer → release-manager
-```
 
 ---
 
@@ -287,96 +200,18 @@ code-auditor → Fix Issues → code-auditor → test-engineer → release-manag
 
 ### 场景 1: 新功能开发
 
-```
-1. /brainstorming
-   "我想添加用户仪表板功能"
-
-2. /writing-plans
-   (生成实现计划)
-
-3. /using-git-worktrees
-   (创建隔离工作空间)
-
-4. /test-driven-development
-   (先写测试)
-
-5. "Use code-auditor to review the dashboard implementation"
-
-6. "Use security-auditor to check data access patterns"
-
-7. /verification-before-completion
-
-8. /finishing-a-development-branch
-```
 
 ### 场景 2: Bug 修复
 
-```
-1. /systematic-debugging
-   "登录页面在 Safari 上无法提交"
-
-2. (Phase 1: 根因调查)
-   - 读错误消息
-   - 复现问题
-   - 检查最近变更
-
-3. (Phase 2: 模式分析)
-   - 找 Chrome 上工作的代码
-   - 对比差异
-
-4. (Phase 3: 假设测试)
-   - 形成假设
-   - 最小变更测试
-
-5. (Phase 4: 实施)
-   - 创建失败测试
-   - 修复
-   - 验证
-```
 
 ### 场景 3: 代码审查
 
-```
-1. "Run all code auditors on the legacy payments module"
-
-   自动激活:
-   - code-auditor → 通用问题
-   - architecture-auditor → 设计问题
-   - performance-auditor → 性能瓶颈
-   - security-auditor → 安全漏洞
-
-2. "Use strategic-analyst to prioritize technical debt"
-
-3. "Have integration-manager create Linear tasks"
-```
 
 ### 场景 4: 发布准备
 
-```
-1. "Have code-auditor do a complete review for v2.0"
-
-2. "Use security-auditor for final security check"
-
-3. "Use test-engineer to ensure >90% coverage"
-
-4. "Have release-manager prepare the release"
-```
 
 ### 场景 5: 产品营销
 
-```
-1. "Use market-researcher to analyze market size"
-
-2. "Have competitive-analyst review competitors"
-
-3. "Use gtm-strategist to create launch plan"
-
-4. "Have marketing-strategist develop campaign"
-
-5. "Use content-creator to prepare launch content"
-
-6. "Have aso-specialist optimize app store listing"
-```
 
 ---
 
@@ -414,37 +249,9 @@ code-auditor → Fix Issues → code-auditor → test-engineer → release-manag
 
 ### 日常命令
 
-```bash
-# 开始新项目
-/orchestration/start
-
-# 继续工作
-/orchestration/resume
-
-# 查看状态
-/orchestration/status
-
-# 调试问题
-/systematic-debugging
-
-# 代码审查
-"Use code-auditor to review my changes"
-
-# 完成验证
-/verification-before-completion
-```
 
 ### Agent 触发短语
 
-```
-"Review my code"        → code-auditor
-"Check for security"    → security-auditor
-"Optimize performance"  → performance-auditor
-"Generate tests"        → test-engineer
-"Prepare release"       → release-manager
-"Market analysis"       → market-researcher
-"Launch strategy"       → gtm-strategist
-```
 
 ---
 

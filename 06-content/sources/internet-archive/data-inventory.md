@@ -4,8 +4,6 @@
 
 ---
 
-## 1. 概述
-
 ### 1.1 Internet Archive
 
 | 项目 | 描述 |
@@ -36,22 +34,6 @@
 
 ---
 
-## 2. 数据模型
-
-### 2.1 Work vs Edition 概念
-
-```
-Work（作品）
-├── 通用信息：作者、首次出版年、主题
-├── 示例：《Fantastic Mr. Fox》这部作品
-│
-└── Edition（版本）
-    ├── 具体版本信息：出版商、ISBN、封面、页数
-    ├── 示例 1：西班牙语翻译版
-    ├── 示例 2：2005年修订版
-    └── 示例 3：有声书版本
-```
-
 ### 2.2 标识符系统
 
 | 标识符 | 格式 | 示例 |
@@ -65,8 +47,6 @@ Work（作品）
 
 ---
 
-## 3. 官方 API
-
 ### 3.1 API 概览
 
 | API | 用途 | URL |
@@ -78,56 +58,6 @@ Work（作品）
 | **Authors API** | 获取作者信息 | `/authors/{olid}.json` |
 | **Covers API** | 获取封面图 | `covers.openlibrary.org` |
 | **Read API** | 检查可读性 | `/api/volumes/brief/` |
-
-### 3.2 Search API
-
-```
-GET https://openlibrary.org/search.json?q={query}
-
-参数：
-- q           : 搜索关键词
-- title       : 按标题搜索
-- author      : 按作者搜索
-- subject     : 按主题搜索
-- language    : 语言过滤
-- first_publish_year : 首次出版年份
-- limit       : 结果数量（默认100）
-- offset      : 分页偏移
-- fields      : 指定返回字段
-```
-
-#### 响应示例
-
-```json
-{
-  "numFound": 1234,
-  "start": 0,
-  "docs": [
-    {
-      "key": "/works/OL45804W",
-      "title": "Pride and Prejudice",
-      "author_name": ["Jane Austen"],
-      "author_key": ["OL21594A"],
-      "first_publish_year": 1813,
-      "subject": ["Fiction", "Love stories", "Sisters"],
-      "language": ["eng", "spa", "fra"],
-      "cover_i": 8231856,
-      "edition_count": 1234,
-      "ebook_count_i": 89,
-      "has_fulltext": true,
-      "public_scan_b": true
-    }
-  ]
-}
-```
-
-### 3.3 Works API
-
-```
-GET https://openlibrary.org/works/{olid}.json
-
-示例: https://openlibrary.org/works/OL45804W.json
-```
 
 #### 响应字段
 
@@ -143,14 +73,6 @@ GET https://openlibrary.org/works/{olid}.json
 | `subject_people` | array | 人物主题 |
 | `first_publish_date` | string | 首次出版日期 |
 | `covers` | array | 封面 ID 列表 |
-
-### 3.4 Editions API
-
-```
-GET https://openlibrary.org/books/{olid}.json
-
-示例: https://openlibrary.org/books/OL7353617M.json
-```
 
 #### 响应字段
 
@@ -168,14 +90,6 @@ GET https://openlibrary.org/books/{olid}.json
 | `works` | array | 关联的 Work |
 | `ocaid` | string | Internet Archive ID |
 
-### 3.5 Authors API
-
-```
-GET https://openlibrary.org/authors/{olid}.json
-
-示例: https://openlibrary.org/authors/OL21594A.json
-```
-
 #### 响应字段
 
 | 字段 | 类型 | 说明 |
@@ -190,63 +104,11 @@ GET https://openlibrary.org/authors/{olid}.json
 | `wikipedia` | string | Wikipedia 链接 |
 | `photos` | array | 照片 ID |
 
-### 3.6 Covers API
-
-```
-封面 URL 模式:
-https://covers.openlibrary.org/b/{key}/{value}-{size}.jpg
-
-key 类型: isbn, oclc, lccn, olid, id
-size: S (小), M (中), L (大)
-
-示例:
-https://covers.openlibrary.org/b/isbn/9780141301136-M.jpg
-https://covers.openlibrary.org/b/olid/OL7353617M-L.jpg
-https://covers.openlibrary.org/b/id/8231856-M.jpg
-```
-
 ### 3.7 Read API（Partner API）
 
 检查书籍是否可在线阅读：
 
-```
-GET https://openlibrary.org/api/volumes/brief/{id-type}/{id-value}.json
-
-id-type: isbn, lccn, oclc, olid
-
-示例:
-https://openlibrary.org/api/volumes/brief/isbn/9780141301136.json
-```
-
-#### 响应示例
-
-```json
-{
-  "records": {
-    "/books/OL7353617M": {
-      "recordURL": "https://openlibrary.org/books/OL7353617M",
-      "oclcs": ["123456"],
-      "isbns": ["9780141301136"],
-      "data": {
-        "title": "Pride and Prejudice",
-        "authors": [...],
-        "cover": {...}
-      },
-      "details": {...}
-    }
-  },
-  "items": [
-    {
-      "status": "full access",
-      "itemURL": "https://archive.org/details/prideandprejudic00aust"
-    }
-  ]
-}
-```
-
 ---
-
-## 4. 批量数据下载
 
 ### 4.1 Data Dumps
 
@@ -267,14 +129,6 @@ https://openlibrary.org/api/volumes/brief/isbn/9780141301136.json
 
 Tab 分隔的文本文件：
 
-```
-列1: type        (/type/edition, /type/work, /type/author)
-列2: key         (/books/OL1M, /works/OL1W, /authors/OL1A)
-列3: revision    修订版本号
-列4: last_modified 最后修改时间
-列5: JSON        完整 JSON 记录
-```
-
 ### 4.3 处理工具推荐
 
 | 工具 | 用途 |
@@ -285,16 +139,9 @@ Tab 分隔的文本文件：
 
 ---
 
-## 5. Internet Archive 书籍
-
 ### 5.1 公共领域书籍
 
 Internet Archive 托管大量公共领域书籍，可直接下载：
-
-```
-书籍页面: https://archive.org/details/{ocaid}
-元数据 API: https://archive.org/metadata/{ocaid}
-```
 
 ### 5.2 文件格式
 
@@ -307,12 +154,6 @@ Internet Archive 托管大量公共领域书籍，可直接下载：
 | **Kindle** | `_kindle.mobi` | Kindle 格式 |
 | **Text** | `_djvu.txt` | 纯文本 |
 | **DAISY** | `_daisy.zip` | 无障碍格式 |
-
-### 5.3 元数据 API
-
-```
-GET https://archive.org/metadata/{identifier}
-```
 
 #### 响应字段
 
@@ -327,20 +168,7 @@ GET https://archive.org/metadata/{identifier}
 | `metadata.publisher` | 出版商 |
 | `files` | 可下载文件列表 |
 
-### 5.4 搜索 API
-
-```
-GET https://archive.org/advancedsearch.php?q={query}&output=json
-
-常用查询参数:
-- mediatype:texts         # 仅文本/书籍
-- collection:gutenberg    # Gutenberg 子集
-- language:eng           # 英语书籍
-```
-
 ---
-
-## 6. 与 Readmigo 数据需求对照
 
 ### 6.1 数据字段映射
 
@@ -370,74 +198,7 @@ GET https://archive.org/advancedsearch.php?q={query}&output=json
 | **ISBN 关联** | 便于去重和关联外部数据 |
 | **高质量封面** | 补充封面缺失的书籍 |
 
-### 6.3 推荐使用场景
-
-```
-场景1：补充书籍元数据
-├── 从 PG/SE 导入书籍后
-├── 通过标题+作者查询 OL
-└── 获取描述、原始出版日期、封面
-
-场景2：获取作者信息
-├── 用 OL 作者 ID 获取
-├── 简介、照片、Wikipedia 链接
-└── 用于 Readmigo 作者页面
-
-场景3：公共领域 EPUB 下载
-├── 通过 OL 搜索公共领域书籍
-├── 获取 IA ocaid
-└── 从 IA 下载 EPUB
-```
-
 ---
-
-## 7. 数据获取策略
-
-### 7.1 元数据补充流程
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  目标：为 PG/SE 书籍补充元数据                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Step 1: 搜索匹配                                            │
-│  └── GET /search.json?title={title}&author={author}         │
-│                                                             │
-│  Step 2: 获取 Work 详情                                      │
-│  └── GET /works/{olid}.json                                 │
-│  └── 提取: description, first_publish_date, subjects        │
-│                                                             │
-│  Step 3: 获取作者详情                                        │
-│  └── GET /authors/{olid}.json                               │
-│  └── 提取: bio, birth_date, death_date, wikipedia           │
-│                                                             │
-│  Step 4: 获取封面                                            │
-│  └── https://covers.openlibrary.org/b/olid/{olid}-L.jpg     │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 7.2 批量导入公共领域书籍
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  目标：导入 IA 公共领域书籍                                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Step 1: 搜索公共领域书籍                                     │
-│  └── IA Search: mediatype:texts AND rights:publicdomain     │
-│                                                             │
-│  Step 2: 过滤有 EPUB 的书籍                                   │
-│  └── 检查 files 中是否有 _epub.epub                          │
-│                                                             │
-│  Step 3: 获取元数据                                          │
-│  └── 结合 IA metadata 和 OL Work/Edition                     │
-│                                                             │
-│  Step 4: 下载 EPUB                                           │
-│  └── https://archive.org/download/{ocaid}/{filename}        │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ### 7.3 速率限制
 
@@ -449,8 +210,6 @@ GET https://archive.org/advancedsearch.php?q={query}&output=json
 | Data Dumps | 无限制（推荐用种子下载） |
 
 ---
-
-## 8. 法律注意事项
 
 ### 8.1 借阅书籍（Lending Library）
 
@@ -490,21 +249,6 @@ GET https://archive.org/advancedsearch.php?q={query}&output=json
 | **EPUB 质量** | 参差不齐 | 参差不齐 | 高 |
 | **API** | 官方 REST | 第三方 | Feed only |
 | **书籍数量** | 2000万+ 元数据 | 76,000+ | ~1,000 |
-
-### 推荐组合策略
-
-```
-1. 核心内容来源
-   └── Standard Ebooks (高质量 EPUB)
-   └── Project Gutenberg (大量经典)
-
-2. 元数据补充来源
-   └── Open Library (描述、作者信息、封面)
-   └── Wikipedia (额外背景信息)
-
-3. 扩展内容来源
-   └── Internet Archive (公共领域 EPUB)
-```
 
 ---
 

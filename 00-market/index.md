@@ -44,5 +44,5 @@
 ## 快速导航
 
 - **商业决策**: feasibility-assessment.md → gtm-strategy.md
-- **竞品研究**: competitive/README.md
+- **竞品研究**: competitive/index.md
 - **运营策划**: operational-activities-design.md → marketing-copy.md

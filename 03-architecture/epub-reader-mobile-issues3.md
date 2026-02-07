@@ -1,7 +1,3 @@
-# 阅读器问题汇总（文档3）
-
-## 问题1：Standard Ebooks 书籍缺少封面章节
-
 ### 问题描述
 
 Standard Ebooks 来源的书籍导入后，阅读器从第一章开始显示，没有封面页面，用户体验不够沉浸式。
@@ -10,8 +6,6 @@ Standard Ebooks 来源的书籍导入后，阅读器从第一章开始显示，�
 
 为书籍添加独立的 Cover 章节，作为第一章，实现全屏沉浸式封面展示。
 
-### 技术实现
-
 #### 数据库结构
 
 | 字段 | 值 |
@@ -19,14 +13,6 @@ Standard Ebooks 来源的书籍导入后，阅读器从第一章开始显示，�
 | order | 1 (其他章节依次后移) |
 | title | Cover |
 | html_content | 见下方 HTML 结构 |
-
-#### Cover 章节 HTML 结构
-
-```html
-<section class="cover" epub:type="cover">
-    <img class="cover" src="/images/epub/images/cover.jpg" alt="Cover" />
-</section>
-```
 
 #### 图片 URL 转换流程
 
@@ -37,28 +23,6 @@ graph LR
 ```
 
 转换逻辑位于 `phone-preview.tsx`:
-
-```typescript
-html.replace(
-  /src="([^"]+\.(jpg|jpeg|png|gif|svg|webp))"/gi,
-  (match, path) => `src="${apiUrl}/api/v1/content-studio/books/${bookId}/images/${path.replace(/^\/images\//, '')}"`
-);
-```
-
-#### 封面样式 (reader-template.ts)
-
-```css
-img.cover, img.x-ebookmaker-cover {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    margin: 0;
-}
-
-.page.cover-page {
-    padding: 0;
-}
-```
 
 ### Pipeline 自动处理
 
@@ -82,31 +46,19 @@ graph TB
 | `tools/content-studio/src/components/preview/phone-preview.tsx` | 图片 URL 转换 |
 | `tools/content-studio/src/lib/reader-template.ts` | 封面样式定义 |
 
-### 修复记录
-
 #### 问题：图片 API 返回 500 错误
 
 **错误信息:**
-```
-Unknown field 'epubUrl' for select statement on model 'books'
-```
 
 **原因:** Prisma 字段已迁移为 snake_case 命名
 
 **修复:** `content-studio.service.ts` line 1026
-
-```diff
-- select: { id: true, epubUrl: true },
-+ select: { id: true, epub_url: true },
-```
 
 ### 测试验证
 
 测试结果截图显示封面全屏显示正常工作。
 
 ---
-
-## 问题2：分页算法导致内容截断和大段空白
 
 ### 问题描述
 
@@ -122,62 +74,10 @@ Content Studio 手机预览的分页算法存在两个严重问题：
 以 *The Picture of Dorian Gray* Chapter I 为例：
 
 **第1页问题（大段空白）：**
-```
-┌─────────────────────────────┐
-│ I                           │  ← 章节标题
-│                             │
-│ The studio was filled with  │  ← 第一段（短）
-│ the rich odour of roses...  │
-│                             │
-│                             │
-│ [大段空白 ~60%]             │  ← 第二段被整体移走
-│                             │
-│                             │
-│                        1/35 │
-└─────────────────────────────┘
-```
 
 **第2页问题（内容截断）：**
-```
-┌─────────────────────────────┐
-│ From the corner of the      │
-│ divan of Persian saddlebags │
-│ ...                         │
-│ The dim roar of London      │  ← 句子在此被截断！
-│                             │
-│ [缺失: "was like the        │  ← 后半句完全丢失
-│  bourdon note of a          │
-│  distant organ."]           │
-│                        2/35 │
-└─────────────────────────────┘
-```
 
 **第3页（跳过丢失内容）：**
-```
-┌─────────────────────────────┐
-│ In the centre of the room,  │  ← 直接跳到第三段
-│ clamped to an upright       │
-│ easel...                    │
-└─────────────────────────────┘
-```
-
-### 根本原因分析
-
-#### 控制台日志诊断
-
-```
-[Pagination Debug]
-pageHeight: 685  pageWidth: 340
-totalElements: 2                    ← 只有2个元素：H1 + SECTION
-
-[0] H1 .chapter-title | h: 82
-[1] SECTION | h: 20801              ← 整个内容在一个 SECTION 中
-
-→ TALL ELEMENT detected h: 20801
-→ SPLITTING ELEMENT by children     ← 按子元素分割，不按文本
-→ Element split at child 1          ← 第二段作为整体处理
-→ Element split at child 2          ← 溢出内容被截断
-```
 
 #### 算法缺陷
 
@@ -203,37 +103,6 @@ graph TB
 #### 代码位置
 
 问题代码在 `tools/content-studio/src/lib/reader-template.ts` 的 `paginateContent()` 函数：
-
-```javascript
-// 问题代码：按子元素分割，不处理超长子元素
-if (children.length > 1) {
-    Array.from(children).forEach((child, childIdx) => {
-        // ...
-        if (splitPageHeight + childHeight > availableHeight) {
-            pages.push(splitPageContent);  // 推送当前页
-            splitPageContent = '';
-            splitPageHeight = 0;
-        }
-        splitPageContent += child.outerHTML;  // ❌ 整个子元素添加，不分割
-        splitPageHeight += childHeight;
-    });
-}
-```
-
-### 解决方案
-
-#### 目标效果
-
-```
-┌─ Page 1 ─┐   ┌─ Page 2 ─┐   ┌─ Page 3 ─┐   ┌─ Page 4 ─┐
-│ Title    │   │ Para 2   │   │ Para 2   │   │ Para 3   │
-│ Para 1   │   │ (续)     │   │ (续完)   │   │ ...      │
-│ Para 2   │   │          │   │ ...organ.│   │          │
-│ (开头)   │   │          │   │          │   │          │
-└──────────┘   └──────────┘   └──────────┘   └──────────┘
-     ↑              ↑              ↑              ↑
-   填满页面      继续段落       段落完整        下一段开始
-```
 
 #### 算法重构方案
 
@@ -267,59 +136,6 @@ graph TB
 | 页面填充 | 不适合就整体移走 | 尽量用部分内容填满当前页 |
 | 文本分割 | 仅用于顶层超长元素 | 递归应用于任何超长元素 |
 | 分割粒度 | 按 token 分割 | 按单词边界分割，保证完整性 |
-
-#### 伪代码
-
-```javascript
-function paginateElement(element, availableHeight, pageWidth) {
-    const elHeight = measureHeight(element);
-
-    // Case A: 元素适合可用空间
-    if (elHeight <= availableHeight) {
-        return { fits: true, content: element.outerHTML, height: elHeight };
-    }
-
-    // Case B: 元素不适合，需要分割
-    if (element.tagName === 'P' || element.tagName === 'DIV') {
-        return splitByText(element, availableHeight, pageWidth);
-    }
-
-    // Case C: 其他元素类型，尝试按子元素分割
-    if (element.children.length > 0) {
-        return splitByChildren(element, availableHeight, pageWidth);
-    }
-
-    // Case D: 无法分割，强制添加（可能溢出）
-    return { fits: false, content: element.outerHTML, height: elHeight };
-}
-
-function splitByText(element, availableHeight, pageWidth) {
-    const tokens = tokenize(element.innerHTML);
-    let currentPart = '';
-    let parts = [];
-
-    for (const token of tokens) {
-        const testContent = currentPart + token;
-        const testHeight = measureHeight(createTempElement(testContent));
-
-        if (testHeight > availableHeight && currentPart.trim()) {
-            // 在单词边界处分割
-            const safePart = ensureWordBoundary(currentPart);
-            parts.push(safePart);
-            currentPart = getRemainder(currentPart, safePart) + token;
-            availableHeight = pageHeight; // 后续页面用完整高度
-        } else {
-            currentPart = testContent;
-        }
-    }
-
-    if (currentPart.trim()) {
-        parts.push(currentPart);
-    }
-
-    return parts;
-}
-```
 
 ### 相关文件
 

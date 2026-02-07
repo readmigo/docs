@@ -19,8 +19,6 @@
 
 ---
 
-## 设计原则
-
 ### 1. 统一性
 - iOS Bundle ID 和 Android Package Name 保持一致
 - 便于用户识别和跨平台迁移
@@ -43,8 +41,6 @@
 
 ---
 
-## 当前方案
-
 ### 主应用标识符
 
 | 平台 | 标识符 | 用途 |
@@ -66,31 +62,6 @@
 - 未来如需多版本需要新的命名策略
 
 ---
-
-## 包名结构
-
-### 标准格式
-
-```
-com.readmigo.<product>.<variant>
-│   │        │        │
-│   │        │        └─ 变体（可选）：beta, dev, staging
-│   │        └─ 产品标识：app, lite, pro, kids
-│   └─ 公司/品牌名
-└─ 顶级域名
-```
-
-### 示例
-
-```
-com.readmigo.app              # 主应用（推荐）
-com.readmigo.app.beta         # 测试版（可选）
-com.readmigo.app.dev          # 开发版（可选）
-```
-
----
-
-## 未来扩展方案
 
 ### 场景1：轻量版本
 
@@ -170,24 +141,6 @@ com.readmigo.app.dev          # 开发版（可选）
 
 ---
 
-## 各平台配置
-
-### iOS配置
-
-#### 1. Xcode项目配置
-
-```xml
-<!-- Info.plist -->
-<key>CFBundleIdentifier</key>
-<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-```
-
-#### 2. Build Settings
-
-```
-PRODUCT_BUNDLE_IDENTIFIER = com.readmigo.app
-```
-
 #### 3. Apple Developer Portal
 
 1. 登录 [Apple Developer Portal](https://developer.apple.com/account)
@@ -209,50 +162,6 @@ PRODUCT_BUNDLE_IDENTIFIER = com.readmigo.app
 
 ---
 
-### Android配置
-
-#### 1. build.gradle配置
-
-```gradle
-// app/build.gradle
-android {
-    namespace 'com.readmigo.app'
-
-    defaultConfig {
-        applicationId "com.readmigo.app"
-        minSdk 24
-        targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
-    }
-
-    buildTypes {
-        release {
-            applicationIdSuffix ""
-        }
-        beta {
-            applicationIdSuffix ".beta"
-        }
-        debug {
-            applicationIdSuffix ".dev"
-        }
-    }
-}
-```
-
-#### 2. AndroidManifest.xml
-
-```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.readmigo.app">
-
-    <application
-        android:label="Readmigo"
-        ...>
-    </application>
-</manifest>
-```
-
 #### 3. Google Play Console
 
 - Package name: `com.readmigo.app`
@@ -260,23 +169,6 @@ android {
 - 无法修改：包名一旦发布不可更改
 
 ---
-
-### Web配置
-
-#### 1. PWA Manifest
-
-```json
-{
-  "name": "Readmigo - AI English Reading",
-  "short_name": "Readmigo",
-  "id": "com.readmigo.app",
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4F46E5"
-}
-```
 
 #### 2. Deep Links / Universal Links
 
@@ -290,15 +182,11 @@ android {
 
 ---
 
-## 域名所有权验证
-
 ### 为什么需要验证？
 
 - 使用 `com.readmigo.*` 需要拥有 `readmigo.app` 或 `readmigo.app` 域名
 - Apple和Google会验证域名所有权
 - 防止品牌仿冒
-
-### Apple验证
 
 #### Sign in with Apple
 需要配置域名验证：
@@ -308,21 +196,6 @@ android {
 
 #### Universal Links
 需要配置AASA文件：
-```json
-{
-  "applinks": {
-    "apps": [],
-    "details": [
-      {
-        "appID": "TEAM_ID.com.readmigo.app",
-        "paths": ["*"]
-      }
-    ]
-  }
-}
-```
-
-### Google验证
 
 #### Play App Signing
 - 验证域名所有权
@@ -330,22 +203,10 @@ android {
 
 #### App Links
 创建 `assetlinks.json`：
-```json
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.readmigo.app",
-    "sha256_cert_fingerprints": ["..."]
-  }
-}]
-```
 
 托管在: `https://readmigo.app/.well-known/assetlinks.json`
 
 ---
-
-## 包名命名规范总结
 
 ### ✅ 推荐做法
 
@@ -397,8 +258,6 @@ android {
 
 ---
 
-## 实施计划
-
 ### 当前阶段（v1.0）
 
 | 平台 | 包名/Bundle ID | 状态 |
@@ -420,8 +279,6 @@ android {
 - [ ] 评估是否需要地区特定版本
 
 ---
-
-## 检查清单
 
 ### iOS发布前
 
@@ -447,8 +304,6 @@ android {
 - [ ] HTTPS证书有效
 
 ---
-
-## 参考资料
 
 ### Apple文档
 - [Bundle ID官方文档](https://developer.apple.com/documentation/appstoreconnectapi/bundle_ids)

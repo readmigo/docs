@@ -26,8 +26,6 @@
 
 ---
 
-## 2. 官方数据获取渠道
-
 ### 2.1 Feed 订阅
 
 | Feed 类型 | URL | 访问权限 | 用途 |
@@ -77,21 +75,12 @@
 
 通过网页抓取可获取：
 
-```
-列表页：https://standardebooks.org/ebooks?page={n}
-详情页：https://standardebooks.org/ebooks/{author}/{title}
-封面图：https://standardebooks.org/images/covers/{path}
-下载链接：https://standardebooks.org/ebooks/{author}/{title}/downloads/{filename}.epub
-```
-
 **注意事项**：
 - 遵守 robots.txt 规则
 - 建议请求间隔 1-2 秒
 - User-Agent 应标明来源
 
 ---
-
-## 3. 可获取的元数据字段
 
 ### 3.1 核心元数据（content.opf）
 
@@ -187,8 +176,6 @@ Standard Ebooks 使用的主题分类：
 
 ---
 
-## 5. 与 Readmigo 数据需求对照
-
 ### 5.1 数据字段映射
 
 | Readmigo 字段 | Standard Ebooks 来源 | 可用性 |
@@ -241,8 +228,6 @@ Standard Ebooks 使用的主题分类：
 
 ---
 
-## 6. 数据获取策略建议
-
 ### 6.1 推荐方案
 
 ```mermaid
@@ -288,20 +273,6 @@ flowchart TD
 | **更新频率** | 持续（志愿者） | 持续 |
 | **商用许可** | CC0，完全自由 | 公共领域，可商用 |
 | **适合场景** | 精选高质量内容 | 海量内容库 |
-
-### 推荐策略
-
-```
-阶段一（MVP）：优先使用 Standard Ebooks
-├── 1000+ 本高质量经典
-├── 数据结构规范，易于导入
-└── 封面统一，产品体验好
-
-阶段二（扩展）：补充 Project Gutenberg
-├── 扩大内容库到数万本
-├── 按热度和质量筛选
-└── 需要额外处理元数据和封面
-```
 
 ---
 

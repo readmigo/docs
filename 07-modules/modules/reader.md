@@ -33,51 +33,41 @@
 
 ## 2. 数据模型
 
-```typescript
-// 共享类型定义
-interface ReaderState {
-  bookId: string;
-  currentChapter: Chapter;
-  currentCfi: string;
-  progress: number; // 0-100
-  settings: ReaderSettings;
-  isToolbarVisible: boolean;
-}
+### ReaderState
 
-interface ReaderSettings {
-  theme: 'light' | 'dark' | 'sepia';
-  fontSize: number; // 14-28
-  fontFamily: string;
-  lineSpacing: number; // 1.2-2.0
-  textAlignment: 'left' | 'justify';
-  pageMode: 'scroll' | 'paginated';
-}
+| Field | Type | Description |
+|-------|------|-------------|
+| bookId | string | Current book ID |
+| currentChapter | Chapter | Active chapter |
+| currentCfi | string | EPUB CFI position |
+| progress | number | Reading progress (0-100) |
+| settings | ReaderSettings | Display settings |
+| isToolbarVisible | boolean | Toolbar state |
 
-interface TextSelection {
-  text: string;
-  sentence?: string;
-  paragraph?: string;
-  cfi: string;
-  rect: { x: number; y: number; width: number; height: number };
-}
+### ReaderSettings
 
-interface Bookmark {
-  id: string;
-  bookId: string;
-  cfi: string;
-  text: string;
-  createdAt: string;
-}
+| Setting | Type | Range | Description |
+|---------|------|-------|-------------|
+| theme | enum | light / dark / sepia | Color theme |
+| fontSize | number | 14-28 | Font size in points |
+| fontFamily | string | - | Font family name |
+| lineSpacing | number | 1.2-2.0 | Line height multiplier |
+| textAlignment | enum | left / justify | Text alignment |
+| pageMode | enum | scroll / paginated | Reading mode |
 
-interface Highlight {
-  id: string;
-  bookId: string;
-  cfi: string;
-  text: string;
-  color: 'yellow' | 'green' | 'blue' | 'pink' | 'purple';
-  note?: string;
-}
-```
+### TextSelection
+
+| Field | Type | Description |
+|-------|------|-------------|
+| text | string | Selected text |
+| sentence | string (optional) | Containing sentence |
+| paragraph | string (optional) | Containing paragraph |
+| cfi | string | EPUB CFI position |
+| rect | object | x, y, width, height coordinates |
+
+### Bookmark / Highlight
+
+Bookmarks store id, bookId, cfi, text, and createdAt. Highlights additionally include color (yellow, green, blue, pink, purple) and an optional note.
 
 ---
 

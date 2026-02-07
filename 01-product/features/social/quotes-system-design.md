@@ -34,22 +34,6 @@
 
 ### 2.1 Quote 金句
 
-```typescript
-interface Quote {
-  id: string;              // 金句ID
-  text: string;            // 金句内容（英文）
-  textEn?: string;         // 英文版本（如原文非英文）
-  source: 'book' | 'author';  // 来源类型
-  bookId?: string;         // 关联书籍ID（书中金句）
-  bookTitle?: string;      // 书籍标题
-  author: string;          // 作者名
-  chapter?: string;        // 章节（书中金句）
-  tags: string[];          // 标签列表
-  likeCount: number;       // 点赞数
-  isLiked?: boolean;       // 当前用户是否已点赞
-  createdAt: Date;         // 创建时间
-}
-```
 
 ### 2.2 标签系统
 
@@ -90,17 +74,6 @@ interface Quote {
 
 ### 3.3 查询参数
 
-```typescript
-interface QuoteQueryDto {
-  source?: 'book' | 'author';  // 筛选来源类型
-  bookId?: string;             // 筛选书籍
-  author?: string;             // 筛选作者
-  tag?: string;                // 筛选标签
-  search?: string;             // 搜索关键词
-  page?: number;               // 页码（默认1）
-  limit?: number;              // 每页数量（默认20）
-}
-```
 
 ---
 
@@ -110,13 +83,6 @@ interface QuoteQueryDto {
 
 基于日期生成当日金句，同一天返回相同金句：
 
-```typescript
-const dayOfYear = Math.floor(
-  (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime())
-  / (24 * 60 * 60 * 1000)
-);
-const index = dayOfYear % quotes.length;
-```
 
 ### 4.2 热门排序
 

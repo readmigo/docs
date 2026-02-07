@@ -32,52 +32,51 @@
 
 ## 2. 数据模型
 
-```typescript
-// AI 解释结果
-interface AIExplanation {
-  word: string;
-  phonetic?: string;
-  partOfSpeech: string;
-  definition: string;
-  contextMeaning: string;
-  examples: string[];
-  synonyms: string[];
-  etymology?: string;
-  mnemonics?: string;
-  difficulty: 1 | 2 | 3 | 4 | 5;
-}
+### AIExplanation (选词解释结果)
 
-// AI 句子简化结果
-interface AISentenceSimplification {
-  original: string;
-  simplified: string;
-  explanation: string;
-  keyChanges: string[];
-}
+| Field | Type | Description |
+|-------|------|-------------|
+| word | string | The word being explained |
+| phonetic | string (optional) | Phonetic transcription |
+| partOfSpeech | string | Part of speech |
+| definition | string | Standard definition |
+| contextMeaning | string | Meaning in current context |
+| examples | string[] | Usage examples |
+| synonyms | string[] | Synonyms |
+| etymology | string (optional) | Word origin |
+| mnemonics | string (optional) | Memory aid |
+| difficulty | 1-5 | Difficulty level |
 
-// AI 翻译结果
-interface AITranslation {
-  original: string;
-  translation: string;
-  annotations: TranslationAnnotation[];
-}
+### AISentenceSimplification (句子简化结果)
 
-// AI 请求上下文
-interface AIContext {
-  bookId: string;
-  chapterId: string;
-  selectedText: string;
-  surroundingText: string;
-  userLevel: 'beginner' | 'intermediate' | 'advanced';
-}
+| Field | Type | Description |
+|-------|------|-------------|
+| original | string | Original sentence |
+| simplified | string | Simplified version |
+| explanation | string | What changed and why |
+| keyChanges | string[] | List of key changes |
 
-// 流式响应状态
-type AIStreamResult<T> =
-  | { type: 'loading' }
-  | { type: 'streaming'; text: string }
-  | { type: 'success'; data: T }
-  | { type: 'error'; message: string };
-```
+### AITranslation (翻译结果)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| original | string | Original text |
+| translation | string | Translated text |
+| annotations | array | Annotation details for key phrases |
+
+### AIContext (请求上下文)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| bookId | string | Source book |
+| chapterId | string | Source chapter |
+| selectedText | string | User-selected text |
+| surroundingText | string | Surrounding context |
+| userLevel | enum | beginner / intermediate / advanced |
+
+### AIStreamResult (流式响应状态)
+
+Possible states: loading, streaming (partial text), success (complete data), error (with message).
 
 ---
 
@@ -116,46 +115,13 @@ type AIStreamResult<T> =
 
 ## 5. 打字机效果实现
 
-### Android (Compose)
+Each platform implements character-by-character text reveal with ~10ms delay:
 
-```kotlin
-@Composable
-fun TypewriterText(text: String) {
-  var displayedText by remember { mutableStateOf("") }
-
-  LaunchedEffect(text) {
-    for (char in text) {
-      displayedText += char
-      delay(10)
-    }
-  }
-
-  Text(text = displayedText)
-}
-```
-
-### React Native
-
-```typescript
-function TypewriterText({ text }: { text: string }) {
-  const [displayedText, setDisplayedText] = useState('');
-
-  useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index < text.length) {
-        setDisplayedText(text.slice(0, index + 1));
-        index++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 10);
-    return () => clearInterval(interval);
-  }, [text]);
-
-  return <Text>{displayedText}</Text>;
-}
-```
+| Platform | Approach |
+|----------|----------|
+| Android (Compose) | LaunchedEffect + mutableState, iterating characters |
+| React Native | useEffect + setInterval, incrementing slice index |
+| Web | CSS animation or JavaScript interval |
 
 ---
 

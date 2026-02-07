@@ -35,36 +35,9 @@
 
 ### 2.1 PostcardTemplate 模板
 
-```typescript
-interface PostcardTemplate {
-  id: string;              // 模板ID
-  name: string;            // 模板名称
-  previewUrl: string;      // 预览图URL
-  backgroundColor: string; // 背景色
-  fontFamily: string;      // 字体
-  fontColor: string;       // 字体颜色
-  isPremium: boolean;      // 是否付费模板
-}
-```
 
 ### 2.2 Postcard 明信片
 
-```typescript
-interface Postcard {
-  id: string;              // 明信片ID
-  userId: string;          // 创建者ID
-  templateId: string;      // 使用的模板ID
-  content: string;         // 内容文本
-  contentType: 'quote' | 'highlight' | 'custom';  // 内容类型
-  sourceId?: string;       // 来源ID（金句或划线ID）
-  bookTitle?: string;      // 关联书籍
-  author?: string;         // 作者名
-  imageUrl?: string;       // 生成的图片URL
-  isPublic: boolean;       // 是否公开
-  shareCount: number;      // 分享次数
-  createdAt: Date;         // 创建时间
-}
-```
 
 ### 2.3 预设模板
 
@@ -105,17 +78,6 @@ interface Postcard {
 
 ### 3.3 创建参数
 
-```typescript
-interface CreatePostcardDto {
-  templateId: string;            // 模板ID
-  content: string;               // 内容
-  contentType: 'quote' | 'highlight' | 'custom';
-  sourceId?: string;             // 来源ID
-  bookTitle?: string;            // 书籍标题
-  author?: string;               // 作者
-  isPublic?: boolean;            // 是否公开（默认false）
-}
-```
 
 ---
 
