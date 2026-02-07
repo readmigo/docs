@@ -21,14 +21,14 @@
 ```mermaid
 graph TD
     subgraph Clients["客户端层 Clients"]
-        iOS["iOS (Swift)\nSwiftUI · iOS 17+"]
-        Android["Android (Kotlin)\nJetpack Compose · SDK 26+"]
-        Web["Web (Next.js)\nReact 19 · TypeScript"]
-        Mobile["Mobile (Expo RN)\nReact Native 0.81"]
+        iOS["iOS (Swift)<br>SwiftUI · iOS 17+"]
+        Android["Android (Kotlin)<br>Jetpack Compose · SDK 26+"]
+        Web["Web (Next.js)<br>React 19 · TypeScript"]
+        Mobile["Mobile (Expo RN)<br>React Native 0.81"]
     end
 
     subgraph Gateway["API 网关 · Fly.io"]
-        API["NestJS 10.4 + TypeScript 5.6 + Node.js 20\n37+ 功能模块 · JWT 认证"]
+        API["NestJS 10.4 + TypeScript 5.6 + Node.js 20<br>37+ 功能模块 · JWT 认证"]
     end
 
     iOS --> API
@@ -36,10 +36,10 @@ graph TD
     Web --> API
     Mobile --> API
 
-    API --> PG["PostgreSQL (Neon)\nPrisma ORM · 60+ 模型"]
-    API --> Redis["Redis 7 (Tokyo/nrt)\n会话 · AI缓存 · 队列 · 限流"]
-    API --> R2["Cloudflare R2\nEPUB · 封面 · 有声书"]
-    API --> AI["AI 服务\n多供应商路由"]
+    API --> PG["PostgreSQL (Neon)<br>Prisma ORM · 60+ 模型"]
+    API --> Redis["Redis 7 (Tokyo/nrt)<br>会话 · AI缓存 · 队列 · 限流"]
+    API --> R2["Cloudflare R2<br>EPUB · 封面 · 有声书"]
+    API --> AI["AI 服务<br>多供应商路由"]
 ```
 
 ---

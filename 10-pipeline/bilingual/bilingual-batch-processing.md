@@ -34,16 +34,6 @@
 | bnc/frq | frequency_rank | 词频排名 |
 | collins | cefr_level (推算) | CEFR 等级 |
 
-**执行命令**：
-
-```bash
-# 在 Droplet 上运行
-cd ~/readmigo/packages/database
-pm2 start 'source ~/readmigo/apps/nlp-service/venv/bin/activate && \
-  DATABASE_URL="$DATABASE_URL" python3 scripts/import-ecdict.py' \
-  --name ecdict-import --no-autorestart
-```
-
 ---
 
 ### 2. 中文 EPUB 来源方案
@@ -78,70 +68,45 @@ pm2 start 'source ~/readmigo/apps/nlp-service/venv/bin/activate && \
 
 **推荐来源**：[好读网站](https://www.haodoo.net)
 
-```
-┌─────────────────────────────────────────────────────┐
-│              好读网站 (haodoo.net)                   │
-└─────────────────────────────────────────────────────┘
+**好读网站特点:**
 
-特点：
-├── 免费的正体中文图书馆
-├── 支持 EPUB、PDB、PRC 格式下载
-├── 经典版 / 典藏版 品质标注
-└── 运营超过 20 年，内容丰富
+| 特点 | 说明 |
+|------|------|
+| 类型 | 免费正体中文图书馆 |
+| 格式 | EPUB、PDB、PRC |
+| 品质 | 经典版 / 典藏版标注 |
+| 运营 | 超过 20 年 |
 
-分类：
-├── 世紀百強 (经典文学)
-├── 歷史煙雲 (历史小说)
-├── 武俠小說
-├── 言情小說
-└── 小說園地 (含外国文学译本)
+**注意事项:**
 
-使用注意：
-├── 繁体中文，需转换为简体
-├── 部分书籍为台湾译本
-└── 需核实译本版权状态
-```
+| 事项 | 说明 |
+|------|------|
+| 繁简转换 | 需使用 OpenCC 转换为简体 |
+| 台湾译本 | 部分书籍为台湾版本 |
+| 版权核实 | 需确认译本版权状态 |
 
-**推荐处理流程**：
+**推荐处理流程:**
 
-```
-┌─────────────────────────────────────────────────────┐
-│              中文 EPUB 获取流程                      │
-└─────────────────────────────────────────────────────┘
-
-1. 查询好读目录
-   └── 搜索对应书名
-
-2. 下载 EPUB 文件
-   └── 优先选择「經典版」或「典藏版」
-
-3. 繁简转换
-   └── 使用 OpenCC 转换
-
-4. 质量检查
-   └── 抽样验证翻译质量
-
-5. 上传至 Droplet
-   └── 存放到 ~/epubs/ 目录
+```mermaid
+flowchart LR
+    A["查询好读目录"] --> B["下载 EPUB<br>(优先经典版/典藏版)"]
+    B --> C["繁简转换<br>(OpenCC)"]
+    C --> D["质量检查"]
+    D --> E["上传至 Droplet"]
 ```
 
 ---
 
 ### 3. R2 上传脚本
 
-**目录结构设计**：
+**R2 目录结构:**
 
-```
-r2-production/
-├── books/                    # 现有英文 EPUB
-│   └── {book-id}/
-│       └── book.epub
-└── bilingual/                # 双语处理结果 (新增)
-    └── {book-id}/
-        ├── aligned.json      # 对齐结果
-        ├── tokens.json       # 分词结果
-        └── metadata.json     # 处理元数据
-```
+| 路径 | 说明 |
+|------|------|
+| `books/{book-id}/book.epub` | 现有英文 EPUB |
+| `bilingual/{book-id}/aligned.json` | 对齐结果 (新增) |
+| `bilingual/{book-id}/tokens.json` | 分词结果 (新增) |
+| `bilingual/{book-id}/metadata.json` | 处理元数据 (新增) |
 
 **上传脚本** (`scripts/upload-to-r2.ts`)：
 
@@ -167,17 +132,6 @@ r2-production/
 | 章节数 | 117 (过滤后) |
 | 估计段落数 | ~15,000 |
 
-**执行命令**：
-
-```bash
-cd ~/readmigo/packages/database/scripts/bilingual-pipeline
-npx ts-node index.ts \
-  --book-id 99035bd3-fd24-413b-b794-69ef370f72b3 \
-  --en-epub ~/epubs/the_count_of_monte_cristo_en.epub \
-  --zh-epub ~/epubs/the_count_of_monte_cristo_zh.epub \
-  --use-semantic
-```
-
 **验收标准**：
 
 | 指标 | 目标 |
@@ -202,20 +156,7 @@ npx ts-node index.ts \
 | 索引优化 | 1.5x |
 | 连接池 | 1.2x |
 
-**批量插入代码示例**：
-
-```typescript
-// 原方案：逐条插入
-for (const para of paragraphs) {
-  await prisma.bilingualParagraph.create({ data: para });
-}
-
-// 优化方案：批量插入
-await prisma.bilingualParagraph.createMany({
-  data: paragraphs,
-  skipDuplicates: true,
-});
-```
+**优化方式**: 使用 Prisma `createMany` 批量插入替代逐条 `create`。
 
 ---
 
@@ -259,33 +200,13 @@ flowchart TD
 | 2 并行 | 20 分钟 | 40 小时 (1.7 天) |
 | 3 并行 | 20 分钟 | 27 小时 (1.1 天) |
 
-**PM2 批处理配置**：
+**PM2 批处理配置** (通过 `ecosystem.config.js`):
 
-```javascript
-// ecosystem.config.js
-module.exports = {
-  apps: [
-    {
-      name: 'bilingual-worker-1',
-      script: 'npx',
-      args: 'ts-node process-batch.ts --start 0 --count 80',
-      cwd: './packages/database/scripts/bilingual-pipeline',
-    },
-    {
-      name: 'bilingual-worker-2',
-      script: 'npx',
-      args: 'ts-node process-batch.ts --start 80 --count 80',
-      cwd: './packages/database/scripts/bilingual-pipeline',
-    },
-    {
-      name: 'bilingual-worker-3',
-      script: 'npx',
-      args: 'ts-node process-batch.ts --start 160 --count 81',
-      cwd: './packages/database/scripts/bilingual-pipeline',
-    },
-  ],
-};
-```
+| Worker | 书籍范围 | 数量 |
+|--------|----------|------|
+| bilingual-worker-1 | start 0 | 80 本 |
+| bilingual-worker-2 | start 80 | 80 本 |
+| bilingual-worker-3 | start 160 | 81 本 |
 
 ---
 
@@ -301,45 +222,9 @@ module.exports = {
 
 ## 监控与日志
 
-**PM2 常用命令**：
+**PM2 常用操作**: `pm2 list`, `pm2 logs bilingual-worker-1`, `pm2 monit`, `pm2 stop all`
 
-```bash
-# 查看所有进程
-pm2 list
-
-# 查看日志
-pm2 logs bilingual-worker-1 --lines 100
-
-# 监控资源
-pm2 monit
-
-# 停止所有
-pm2 stop all
-```
-
-**进度追踪 SQL**：
-
-```sql
--- 查看处理进度
-SELECT
-  bb.status,
-  COUNT(*) as count,
-  AVG(bb.data_version) as avg_version
-FROM bilingual_books bb
-GROUP BY bb.status;
-
--- 查看低分章节
-SELECT
-  b.title,
-  bp.chapter_order,
-  AVG(bp.alignment_score) as avg_score
-FROM bilingual_paragraphs bp
-JOIN bilingual_books bb ON bp.bilingual_book_id = bb.id
-JOIN books b ON bb.english_book_id = b.id
-GROUP BY b.title, bp.chapter_order
-HAVING AVG(bp.alignment_score) < 0.5
-ORDER BY avg_score;
-```
+**进度追踪**: 通过查询 `bilingual_books` 表的 status 字段统计处理进度，查询 `bilingual_paragraphs` 表的 alignment_score 字段识别低分章节。
 
 ---
 

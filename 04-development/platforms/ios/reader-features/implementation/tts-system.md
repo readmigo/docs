@@ -164,7 +164,7 @@ stateDiagram-v2
     stopping --> idle : 清理完成
 
     state error
-    note right of error : 任何状态发生错误时进入\n调用 reset() 返回 idle
+    note right of error : 任何状态发生错误时进入<br>调用 reset() 返回 idle
 ```
 
 ### 4.2 状态转换表

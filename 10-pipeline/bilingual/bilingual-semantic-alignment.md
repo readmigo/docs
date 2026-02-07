@@ -75,13 +75,12 @@ flowchart TD
 
 **原因**：英文EPUB包含前置章节（标题页、版权页），中文EPUB没有。
 
-```
-英文 EPUB:                     中文 EPUB:
-Ch0: Title page               Ch0: 第一章 返航马赛
-Ch1: Imprint (版权)           Ch1: 第二章 父与子
-Ch2: Chapter I                Ch2: 第三章 加泰罗尼亚村
-Ch3: Chapter II               ...
-```
+| 英文 EPUB 章节 | 中文 EPUB 章节 |
+|----------------|----------------|
+| Ch0: Title page | Ch0: 第一章 返航马赛 |
+| Ch1: Imprint (版权) | Ch1: 第二章 父与子 |
+| Ch2: Chapter I | Ch2: 第三章 加泰罗尼亚村 |
+| Ch3: Chapter II | ... |
 
 **解决方案**：在章节过滤时排除非正文章节。
 
@@ -95,16 +94,9 @@ Ch3: Chapter II               ...
 
 **现象**：中文段落中混入脚注，影响对齐准确性。
 
-**示例**：
-```
-[6] 沙隆：即马恩河畔沙隆，法国东北部城市。
-```
+**示例**：脚注格式如 `[6] 沙隆：即马恩河畔沙隆，法国东北部城市。`
 
-**解决方案**：使用正则表达式过滤脚注段落。
-
-```
-过滤模式: /^\s*\[?\d+\]\s*/
-```
+**解决方案**：使用正则表达式匹配 `[数字]` 前缀的段落进行过滤。
 
 ### 问题三：EPUB并行解析竞态条件
 
@@ -112,11 +104,7 @@ Ch3: Chapter II               ...
 
 **原因**：临时目录使用 `Date.now()` 生成，毫秒级精度可能重复。
 
-**解决方案**：使用更唯一的目录名。
-
-```
-格式: epub-{basename}-{timestamp}-{randomSuffix}
-```
+**解决方案**：使用更唯一的目录名格式 `epub-{basename}-{timestamp}-{randomSuffix}`。
 
 ### 问题四：章节标题不一致
 
@@ -127,32 +115,6 @@ Ch3: Chapter II               ...
 ---
 
 ## CLI 使用方法
-
-### 基本命令
-
-```bash
-cd packages/database/scripts/bilingual-pipeline
-
-# 完整处理
-npx ts-node index.ts \
-  --book-id <uuid> \
-  --en-epub /path/to/english.epub \
-  --zh-epub /path/to/chinese.epub \
-  --use-semantic
-```
-
-### 测试模式
-
-```bash
-# 只处理前 2 章
-npx ts-node index.ts ... --use-semantic --test-chapters 2
-
-# 跳过前 2 章，处理接下来的 2 章
-npx ts-node index.ts ... --use-semantic --skip-chapters 2 --test-chapters 2
-
-# 干运行（不写入数据库）
-npx ts-node index.ts ... --use-semantic --dry-run
-```
 
 ### 参数说明
 
@@ -172,15 +134,7 @@ npx ts-node index.ts ... --use-semantic --dry-run
 
 ### NLP 服务
 
-语义对齐需要运行 NLP 服务来计算嵌入向量。
-
-```bash
-cd apps/nlp-service
-pip install -r requirements.txt
-python main.py
-```
-
-默认端口：8001
+语义对齐需要运行 NLP 服务来计算嵌入向量（默认端口 8001）。
 
 **关键端点**：
 
@@ -191,18 +145,7 @@ python main.py
 
 ### 长时间任务管理
 
-使用 PM2 管理长时间运行的处理任务。
-
-```bash
-# 启动 NLP 服务
-pm2 start "python main.py" --name nlp-service --cwd apps/nlp-service
-
-# 查看日志
-pm2 logs nlp-service
-
-# 停止服务
-pm2 stop nlp-service
-```
+使用 PM2 管理长时间运行的处理任务（PM2 名称: `nlp-service`）。
 
 ---
 

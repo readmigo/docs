@@ -11,14 +11,12 @@
 
 ### tasks.json 结构
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  bookId: UUID                 书籍 ID                        │
-│  title: string                书名                           │
-│  enPath: string               英文 EPUB 本地路径              │
-│  zhPath: string               中文 EPUB 本地路径              │
-└─────────────────────────────────────────────────────────────┘
-```
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| bookId | UUID | 书籍 ID |
+| title | string | 书名 |
+| enPath | string | 英文 EPUB 本地路径 |
+| zhPath | string | 中文 EPUB 本地路径 |
 
 ---
 
@@ -35,22 +33,13 @@
 
 ### 数据关系图
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    数据库存储结构                             │
-└─────────────────────────────────────────────────────────────┘
-
-Book (现有)
-  │
-  ├──1:1──► BilingualBook
-  │           │
-  │           └──1:N──► BilingualParagraph
-  │                       │
-  │                       └──1:N──► ParagraphToken
-  │                                   │
-  │                                   └──N:M──► Vocabulary (现有)
-  │
-  └──1:N──► Chapter (现有, 英文原文)
+```mermaid
+erDiagram
+    Book ||--o| BilingualBook : "1:1"
+    Book ||--o{ Chapter : "1:N (英文原文)"
+    BilingualBook ||--o{ BilingualParagraph : "1:N"
+    BilingualParagraph ||--o{ ParagraphToken : "1:N"
+    ParagraphToken }o--o{ Vocabulary : "N:M"
 ```
 
 ---
@@ -67,25 +56,17 @@ Book (现有)
 
 ## 四、R2 云存储结构
 
-```
-readmigo-production (R2 Bucket)
-│
-├── books/                          # 现有英文书籍
-│   └── {book-id}/
-│       ├── book.epub              # 英文 EPUB
-│       └── cover.jpg              # 封面
-│
-├── pipeline/                       # 管线工作目录
-│   ├── epubs/
-│   │   ├── en/{book-id}.epub      # 下载的英文 EPUB 副本
-│   │   └── zh/{title}_zh.epub     # 中文 EPUB
-│   └── logs/                       # 处理日志
-│
-└── bilingual/                      # 预留: 双语处理结果缓存
-    └── {book-id}/
-        ├── aligned.json           # 对齐结果
-        └── metadata.json          # 处理元数据
-```
+Bucket: `readmigo-production`
+
+| 路径 | 说明 |
+|------|------|
+| `books/{book-id}/book.epub` | 英文 EPUB |
+| `books/{book-id}/cover.jpg` | 封面 |
+| `pipeline/epubs/en/{book-id}.epub` | 下载的英文 EPUB 副本 |
+| `pipeline/epubs/zh/{title}_zh.epub` | 中文 EPUB |
+| `pipeline/logs/` | 处理日志 |
+| `bilingual/{book-id}/aligned.json` | 对齐结果 (预留) |
+| `bilingual/{book-id}/metadata.json` | 处理元数据 (预留) |
 
 ---
 
@@ -158,20 +139,15 @@ flowchart TD
 
 ### PM2 生态系统配置
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                 ecosystem.config.js                          │
-├─────────────────────────────────────────────────────────────┤
-│  Worker 1: --start 0 --count N                              │
-│  Worker 2: --start N --count M                              │
-│  Worker 3: --start N+M --count K (可选)                     │
-└─────────────────────────────────────────────────────────────┘
+通过 `ecosystem.config.js` 配置多 Worker 并行处理，每个 Worker 使用 `--start` 和 `--count` 参数分配不同的书籍范围。
 
-推荐配置:
-├── Worker 数量: 2 (4核8GB服务器)
-├── 单 Worker 书籍数: 任务总数 / Worker 数
-└── 超时设置: 60 分钟 / 书
-```
+**推荐配置:**
+
+| 参数 | 推荐值 | 说明 |
+|------|--------|------|
+| Worker 数量 | 2 | 4核8GB 服务器 |
+| 单 Worker 书籍数 | 任务总数 / Worker 数 | 平均分配 |
+| 超时设置 | 60 分钟/书 | 防止卡死 |
 
 ### 环境变量 (.env.pipeline)
 

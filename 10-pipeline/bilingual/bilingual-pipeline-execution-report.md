@@ -57,15 +57,6 @@
 | 导入速度 | ~9,000-15,000 词/秒 |
 | 执行时间 | 4-6 分钟 |
 
-**执行命令:**
-
-```bash
-cd ~/readmigo/packages/database
-pm2 start 'source ~/readmigo/apps/nlp-service/venv/bin/activate && \
-  DATABASE_URL="$DATABASE_URL" python3 scripts/import-ecdict.py' \
-  --name ecdict-import --no-autorestart
-```
-
 ---
 
 ### 任务 3: 确定中文 EPUB 来源
@@ -80,29 +71,24 @@ pm2 start 'source ~/readmigo/apps/nlp-service/venv/bin/activate && \
 
 **推荐策略:**
 
-```
-优先级 1: 好读/Gutenberg 现有译本 (~850 本)
-优先级 2: AI 翻译补充 (剩余书籍)
-优先级 3: 标记为"仅英文"
-```
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1 | 好读/Gutenberg 现有译本 | 约 850 本 |
+| 2 | AI 翻译补充 | 剩余书籍 |
+| 3 | 标记为"仅英文" | 无中文版 |
 
 ---
 
 ### 任务 4: 编写 R2 上传脚本
 
-**目录结构设计:**
+**R2 目录结构设计:**
 
-```
-r2-production/
-├── books/                    # 现有英文 EPUB
-│   └── {book-id}/
-│       └── book.epub
-└── bilingual/                # 双语处理结果 (新增)
-    └── {book-id}/
-        ├── aligned.json      # 对齐结果
-        ├── tokens.json       # 分词结果
-        └── metadata.json     # 处理元数据
-```
+| 路径 | 说明 |
+|------|------|
+| `books/{book-id}/book.epub` | 现有英文 EPUB |
+| `bilingual/{book-id}/aligned.json` | 对齐结果 (新增) |
+| `bilingual/{book-id}/tokens.json` | 分词结果 (新增) |
+| `bilingual/{book-id}/metadata.json` | 处理元数据 (新增) |
 
 ---
 
@@ -127,17 +113,6 @@ r2-production/
 | 处理时间 | 60.6 分钟 |
 | 平均对齐分数 | 0.67 |
 
-**执行命令:**
-
-```bash
-cd ~/readmigo/packages/database/scripts/bilingual-pipeline
-npx ts-node index.ts \
-  --book-id 99035bd3-fd24-413b-b794-69ef370f72b3 \
-  --en-epub ~/epubs/the_count_of_monte_cristo_en.epub \
-  --zh-epub ~/epubs/the_count_of_monte_cristo_zh.epub \
-  --use-semantic
-```
-
 ---
 
 ### 任务 6: 优化数据库写入性能
@@ -159,26 +134,12 @@ npx ts-node index.ts \
 
 **BatchWriter 核心特性:**
 
-```
-┌─────────────────────────────────────────────────────┐
-│                 BatchWriter 架构                     │
-└─────────────────────────────────────────────────────┘
-
-1. 事务批量处理
-   └── 使用 $transaction 确保数据一致性
-
-2. 段落批量 upsert
-   └── Promise.all 并行处理
-   └── 批大小: 50 段落/批
-
-3. Token 批量创建
-   └── createMany 批量插入
-   └── 批大小: 500 tokens/批
-
-4. 超时保护
-   └── 事务超时: 120 秒
-   └── 最大等待: 10 秒
-```
+| 特性 | 说明 | 参数 |
+|------|------|------|
+| 事务批量处理 | 使用 $transaction 确保数据一致性 | - |
+| 段落批量 upsert | Promise.all 并行处理 | 批大小: 50 段落/批 |
+| Token 批量创建 | createMany 批量插入 | 批大小: 500 tokens/批 |
+| 超时保护 | 事务超时 + 最大等待 | 120 秒 / 10 秒 |
 
 **测试结果:**
 
@@ -217,13 +178,6 @@ npx ts-node index.ts \
 | 数据一致性 | PASS |
 | NLP 服务并发 | 无冲突 |
 | 数据库并发写入 | 无冲突 |
-
-**执行命令:**
-
-```bash
-cd ~/readmigo/packages/database/scripts/bilingual-pipeline
-pm2 start ecosystem.config.js
-```
 
 ---
 

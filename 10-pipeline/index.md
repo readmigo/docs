@@ -2,7 +2,7 @@
 
 数据处理流水线文档：书籍导入、双语处理、自动化流水线与执行记录。
 
-> **文档数量**: 16 个文件
+> **文档数量**: 16 个文件 (含 2 个已废弃)
 
 ---
 
@@ -43,11 +43,11 @@
 
 | 文档 | 描述 |
 |------|------|
-| [P001-debug-staging-sync.md](./execution-logs/P001-debug-staging-sync.md) | Debug-Staging 数据同步 |
+| ~~[P001-debug-staging-sync.md](./execution-logs/P001-debug-staging-sync.md)~~ | ~~Debug-Staging 数据同步~~ (已废弃 - Staging 环境已取消) |
 | [P002-generate-quotes.md](./execution-logs/P002-generate-quotes.md) | 书籍引言生成 |
 | [P003-environment-integrity-check.md](./execution-logs/P003-environment-integrity-check.md) | 环境完整性检查 |
 | [P004-fullstack-release.md](./execution-logs/P004-fullstack-release.md) | 全栈发布流程 |
-| [P005-staging-data-cleanup.md](./execution-logs/P005-staging-data-cleanup.md) | Staging 数据清理 |
+| ~~[P005-staging-data-cleanup.md](./execution-logs/P005-staging-data-cleanup.md)~~ | ~~Staging 数据清理~~ (已废弃 - Staging 环境已取消) |
 | [P006-v2-data-cleanup.md](./execution-logs/P006-v2-data-cleanup.md) | V2.0 数据清洗（100% SE） |
 
 ---

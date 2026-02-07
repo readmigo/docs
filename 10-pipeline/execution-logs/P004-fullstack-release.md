@@ -24,7 +24,7 @@ flowchart TD
 | 名称 | 全栈发版流水线 |
 | 输入 | 版本号 (SemVer 格式) |
 | 输出 | 多平台发布 |
-| 执行模式 | 手动触发，Claude 执行 |
+| 执行模式 | 手动触发 |
 
 ### 1.2 版本类型定义
 
@@ -37,32 +37,10 @@ flowchart TD
 
 ## 二、触发命令
 
-### 2.1 用户输入格式
-
-```
-发版 <版本号> [平台]
-```
-
 | 参数 | 必需 | 说明 | 示例 |
 |------|:----:|------|------|
-| 版本号 | ✅ | SemVer 格式 | 1.2.0, 1.2.1 |
-| 平台 | ⭕ | 指定平台 (默认全部) | ios, android, backend, web |
-
-### 2.2 触发示例
-
-```bash
-# 大版本发布 (全平台)
-发版 1.2.0
-
-# 小版本发布 (全平台)
-发版 1.2.1
-
-# 仅后端发布
-发版 1.2.1 backend
-
-# 仅移动端发布
-发版 1.2.1 ios android
-```
+| 版本号 | 是 | SemVer 格式 | 1.2.0, 1.2.1 |
+| 平台 | 否 | 指定平台 (默认全部) | ios, android, backend, web |
 
 ---
 
@@ -77,44 +55,27 @@ flowchart LR
     end
 ```
 
-**执行命令:**
-
-```bash
-# 1. 检查 Git 状态
-git status
-git log --oneline -5
-
-# 2. 确保在 main 分支
-git branch --show-current
-
-# 3. 拉取最新代码
-git pull origin main
-```
+| 操作 | 说明 |
+|------|------|
+| 检查 Git 状态 | 确保在 main 分支，拉取最新代码 |
+| 版本格式 | 验证 SemVer 格式 |
 
 ### Stage 2: Backend 发布
 
 ```mermaid
 flowchart LR
     subgraph S2["Stage 2: Backend 发布"]
-        A["Staging部署"] --> B["健康检查"] --> C["Production部署"] --> D["验证确认"]
+        A["Push 到 GitHub"] --> B["GitHub Actions 自动部署"] --> C["健康检查"] --> D["验证确认"]
     end
 ```
 
-**执行命令:**
+| 操作 | 说明 |
+|------|------|
+| 部署方式 | 推送代码到 GitHub，GitHub Actions 自动执行 `fly deploy` |
+| 部署配置 | 使用 `fly.toml` (唯一配置文件) |
+| 健康检查 | `GET https://readmigo-api.fly.dev/api/v1/health` |
 
-```bash
-# 1. 部署到 Staging
-fly deploy -c fly.staging.toml
-
-# 2. 健康检查
-curl -s https://readmigo-staging.fly.dev/api/v1/health | jq
-
-# 3. 部署到 Production (大版本需确认)
-fly deploy -c fly.production.toml
-
-# 4. 生产健康检查
-curl -s https://api.readmigo.app/api/v1/health | jq
-```
+> **注意**: 项目仅有一个 `fly.toml` (app=readmigo-api)。不存在 fly.staging.toml 或 fly.production.toml。部署通过 GitHub Actions 自动完成，无需手动执行 fly deploy。
 
 ### Stage 3: iOS 发布
 
@@ -127,22 +88,6 @@ flowchart LR
 
 > 大版本: 需提交 App Store 审核 | 小版本: 可仅更新 TestFlight
 
-**执行命令:**
-
-```bash
-# 1. 更新版本号 (在 Xcode 项目中)
-# MARKETING_VERSION = <版本号>
-# CURRENT_PROJECT_VERSION = <build号>
-
-# 2. 构建并上传到 TestFlight
-cd ios
-xcodebuild -workspace Readmigo.xcworkspace -scheme Readmigo -configuration Release archive -archivePath build/Readmigo.xcarchive
-xcodebuild -exportArchive -archivePath build/Readmigo.xcarchive -exportPath build/export -exportOptionsPlist ExportOptions.plist
-
-# 3. 上传到 App Store Connect (使用 Transporter 或 altool)
-xcrun altool --upload-app -f build/export/Readmigo.ipa -t ios -u $APPLE_ID -p $APP_SPECIFIC_PASSWORD
-```
-
 ### Stage 4: Android 发布
 
 ```mermaid
@@ -153,21 +98,6 @@ flowchart LR
 ```
 
 > 大版本: Production 轨道 | 小版本: Internal / Beta 轨道
-
-**执行命令:**
-
-```bash
-# 1. 更新版本号 (在 build.gradle 中)
-# versionCode = <自增>
-# versionName = "<版本号>"
-
-# 2. 构建 Release AAB
-cd android
-./gradlew bundleRelease
-
-# 3. 上传到 Google Play Console
-# 使用 fastlane 或 Google Play Developer API
-```
 
 ### Stage 5: Web 发布 (如适用)
 
@@ -187,17 +117,6 @@ flowchart LR
     end
 ```
 
-**执行命令:**
-
-```bash
-# 1. 创建 Git Tag
-git tag -a v<版本号> -m "Release v<版本号>"
-git push origin v<版本号>
-
-# 2. 创建 GitHub Release (可选)
-gh release create v<版本号> --title "v<版本号>" --notes "Release notes..."
-```
-
 ---
 
 ## 四、大版本 vs 小版本差异
@@ -206,79 +125,36 @@ gh release create v<版本号> --title "v<版本号>" --notes "Release notes..."
 
 | 阶段 | 操作 | 必需 |
 |------|------|:----:|
-| 版本验证 | 完整 Git 检查 | ✅ |
-| Backend | Staging → Production | ✅ |
-| iOS | TestFlight → App Store 审核 | ✅ |
-| Android | Internal → Production | ✅ |
-| Web | 完整部署 | ⭕ |
-| 发布确认 | Tag + Release Notes | ✅ |
+| 版本验证 | 完整 Git 检查 | 是 |
+| Backend | Push 触发自动部署 | 是 |
+| iOS | TestFlight → App Store 审核 | 是 |
+| Android | Internal → Production | 是 |
+| Web | 完整部署 | 否 |
+| 发布确认 | Tag + Release Notes | 是 |
 
 ### 4.2 小版本发布 (X.Y.Z, Z>0)
 
 | 阶段 | 操作 | 必需 |
 |------|------|:----:|
-| 版本验证 | 快速检查 | ✅ |
-| Backend | 直接 Production (可选 Staging) | ⭕ |
-| iOS | 仅 TestFlight (或跳过) | ⭕ |
-| Android | Internal 轨道 (或跳过) | ⭕ |
-| Web | 快速部署 | ⭕ |
-| 发布确认 | 轻量 Tag | ⭕ |
+| 版本验证 | 快速检查 | 是 |
+| Backend | Push 触发自动部署 | 否 |
+| iOS | 仅 TestFlight (或跳过) | 否 |
+| Android | Internal 轨道 (或跳过) | 否 |
+| Web | 快速部署 | 否 |
+| 发布确认 | 轻量 Tag | 否 |
 
 ---
 
-## 五、快速参考命令
+## 五、回滚流程
 
-### 5.1 Backend 快速发布
+### 5.1 Backend 回滚
 
-```bash
-# Staging
-fly deploy -c fly.staging.toml
+| 操作 | 说明 |
+|------|------|
+| 查看部署历史 | `fly releases -a readmigo-api` |
+| 回滚 | `fly deploy --image <previous-image>` |
 
-# Production
-fly deploy -c fly.production.toml
-
-# 健康检查
-curl -s https://readmigo-staging.fly.dev/api/v1/health | jq
-curl -s https://api.readmigo.app/api/v1/health | jq
-```
-
-### 5.2 iOS 快速发布
-
-```bash
-# 在 Xcode 中:
-# 1. 更新 MARKETING_VERSION 和 CURRENT_PROJECT_VERSION
-# 2. Product → Archive
-# 3. Distribute App → App Store Connect
-```
-
-### 5.3 查看当前版本
-
-```bash
-# Backend
-curl -s https://api.readmigo.app/api/v1/health | jq '.version'
-
-# iOS (查看 project.pbxproj)
-grep MARKETING_VERSION ios/Readmigo.xcodeproj/project.pbxproj | head -1
-
-# Android (查看 build.gradle)
-grep versionName android/app/build.gradle
-```
-
----
-
-## 六、回滚流程
-
-### 6.1 Backend 回滚
-
-```bash
-# 查看部署历史
-fly releases -a readmigo-production
-
-# 回滚到上一个版本
-fly deploy -c fly.production.toml --image <previous-image>
-```
-
-### 6.2 移动端回滚
+### 5.2 移动端回滚
 
 | 平台 | 方法 |
 |------|------|
@@ -287,19 +163,17 @@ fly deploy -c fly.production.toml --image <previous-image>
 
 ---
 
-## 七、版本号管理
+## 六、版本号管理
 
-### 7.1 SemVer 规范
+### 6.1 SemVer 规范
 
-```
-MAJOR.MINOR.PATCH
-  │     │     │
-  │     │     └── 修复 bug (向后兼容)
-  │     └──────── 新功能 (向后兼容)
-  └────────────── 破坏性变更
-```
+| 部分 | 说明 |
+|------|------|
+| MAJOR | 破坏性变更 |
+| MINOR | 新功能 (向后兼容) |
+| PATCH | 修复 bug (向后兼容) |
 
-### 7.2 Build 号规范
+### 6.2 Build 号规范
 
 | 平台 | Build 号 | 说明 |
 |------|----------|------|
@@ -309,42 +183,31 @@ MAJOR.MINOR.PATCH
 
 ---
 
-## 八、版本快照记录
+## 七、版本快照记录
 
-每次大版本发布后，必须在版本发布历史文档中记录功能快照：
+每次大版本发布后，必须在版本发布历史文档中记录功能快照。
 
 ```mermaid
 flowchart LR
     A["版本发布"] --> B["创建 Git Tag"] --> C["更新快照文档"] --> D["提交记录"]
 ```
 
-### 8.1 快照记录内容
+### 7.1 快照记录内容
 
 | 项目 | 必需 | 说明 |
 |------|:----:|------|
-| 版本信息 | ✅ | version.json 内容快照 |
-| 各端版本号 | ✅ | iOS/Android/Backend/Web 版本 |
-| 技术栈 | ✅ | 主要依赖版本 |
-| 功能模块列表 | ✅ | 各端功能清单 |
-| API 模块列表 | ✅ | Backend 端点清单 |
-| 数据库 Schema | ⭕ | 重大变更时记录 |
-| Git Tag | ✅ | 对应的 Git Tag |
-| 已知问题 | ⭕ | 已知 Bug 和限制 |
-
-### 8.2 快照文档位置
-
-```
-docs/08-releases/history/release-history.md
-```
+| 版本信息 | 是 | version.json 内容快照 |
+| 各端版本号 | 是 | iOS/Android/Backend/Web 版本 |
+| 技术栈 | 是 | 主要依赖版本 |
+| 功能模块列表 | 是 | 各端功能清单 |
+| API 模块列表 | 是 | Backend 端点清单 |
+| Git Tag | 是 | 对应的 Git Tag |
 
 ---
 
-## 九、相关文档
+## 八、相关文档
 
 | 文档 | 描述 |
 |------|------|
-| [pipeline-system.md](./pipeline-system.md) | 流水线系统总览 |
-| [P001-debug-staging-sync.md](./P001-debug-staging-sync.md) | 数据同步流水线 |
+| [pipeline-system.md](../pipeline-system.md) | 流水线系统总览 |
 | [release-history.md](../../08-releases/history/release-history.md) | 版本发布历史与功能快照 |
-| fly.staging.toml | Staging 部署配置 |
-| fly.production.toml | Production 部署配置 |

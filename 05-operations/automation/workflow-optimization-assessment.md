@@ -170,7 +170,7 @@ graph LR
 | 管道脚本 | pipeline.ts, pipeline-chinese.ts | 主导入管道 |
 | 数据源 | gutenberg.ts, standard-ebooks.ts, ctext.ts, wikisource-zh.ts, librivox.ts | 各数据源爬取 |
 | 处理器 | epub-parser.ts, mobi-parser.ts, html-cleaner.ts, difficulty-analyzer.ts | 内容处理 |
-| 下载同步 | gutenberg-full-download.ts, sync-to-staging.ts, sync-audiobook-r2.ts | 资源获取 |
+| 下载同步 | gutenberg-full-download.ts, sync-audiobook-r2.ts | 资源获取 |
 | 数据修复 | fix-single-book.ts, fix-chapter-content.ts | 问题修复 |
 
 #### B. 封面处理 - 23 个
@@ -213,13 +213,13 @@ graph LR
 | sync-manager.ts | 同步管理器核心 |
 | anonymization-rules.ts | 数据匿名化规则 |
 
-#### G. Staging 部署 - 7 个
+#### G. 部署脚本 - 7 个
 
 | 脚本 | 说明 |
 |------|------|
-| init-staging-structure.ts | 初始化 staging 结构 |
-| sync-booklist-to-staging.ts | 书单同步到 staging |
-| complete-phase1-staging.ts | 完成 Phase1 同步 |
+| init-structure.ts | 初始化环境结构 |
+| sync-booklist.ts | 书单同步 |
+| complete-phase1.ts | 完成 Phase1 同步 |
 
 #### H. 分析诊断 - 12 个
 
@@ -256,7 +256,7 @@ graph TD
         D4["import.ts<br>(agora)"]
     end
     subgraph L5["Layer 5: 同步部署"]
-        E1["sync-to-staging.ts / db-sync/run-sync.ts"]
+        E1["db-sync/run-sync.ts"]
     end
     subgraph L6["Layer 6: 验证分析"]
         F1["verify-*.ts"]
@@ -353,48 +353,21 @@ graph TD
 
 #### Pipeline: 新书单导入
 
-```
-Pipeline: book-ingestion-phase
-├── Stage 1: 数据获取 (并行)
-│   ├── Task: match-from-gutenberg     [IO Pool]
-│   ├── Task: match-from-se            [IO Pool]
-│   └── Task: match-from-archive       [IO Pool]
-│
-├── Stage 2: 内容处理 (并行，按书分片)
-│   ├── Task: parse-epub               [CPU Pool]
-│   ├── Task: extract-covers           [CPU Pool]
-│   └── Task: generate-thumbnails      [CPU Pool]
-│
-├── Stage 3: 数据增强 (并行)
-│   ├── Task: fetch-book-context       [API Pool - Wikipedia]
-│   ├── Task: fetch-author-info        [API Pool - Wikidata]
-│   └── Task: generate-ai-summary      [API Pool - AI]
-│
-├── Stage 4: 数据写入 (串行，避免锁)
-│   ├── Task: write-books
-│   ├── Task: write-chapters
-│   └── Task: write-metadata
-│
-└── Stage 5: 验证同步
-    ├── Task: validate-data
-    └── Task: sync-to-staging
-```
+| 阶段 | 任务 | 执行模式 | 资源池 |
+|------|------|----------|--------|
+| Stage 1: 数据获取 | match-from-gutenberg, match-from-se, match-from-archive | 并行 | IO Pool |
+| Stage 2: 内容处理 | parse-epub, extract-covers, generate-thumbnails | 并行 (按书分片) | CPU Pool |
+| Stage 3: 数据增强 | fetch-book-context, fetch-author-info, generate-ai-summary | 并行 | API Pool |
+| Stage 4: 数据写入 | write-books, write-chapters, write-metadata | 串行 (避免锁) | DB Pool |
+| Stage 5: 验证 | validate-data | 串行 | - |
 
 #### Pipeline: 日常维护
 
-```
-Pipeline: daily-maintenance
-├── Stage 1: 数据检查 (并行)
-│   ├── Task: check-cover-issues
-│   ├── Task: check-low-wordcount
-│   └── Task: check-missing-data
-│
-├── Stage 2: 自动修复 (串行)
-│   └── Task: auto-fix-issues (基于检查结果)
-│
-└── Stage 3: 报告生成
-    └── Task: generate-daily-report
-```
+| 阶段 | 任务 | 执行模式 |
+|------|------|----------|
+| Stage 1: 数据检查 | check-cover-issues, check-low-wordcount, check-missing-data | 并行 |
+| Stage 2: 自动修复 | auto-fix-issues (基于检查结果) | 串行 |
+| Stage 3: 报告生成 | generate-daily-report | 串行 |
 
 ### 4.4 资源池配置
 
@@ -421,55 +394,24 @@ Pipeline: daily-maintenance
 
 ### 4.6 CLI 命令设计
 
-```
-# 查看任务状态
-pnpm orchestrator status
-
-# 手动触发 Pipeline
-pnpm orchestrator run book-ingestion --booklist=data/booklists/v1/phase1-ebooks.json
-
-# 触发单个任务
-pnpm orchestrator task fix-covers --source=googlebooks
-
-# 查看队列状态
-pnpm orchestrator queue list
-
-# 暂停/恢复调度
-pnpm orchestrator pause daily-maintenance
-pnpm orchestrator resume daily-maintenance
-
-# 查看执行历史
-pnpm orchestrator history --last=10
-```
+| 命令 | 说明 |
+|------|------|
+| `pnpm orchestrator status` | 查看任务状态 |
+| `pnpm orchestrator run book-ingestion --booklist=...` | 手动触发 Pipeline |
+| `pnpm orchestrator task fix-covers --source=googlebooks` | 触发单个任务 |
+| `pnpm orchestrator queue list` | 查看队列状态 |
+| `pnpm orchestrator pause/resume <pipeline>` | 暂停/恢复调度 |
+| `pnpm orchestrator history --last=10` | 查看执行历史 |
 
 ### 4.7 状态追踪 Dashboard
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       Script Orchestrator Dashboard                      │
-│                                                                          │
-│  Active Pipelines                                                        │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │ book-ingestion-phase1    ████████████████░░░░  80%  ETA: 2h        │ │
-│  │ daily-maintenance        ████████████████████  100% ✓ Done         │ │
-│  │ cover-fix-batch          ██████░░░░░░░░░░░░░░  30%  Running...     │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│  Resource Usage                                                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
-│  │ IO Pool     │ │ CPU Pool    │ │ DB Pool     │ │ API Pool    │       │
-│  │ ███░░ 3/5   │ │ ██░░░ 2/3   │ │ █░░░░ 1/2   │ │ █░░░░ 1/2   │       │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘       │
-│                                                                          │
-│  Recent Activity                                                         │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │ 14:32  ✓ parse-epub completed (Pride and Prejudice)                │ │
-│  │ 14:30  → fetch-context started (Jane Eyre)                         │ │
-│  │ 14:28  ✗ fix-cover failed (Moby Dick) - retry scheduled            │ │
-│  │ 14:25  ✓ sync-to-r2 completed (batch-42)                           │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+Dashboard 显示以下信息:
+
+| 面板 | 内容 |
+|------|------|
+| Active Pipelines | 各 Pipeline 进度条、完成百分比、ETA |
+| Resource Usage | IO/CPU/DB/API Pool 使用率 |
+| Recent Activity | 最近任务执行记录 (成功/失败/重试) |
 
 ### 4.8 错误处理策略
 
@@ -672,37 +614,16 @@ graph LR
 
 ### 8.2 实施路线图
 
-```
-Phase 1 (基础自动化)
-├── AI Agent 自愈机制
-│   ├── 失败任务自动重试
-│   └── Provider 故障自动切换
-└── 数据采集 Scheduler
-    ├── GitHub Actions 定时任务
-    └── 增量更新机制
-
-Phase 2 (质量保障)
-├── Quality Gate 验证
-│   ├── 必填字段检查
-│   └── 格式规范验证
-└── Daily Report Generator
-    ├── 运营日报
-    └── Slack 推送
-
-Phase 3 (智能优化)
-├── Smart AI Router
-│   ├── 成本感知路由
-│   └── 质量评估
-└── Anomaly Detector
-    ├── 异常检测算法
-    └── 告警通知
-
-Phase 4 (数据治理)
-├── Data Lineage Tracker
-│   └── 变更历史追踪
-└── Source Registry
-    └── 数据源优先级管理
-```
+| 阶段 | 项目 | 关键内容 |
+|------|------|----------|
+| Phase 1 (基础自动化) | AI Agent 自愈机制 | 失败任务自动重试、Provider 故障自动切换 |
+| | 数据采集 Scheduler | GitHub Actions 定时任务、增量更新机制 |
+| Phase 2 (质量保障) | Quality Gate 验证 | 必填字段检查、格式规范验证 |
+| | Daily Report Generator | 运营日报、Slack 推送 |
+| Phase 3 (智能优化) | Smart AI Router | 成本感知路由、质量评估 |
+| | Anomaly Detector | 异常检测算法、告警通知 |
+| Phase 4 (数据治理) | Data Lineage Tracker | 变更历史追踪 |
+| | Source Registry | 数据源优先级管理 |
 
 ---
 

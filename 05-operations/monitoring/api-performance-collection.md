@@ -1,326 +1,218 @@
 # API 性能监控数据采集原理
 
-## 1. 概述
-
-本文档描述 API 性能监控数据的采集原理、架构设计和实现机制，基于业界最佳实践（Google SRE 四大黄金信号、RED 方法、OpenTelemetry）。
+> Metrics + Traces 分离架构，基于 Google SRE 四大黄金信号
 
 ---
 
-## 2. 设计原则
-
-### 2.1 业界最佳实践
+## 1. 设计原则
 
 | 方法论 | 来源 | 核心指标 |
-|-------|------|---------|
-| **四大黄金信号** | Google SRE | Latency、Traffic、Errors、Saturation |
-| **RED 方法** | Tom Wilkie | Rate、Errors、Duration |
-| **OpenTelemetry** | CNCF | Metrics + Traces 分离 |
+|--------|------|----------|
+| 四大黄金信号 | Google SRE | Latency, Traffic, Errors, Saturation |
+| RED 方法 | Tom Wilkie | Rate, Errors, Duration |
+| OpenTelemetry | CNCF | Metrics + Traces 分离 |
 
-### 2.2 设计目标
+### 设计目标
 
 | 目标 | 说明 |
-|-----|-----|
-| 零采样统计 | 聚合指标（请求数、错误率、延迟分布）100% 采集 |
+|------|------|
+| 零采样统计 | 聚合指标 100% 采集 |
 | 极低开销 | 请求延迟增加 < 0.1ms |
 | 异常全捕获 | 错误和慢请求 100% 记录详情 |
 | 实时可查 | 数据延迟 < 1 分钟 |
 
 ---
 
-## 3. 核心架构
+## 2. 核心架构
 
-### 3.1 Metrics + Traces 分离架构
+### Metrics + Traces 分离
 
 ```mermaid
 graph TD
-    A["请求进入"] --> B["API 性能拦截器<br>记录 startTime → 执行业务逻辑 → 计算 latencyMs"]
+    A["请求进入"] --> B["API 性能拦截器<br>记录 startTime<br>执行业务逻辑<br>计算 latencyMs"]
     B --> C["Metrics 聚合器<br>100% 采集<br>内存累加<br>极低开销"]
     B --> D["Traces 记录器<br>智能采样<br>异步写入<br>保留详情"]
     C --> E["每分钟 Flush<br>→ ApiPerformanceDaily"]
-    D --> F["ApiPerformanceMetric<br>(采样后的详细记录)"]
+    D --> F["ApiPerformanceMetric<br>(采样后详细记录)"]
 ```
 
-### 3.2 两层数据结构
+### 两层数据结构
 
 | 层级 | 数据类型 | 采样率 | 存储位置 | 用途 |
-|-----|---------|-------|---------|-----|
-| **Metrics 层** | 聚合统计 | 100% | 内存 → ApiPerformanceDaily | 统计分析、仪表盘 |
-| **Traces 层** | 请求详情 | 智能采样 | ApiPerformanceMetric | 问题排查、异常分析 |
+|------|----------|--------|----------|------|
+| Metrics 层 | 聚合统计 | 100% | 内存 → ApiPerformanceDaily | 统计分析、仪表盘 |
+| Traces 层 | 请求详情 | 智能采样 | ApiPerformanceMetric | 问题排查、异常分析 |
 
 ---
 
-## 4. 响应时间追踪原理
+## 3. 响应时间追踪
 
-### 4.1 计时机制
+### 计时机制
 
 ```mermaid
 graph LR
-    A["请求进入<br>startTime = now()"] --> B["业务逻辑处理<br>参数校验<br>数据库查询<br>外部API调用<br>响应序列化"]
+    A["请求进入<br>startTime = now()"] --> B["业务逻辑处理<br>参数校验 / 数据库查询<br>外部API调用 / 响应序列化"]
     B --> C["响应返回<br>endTime = now()"]
-    C --> D["latencyMs = endTime - startTime (毫秒)"]
+    C --> D["latencyMs = endTime - startTime"]
 ```
 
-### 4.2 拦截器工作流程
+### 拦截器工作流程
 
 ```mermaid
 graph TD
-    A["HTTP 请求"] --> B["1. 请求前处理<br>记录 startTime<br>提取 endpoint、method"]
+    A["HTTP 请求"] --> B["1. 请求前处理<br>记录 startTime<br>提取 endpoint, method"]
     B --> C["2. 执行业务逻辑<br>Controller → Service → Repository"]
-    C --> D["3. 响应后处理<br>计算 latencyMs = now() - startTime<br>获取 statusCode<br>更新 Metrics 聚合器（内存累加）<br>判断是否需要记录 Trace（智能采样）"]
+    C --> D["3. 响应后处理<br>计算 latencyMs<br>获取 statusCode<br>更新 Metrics 聚合器<br>判断是否记录 Trace"]
     D --> E["HTTP 响应"]
 ```
 
 ---
 
-## 5. 成功率计算原理
+## 4. 成功率计算
 
-### 5.1 状态码判定规则
+### 状态码判定规则
 
-| HTTP 状态码范围 | 判定结果 | 说明 |
-|---------------|---------|-----|
-| 200-299 | 成功 | 请求正常处理 |
-| 300-399 | 成功 | 重定向（不计入错误） |
-| 400-499 | 失败 | 客户端错误 |
-| 500-599 | 失败 | 服务端错误 |
+| HTTP 状态码范围 | 判定结果 |
+|----------------|----------|
+| 200-299 | 成功 |
+| 300-399 | 成功 (重定向) |
+| 400-499 | 失败 (客户端错误) |
+| 500-599 | 失败 (服务端错误) |
 
-### 5.2 计算公式
+### 计算公式
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         成功率计算                                           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   成功率 = (1 - 错误数 / 总请求数) × 100%                                    │
-│                                                                             │
-│   错误率 = 错误数 / 总请求数 × 100%                                          │
-│                                                                             │
-│   ─────────────────────────────────────────────────────────────────────     │
-│                                                                             │
-│   示例：                                                                     │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │  总请求数: 10,000                                                    │   │
-│   │  成功请求: 9,850 (2xx + 3xx)                                         │   │
-│   │  错误请求: 150 (4xx + 5xx)                                           │   │
-│   │                                                                      │   │
-│   │  成功率 = (1 - 150/10000) × 100% = 98.5%                             │   │
-│   │  错误率 = 150/10000 × 100% = 1.5%                                    │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+| 指标 | 公式 |
+|------|------|
+| 成功率 | (1 - 错误数 / 总请求数) x 100% |
+| 错误率 | 错误数 / 总请求数 x 100% |
+
+---
+
+## 5. Metrics 聚合机制
+
+### 内存聚合器
+
+| 属性 | 说明 |
+|------|------|
+| 聚合维度 | (endpoint, method) |
+| requestCount | 请求计数器 |
+| errorCount | 错误计数器 |
+| totalLatency | 延迟累加 (计算平均值) |
+| latencies[] | 延迟采样数组 (计算分位数) |
+| statusCounts | 状态码分布 Map |
+
+### 延迟分位数计算 (P50/P95/P99)
+
+| 分位数 | 含义 | 计算方法 |
+|--------|------|----------|
+| P50 | 50% 请求在此时间内完成 | sorted[floor(N x 0.50)] |
+| P95 | 95% 请求在此时间内完成 | sorted[floor(N x 0.95)] |
+| P99 | 99% 请求在此时间内完成 | sorted[floor(N x 0.99)] |
+
+### Flush 机制
+
+```mermaid
+graph TD
+    A["定时器触发<br>每 60 秒"] --> B["1. 获取聚合数据快照<br>复制内存 Metrics<br>重置计数器"]
+    B --> C["2. 计算统计指标<br>P50, P95, P99<br>平均/最大延迟<br>错误率"]
+    C --> D["3. 写入数据库<br>UPSERT ApiPerformanceDaily<br>按 (date, endpoint, method) 聚合"]
 ```
 
 ---
 
-## 6. Metrics 聚合机制
-
-### 6.1 内存聚合器数据结构
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         Metrics 聚合器                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   聚合维度：(endpoint, method)                                               │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │  Map<string, EndpointMetrics>                                        │   │
-│   │                                                                      │   │
-│   │  Key: "GET:/api/v1/books"                                            │   │
-│   │  Value:                                                              │   │
-│   │    ├── requestCount: number       // 请求计数器                      │   │
-│   │    ├── errorCount: number         // 错误计数器                      │   │
-│   │    ├── totalLatency: number       // 延迟累加（用于计算平均值）       │   │
-│   │    ├── latencies: number[]        // 延迟采样数组（用于计算分位数）   │   │
-│   │    └── statusCounts: Map          // 状态码分布                      │   │
-│   │         ├── 200: 9500                                                │   │
-│   │         ├── 400: 30                                                  │   │
-│   │         └── 500: 20                                                  │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 6.2 延迟分位数计算（P50/P95/P99）
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         分位数计算原理                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   采样数组（已排序）:                                                        │
-│   [10, 15, 20, 25, 30, 35, 40, 50, 80, 100, 150, 200, 500, 1000, 3000]     │
-│    ↑                           ↑                    ↑              ↑        │
-│   最小                        P50                  P95            P99       │
-│                                                                             │
-│   ─────────────────────────────────────────────────────────────────────     │
-│                                                                             │
-│   计算方法：                                                                 │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │  假设有 N 个样本：                                                    │   │
-│   │                                                                      │   │
-│   │  P50 = sorted[floor(N × 0.50)]  // 50% 的请求在此时间内完成          │   │
-│   │  P95 = sorted[floor(N × 0.95)]  // 95% 的请求在此时间内完成          │   │
-│   │  P99 = sorted[floor(N × 0.99)]  // 99% 的请求在此时间内完成          │   │
-│   │                                                                      │   │
-│   │  示例（100 个样本）：                                                 │   │
-│   │  P50 = 第 50 个值                                                    │   │
-│   │  P95 = 第 95 个值                                                    │   │
-│   │  P99 = 第 99 个值                                                    │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 6.3 Flush 机制
+## 6. 智能采样策略
 
 ```mermaid
 graph TD
-    A["定时器触发<br>每 60 秒"] --> B["1. 获取当前聚合数据快照<br>复制内存中的 Metrics 数据<br>重置计数器为 0"]
-    B --> C["2. 计算统计指标<br>计算 P50、P95、P99<br>计算平均延迟、最大延迟<br>计算错误率"]
-    C --> D["3. 写入数据库<br>UPSERT 到 ApiPerformanceDaily 表<br>按 (date, endpoint, method) 聚合"]
-```
-
----
-
-## 7. 智能采样策略
-
-### 7.1 采样规则
-
-```mermaid
-graph TD
-    A["请求完成"] --> B{"是否为重点接口？"}
+    A["请求完成"] --> B{"重点接口？"}
     B -->|是| C["100% 记录"]
-    B -->|否| D{"statusCode ≥ 400?"}
+    B -->|否| D{"statusCode >= 400?"}
     D -->|是| E["100% 记录"]
     D -->|否| F{"latencyMs > 3000?"}
     F -->|是| G["100% 记录"]
     F -->|否| H{"random() < 0.05?"}
-    H -->|是| I["记录（5% 采样）"]
-    H -->|否| J["跳过记录"]
+    H -->|是| I["记录 (5% 采样)"]
+    H -->|否| J["跳过"]
 ```
 
-### 7.2 采样率配置
+### 采样率配置
 
 | 请求类型 | 采样率 | 理由 |
-|---------|-------|-----|
+|----------|--------|------|
 | 重点接口 | 100% | 核心业务必须全量监控 |
-| 错误响应 (4xx/5xx) | 100% | 异常必须 100% 捕获用于排查 |
+| 错误响应 (4xx/5xx) | 100% | 异常必须捕获 |
 | 慢请求 (>3000ms) | 100% | 性能问题必须捕获 |
-| 普通成功请求 | 5% | 统计意义上足够，降低存储成本 |
+| 普通成功请求 | 5% | 统计足够，降低存储成本 |
 
 ---
 
-## 8. 重点接口监控
-
-### 8.1 重点接口清单
+## 7. 重点接口监控
 
 | 分类 | 接口 | 响应阈值 | 成功率目标 |
-|-----|-----|---------|----------|
-| **认证** | POST /auth/login | < 2000ms | ≥ 99.5% |
-| **认证** | POST /auth/register | < 3000ms | ≥ 99.5% |
-| **认证** | POST /auth/refresh | < 1000ms | ≥ 99.9% |
-| **用户** | GET /users/me | < 1500ms | ≥ 99.5% |
-| **书籍** | GET /books | < 2000ms | ≥ 99.5% |
-| **书籍** | GET /books/:id | < 1500ms | ≥ 99.5% |
-| **书籍** | GET /books/:id/content/:chapterId | < 2000ms | ≥ 99.5% |
-| **阅读** | GET /reading/library | < 1500ms | ≥ 99.5% |
-| **阅读** | PATCH /reading/progress/:bookId | < 1500ms | ≥ 99.5% |
-| **阅读** | POST /reading/sessions | < 1500ms | ≥ 99.0% |
-| **AI** | POST /ai/explain | < 5000ms | ≥ 98.0% |
-| **AI** | POST /ai/translate | < 5000ms | ≥ 98.0% |
-| **词汇** | GET /vocabulary | < 2000ms | ≥ 99.5% |
-| **词汇** | POST /vocabulary | < 1500ms | ≥ 99.5% |
-| **订阅** | GET /subscriptions/status | < 1500ms | ≥ 99.9% |
-| **订阅** | POST /subscriptions/verify | < 3000ms | ≥ 99.5% |
-| **订阅** | POST /subscriptions/trial/start | < 2000ms | ≥ 99.5% |
-| **推荐** | GET /recommendation/home | < 3000ms | ≥ 99.0% |
-| **搜索** | GET /search | < 2000ms | ≥ 99.5% |
-| **标注** | POST /highlights | < 1500ms | ≥ 99.5% |
-| **同步** | POST /sync/progress | < 1500ms | ≥ 99.5% |
-| **追踪** | POST /tracking/reading | < 1500ms | ≥ 99.0% |
-| **健康** | GET /health | < 1000ms | ≥ 99.9% |
-
-### 8.2 告警阈值
-
-| 指标 | 警告阈值 | 严重阈值 |
-|-----|---------|---------|
-| 错误率 | > 1% | > 5% |
-| P95 延迟 | > 目标值 × 1.5 | > 目标值 × 2 |
-| P99 延迟 | > 目标值 × 2 | > 目标值 × 3 |
+|------|------|----------|-----------|
+| 认证 | POST /auth/login | < 2000ms | >= 99.5% |
+| 认证 | POST /auth/refresh | < 1000ms | >= 99.9% |
+| 书籍 | GET /books | < 2000ms | >= 99.5% |
+| 书籍 | GET /books/:id | < 1500ms | >= 99.5% |
+| 阅读 | GET /reading/library | < 1500ms | >= 99.5% |
+| AI | POST /ai/explain | < 5000ms | >= 98.0% |
+| 词汇 | GET /vocabulary | < 2000ms | >= 99.5% |
+| 订阅 | GET /subscriptions/status | < 1500ms | >= 99.9% |
+| 推荐 | GET /recommendation/home | < 3000ms | >= 99.0% |
+| 搜索 | GET /search | < 2000ms | >= 99.5% |
+| 健康 | GET /health | < 1000ms | >= 99.9% |
 
 ---
 
-## 9. 性能开销分析
-
-### 9.1 开销对比
+## 8. 性能开销分析
 
 | 方案 | 请求延迟增加 | 内存占用 | 数据库写入频率 |
-|-----|------------|---------|--------------|
+|------|-------------|----------|---------------|
 | 全量同步写入 | +10-20ms | 低 | 每请求 1 次 |
 | 全量异步写入 | +2-5ms | 中 | 每请求 1 次 |
-| **Metrics 聚合（采用）** | **< 0.1ms** | **~10MB** | **每分钟 1 次** |
+| **Metrics 聚合 (采用)** | **< 0.1ms** | **~1MB** | **每分钟 1 次** |
 | Traces 智能采样 | < 0.5ms | 低 | 约 10% 请求 |
-
-### 9.2 内存使用估算
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         内存使用估算                                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   假设：                                                                     │
-│   · 100 个不同的 API 端点                                                    │
-│   · 每个端点存储 1000 个延迟采样                                             │
-│   · 每个采样 8 bytes (number)                                               │
-│                                                                             │
-│   计算：                                                                     │
-│   · 延迟采样：100 × 1000 × 8 = 800 KB                                       │
-│   · 计数器和元数据：100 × 200 bytes = 20 KB                                 │
-│   · 缓冲区和开销：~180 KB                                                   │
-│                                                                             │
-│   总计：约 1 MB（远小于预估的 10MB 上限）                                    │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
-## 10. 数据流完整链路
+## 9. 完整数据流链路
 
 ```mermaid
 graph TD
     A["HTTP 请求"] --> B["API 性能拦截器<br>startTime = now()"]
     B --> C["业务逻辑处理"]
-    C --> D["API 性能拦截器<br>latencyMs = now() - startTime"]
+    C --> D["计算 latencyMs"]
     D --> E["Metrics 聚合器<br>(100% 内存累加)"]
-    D --> F["Traces 采样判断<br>(智能采样)"]
-    E --> G["内存 Metrics 缓冲区<br>(按 endpoint 聚合)"]
-    F --> H["异步写入队列<br>(采样后的请求详情)"]
-    G -->|"每 60 秒"| I["ApiPerformanceDaily<br>(聚合统计数据)"]
-    H -->|"异步批量"| J["ApiPerformanceMetric<br>(采样详细数据)"]
-    I --> K["Dashboard 查询展示<br>重点接口监控面板<br>API 延迟分布图<br>错误率趋势图"]
+    D --> F["Traces 采样判断"]
+    E --> G["内存 Metrics 缓冲区"]
+    F --> H["异步写入队列"]
+    G -->|"每 60 秒"| I["ApiPerformanceDaily<br>(聚合统计)"]
+    H -->|"异步批量"| J["ApiPerformanceMetric<br>(采样详情)"]
+    I --> K["Dashboard 查询展示"]
 ```
 
 ---
 
-## 11. 相关文件
+## 10. 相关文件
 
 | 文件 | 说明 |
-|-----|-----|
-| `apps/backend/src/common/interceptors/api-performance.interceptor.ts` | API 性能拦截器 |
-| `apps/backend/src/common/services/metrics-aggregator.service.ts` | Metrics 聚合器 |
-| `apps/backend/src/modules/admin/performance/performance.service.ts` | 性能查询服务 |
-| `apps/backend/src/modules/admin/performance/critical-endpoints.config.ts` | 重点接口配置 |
+|------|------|
+| `src/common/interceptors/api-performance.interceptor.ts` | API 性能拦截器 |
+| `src/common/services/metrics-aggregator.service.ts` | Metrics 聚合器 |
+| `src/modules/admin/performance/performance.service.ts` | 性能查询服务 |
+| `src/modules/admin/performance/critical-endpoints.config.ts` | 重点接口配置 |
 | `packages/database/prisma/schema.prisma` | 数据库表定义 |
 
 ---
 
-## 12. 参考资料
+## 11. 参考资料
 
 | 来源 | 链接 |
-|-----|-----|
+|------|------|
 | Google SRE Book | https://sre.google/sre-book/monitoring-distributed-systems/ |
 | RED Method | https://last9.io/blog/monitoring-with-red-method/ |
 | OpenTelemetry Sampling | https://opentelemetry.io/docs/concepts/sampling/ |
-| OpenTelemetry Best Practices | https://betterstack.com/community/guides/observability/opentelemetry-best-practices/ |
+
+---
+
+*最后更新: 2026-02-07*
