@@ -7,19 +7,20 @@
 
 ## 架构
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  iOS App     │     │   Backend    │     │   APNs       │
-│              │     │              │     │              │
-│ 1.请求权限   │     │              │     │              │
-│ 2.获取Token  │────▶│ 3.存储Token  │     │              │
-│              │     │              │     │              │
-│              │     │ 4.管理员回复 │     │              │
-│              │     │ 5.查询Token  │────▶│ 6.发送推送   │
-│              │◀────│              │◀────│              │
-│ 7.收到推送   │     │              │     │              │
-│ 8.跳转详情   │     │              │     │              │
-└──────────────┘     └──────────────┘     └──────────────┘
+```mermaid
+sequenceDiagram
+    participant App as iOS App
+    participant Backend as Backend
+    participant APNs as APNs
+
+    App->>App: 1. 请求权限
+    App->>Backend: 2. 获取 Token
+    Backend->>Backend: 3. 存储 Token
+    Backend->>Backend: 4. 管理员回复
+    Backend->>APNs: 5. 查询 Token & 发送
+    APNs->>App: 6. 发送推送
+    App->>App: 7. 收到推送
+    App->>App: 8. 跳转详情
 ```
 
 ---

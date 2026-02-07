@@ -4,42 +4,31 @@
 
 ### 15.1 阅读器架构总览
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     iOS Reader Engine Architecture                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │                      ReaderViewController                        │    │
-│  │  ┌─────────────────────────────────────────────────────────┐    │    │
-│  │  │                   ReaderContainerView                    │    │    │
-│  │  │  ┌────────────┐  ┌────────────────────┐  ┌────────────┐ │    │    │
-│  │  │  │  Chapter   │  │   PageViewController  │  │  Chapter │ │    │    │
-│  │  │  │  List      │  │   (翻页容器)          │  │  Info    │ │    │    │
-│  │  │  │  (侧边栏)  │  │  ┌────────────────┐  │  │  (右侧)  │ │    │    │
-│  │  │  │            │  │  │  PageView      │  │  │          │ │    │    │
-│  │  │  │            │  │  │  (WKWebView)   │  │  │          │ │    │    │
-│  │  │  │            │  │  └────────────────┘  │  │          │ │    │    │
-│  │  │  └────────────┘  └────────────────────┘  └────────────┘ │    │    │
-│  │  │                                                          │    │    │
-│  │  │  ┌──────────────────────────────────────────────────────┐│    │    │
-│  │  │  │              ReaderToolbar                           ││    │    │
-│  │  │  │  [目录] [设置] [AI助手] [书签] [进度条]              ││    │    │
-│  │  │  └──────────────────────────────────────────────────────┘│    │    │
-│  │  └─────────────────────────────────────────────────────────┘    │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-│                                                                         │
-│  支撑层：                                                                │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐           │
-│  │EPUBParser  │ │PageLayout  │ │TextSelector│ │ProgressSync│           │
-│  │EPUB解析    │ │分页引擎    │ │文本选择    │ │ 进度同步   │           │
-│  └────────────┘ └────────────┘ └────────────┘ └────────────┘           │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐           │
-│  │ThemeEngine │ │FontManager │ │AIBridge    │ │OfflineCache│           │
-│  │主题引擎    │ │字体管理    │ │AI交互桥接  │ │ 离线缓存   │           │
-│  └────────────┘ └────────────┘ └────────────┘ └────────────┘           │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph ReaderVC["ReaderViewController"]
+        subgraph Container["ReaderContainerView"]
+            ChapterList["Chapter List<br>(侧边栏)"]
+            subgraph PageVC["PageViewController (翻页容器)"]
+                PageView["PageView<br>(WKWebView)"]
+            end
+            ChapterInfo["Chapter Info<br>(右侧)"]
+            Toolbar["ReaderToolbar<br>目录 / 设置 / AI助手 / 书签 / 进度条"]
+        end
+    end
+
+    subgraph Support["支撑层"]
+        EPUBParser["EPUBParser<br>EPUB解析"]
+        PageLayout["PageLayout<br>分页引擎"]
+        TextSelector["TextSelector<br>文本选择"]
+        ProgressSync["ProgressSync<br>进度同步"]
+        ThemeEngine["ThemeEngine<br>主题引擎"]
+        FontManager["FontManager<br>字体管理"]
+        AIBridge["AIBridge<br>AI交互桥接"]
+        OfflineCache["OfflineCache<br>离线缓存"]
+    end
+
+    Container --> Support
 ```
 
 ### 15.2 EPUB解析引擎

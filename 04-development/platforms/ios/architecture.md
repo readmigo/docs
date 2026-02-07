@@ -6,36 +6,31 @@
 
 ## 1. 架构概览
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Clean Architecture 分层                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    Presentation Layer                    │    │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐           │    │
-│  │  │   View    │  │ ViewModel │  │   State   │           │    │
-│  │  │ (SwiftUI) │  │ (MVVM)    │  │  Manager  │           │    │
-│  │  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘           │    │
-│  └────────┼──────────────┼──────────────┼──────────────────┘    │
-│           │              │              │                        │
-│  ┌────────┴──────────────┴──────────────┴──────────────────┐    │
-│  │                    Domain Layer                          │    │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐           │    │
-│  │  │  UseCase  │  │Repository │  │  Entity   │           │    │
-│  │  │           │  │ Protocol  │  │           │           │    │
-│  │  └─────┬─────┘  └─────┬─────┘  └───────────┘           │    │
-│  └────────┼──────────────┼──────────────────────────────────┘    │
-│           │              │                                       │
-│  ┌────────┴──────────────┴──────────────────────────────────┐    │
-│  │                    Data Layer                            │    │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐           │    │
-│  │  │Repository │  │  Network  │  │   Local   │           │    │
-│  │  │   Impl    │  │  Service  │  │  Storage  │           │    │
-│  │  └───────────┘  └───────────┘  └───────────┘           │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Presentation["Presentation Layer"]
+        View["View<br>(SwiftUI)"]
+        ViewModel["ViewModel<br>(MVVM)"]
+        StateManager["State<br>Manager"]
+    end
+
+    subgraph Domain["Domain Layer"]
+        UseCase["UseCase"]
+        RepoProtocol["Repository<br>Protocol"]
+        Entity["Entity"]
+    end
+
+    subgraph Data["Data Layer"]
+        RepoImpl["Repository<br>Impl"]
+        NetworkService["Network<br>Service"]
+        LocalStorage["Local<br>Storage"]
+    end
+
+    View --> UseCase
+    ViewModel --> UseCase
+    StateManager --> UseCase
+    UseCase --> RepoImpl
+    RepoProtocol --> RepoImpl
 ```
 
 ---
@@ -70,34 +65,13 @@ Feature/{Module}/
 
 ### 3.1 数据流
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    MVVM 数据流                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  User                                                           │
-│   │                                                              │
-│   │ Action (点击、输入)                                          │
-│   ▼                                                              │
-│  ┌─────────────┐                                                │
-│  │    View     │                                                │
-│  │  (SwiftUI)  │                                                │
-│  └──────┬──────┘                                                │
-│         │ Binding / Action                                      │
-│         ▼                                                        │
-│  ┌─────────────┐        ┌─────────────┐                        │
-│  │  ViewModel  │───────▶│   Service   │                        │
-│  │ @Observable │◀───────│             │                        │
-│  └──────┬──────┘        └─────────────┘                        │
-│         │                                                        │
-│         │ @Published / @State                                   │
-│         ▼                                                        │
-│  ┌─────────────┐                                                │
-│  │    View     │                                                │
-│  │   Update    │                                                │
-│  └─────────────┘                                                │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    User["User"] -->|"Action (点击、输入)"| View["View<br>(SwiftUI)"]
+    View -->|"Binding / Action"| ViewModel["ViewModel<br>@Observable"]
+    ViewModel -->|"请求数据"| Service["Service"]
+    Service -->|"返回结果"| ViewModel
+    ViewModel -->|"@Published / @State"| ViewUpdate["View<br>Update"]
 ```
 
 ### 3.2 ViewModel 设计
@@ -196,36 +170,13 @@ Feature/{Module}/
 
 ### 6.1 单向数据流
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    数据流向                                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  远程数据                                                        │
-│       │                                                          │
-│       ▼                                                          │
-│  ┌─────────────┐                                                │
-│  │  Network    │                                                │
-│  │  Service    │                                                │
-│  └──────┬──────┘                                                │
-│         │                                                        │
-│         ▼                                                        │
-│  ┌─────────────┐        ┌─────────────┐                        │
-│  │ Repository  │───────▶│   Local     │                        │
-│  │             │◀───────│  Storage    │                        │
-│  └──────┬──────┘        └─────────────┘                        │
-│         │                                                        │
-│         │ async/await                                           │
-│         ▼                                                        │
-│  ┌─────────────┐                                                │
-│  │  ViewModel  │                                                │
-│  └──────┬──────┘                                                │
-│         │                                                        │
-│         │ @Published                                            │
-│         ▼                                                        │
-│       View                                                      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Remote["远程数据"] --> NetworkService["Network<br>Service"]
+    NetworkService --> Repository["Repository"]
+    Repository <-->|"缓存读写"| LocalStorage["Local<br>Storage"]
+    Repository -->|"async/await"| ViewModel["ViewModel"]
+    ViewModel -->|"@Published"| View["View"]
 ```
 
 ### 6.2 状态管理

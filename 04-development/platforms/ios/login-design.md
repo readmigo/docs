@@ -144,18 +144,13 @@ struct ReadmigoApp: App {
 
 #### 流程设计
 
-```
-登录成功 (isNewUser = true)
-    ↓
-Welcome Screen
-    ↓
-English Level Assessment
-    ↓
-Daily Goal Setting
-    ↓
-Reading Interests (可选)
-    ↓
-进入主页
+```mermaid
+flowchart TD
+    A["登录成功 (isNewUser = true)"] --> B["Welcome Screen"]
+    B --> C["English Level Assessment"]
+    C --> D["Daily Goal Setting"]
+    D --> E["Reading Interests (可选)"]
+    E --> F["进入主页"]
 ```
 
 #### 新增文件

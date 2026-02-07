@@ -558,25 +558,32 @@ Phase 3 (18-24个月):
 
 ### 9.1 整体流程
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        数据管道架构                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐      │
-│  │ 数据源   │───▶│ 采集层  │───▶│ 处理层  │───▶│ 存储层  │      │
-│  └─────────┘    └─────────┘    └─────────┘    └─────────┘      │
-│       │              │              │              │            │
-│       ▼              ▼              ▼              ▼            │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐      │
-│  │ SE      │    │ Scraper │    │ EPUB    │    │ DB      │      │
-│  │ PG      │    │ API     │    │ Parser  │    │ (Neon)  │      │
-│  │ LibriVox│    │ Client  │    │ Analyzer│    │         │      │
-│  │ OL      │    │         │    │ AI Gen  │    │ R2      │      │
-│  └─────────┘    └─────────┘    └─────────┘    │ (Files) │      │
-│                                               └─────────┘      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Sources["数据源"]
+        SE["SE"]
+        PG["PG"]
+        LV["LibriVox"]
+        OL["OL"]
+    end
+
+    subgraph Collection["采集层"]
+        Scraper["Scraper"]
+        API["API Client"]
+    end
+
+    subgraph Processing["处理层"]
+        EPUB["EPUB Parser"]
+        Analyzer["Analyzer"]
+        AIGen["AI Gen"]
+    end
+
+    subgraph Storage["存储层"]
+        DB["DB<br>(Neon)"]
+        R2["R2<br>(Files)"]
+    end
+
+    Sources --> Collection --> Processing --> Storage
 ```
 
 ### 9.2 已实现组件

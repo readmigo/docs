@@ -8,39 +8,19 @@
 
 ## 当前架构
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                           iOS Client                                  │
-├──────────────────────────────────────────────────────────────────────┤
-│  DiscoverView.swift                                                  │
-│  ├── SearchBar UI 组件 (lines 650-703)                               │
-│  ├── 搜索状态管理 & 结果展示 (lines 59-170)                            │
-│  ├── 自动补全 (300ms debounce, min 2 chars) (lines 273-307)           │
-│  └── 热门搜索 (cached) (lines 254-271)                                │
-│                                                                      │
-│  APIClient+Search.swift                                              │
-│  ├── unifiedSearch() → /search                                       │
-│  ├── getSearchSuggestions() → /search/suggestions                    │
-│  ├── getPopularSearches() → /search/popular                          │
-│  └── getTrendingSearches() → /search/trending                        │
-└──────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                           Backend API                                 │
-├──────────────────────────────────────────────────────────────────────┤
-│  search.controller.ts                                                │
-│  ├── GET /search - 统一搜索                                           │
-│  ├── GET /search/suggestions - 自动补全                               │
-│  ├── GET /search/popular - 热门搜索                                   │
-│  └── GET /search/trending - 趋势搜索                                  │
-│                                                                      │
-│  search.service.ts                                                   │
-│  ├── PostgreSQL pg_trgm 模糊匹配                                      │
-│  ├── 智能排序算法 (exact > prefix > contains > fuzzy)                 │
-│  ├── 拼音搜索支持                                                     │
-│  └── Redis 热门搜索统计                                               │
-└──────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph iOS["iOS Client"]
+        DV["DiscoverView.swift<br>SearchBar UI (650-703)<br>搜索状态管理 (59-170)<br>自动补全 300ms debounce (273-307)<br>热门搜索 cached (254-271)"]
+        AC["APIClient+Search.swift<br>unifiedSearch → /search<br>getSearchSuggestions → /search/suggestions<br>getPopularSearches → /search/popular<br>getTrendingSearches → /search/trending"]
+    end
+
+    subgraph Backend["Backend API"]
+        SC["search.controller.ts<br>GET /search - 统一搜索<br>GET /search/suggestions - 自动补全<br>GET /search/popular - 热门搜索<br>GET /search/trending - 趋势搜索"]
+        SS["search.service.ts<br>PostgreSQL pg_trgm 模糊匹配<br>智能排序 exact > prefix > contains > fuzzy<br>拼音搜索支持<br>Redis 热门搜索统计"]
+    end
+
+    iOS --> Backend
 ```
 
 ---
@@ -59,24 +39,13 @@
 
 ### 搜索状态流
 
-```
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  空闲状态    │ ──▶ │   聚焦但无输入    │ ──▶ │    输入中       │
-│ (混合信息流) │     │ (历史+热门搜索)   │     │ (自动补全建议)   │
-└─────────────┘     └──────────────────┘     └─────────────────┘
-                                                     │
-                                                     ▼ 提交搜索
-                    ┌──────────────────┐     ┌─────────────────┐
-                    │    无结果        │ ◀── │   搜索中...     │
-                    │ (magnifyingglass)│     │ (ProgressView)  │
-                    └──────────────────┘     └─────────────────┘
-                                                     │
-                                                     ▼ 有结果
-                                             ┌─────────────────┐
-                                             │  分类搜索结果    │
-                                             │ Authors/Books/  │
-                                             │ Quotes          │
-                                             └─────────────────┘
+```mermaid
+flowchart TD
+    A["空闲状态<br>(混合信息流)"] --> B["聚焦但无输入<br>(历史+热门搜索)"]
+    B --> C["输入中<br>(自动补全建议)"]
+    C -->|提交搜索| D["搜索中...<br>(ProgressView)"]
+    D -->|无结果| E["无结果<br>(magnifyingglass)"]
+    D -->|有结果| F["分类搜索结果<br>Authors/Books/Quotes"]
 ```
 
 ### 搜索执行流程 (DiscoverView.swift:230-252)

@@ -16,40 +16,12 @@ Apple CarPlay support for audiobook playback while driving.
 
 ## Architecture
 
-```
-┌───────────────────────────────────────────────────────────────┐
-│                    CarPlay Head Unit                           │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │                    Tab Bar Template                       │ │
-│  │  [ Now Playing ] [ Library ] [ Recent ]                   │ │
-│  └──────────────────────────────────────────────────────────┘ │
-└───────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────┐
-│                CarPlaySceneDelegate                            │
-│  CPTemplateApplicationSceneDelegate                            │
-├───────────────────────────────────────────────────────────────┤
-│  didConnect → Set up root template                            │
-│  didDisconnect → Clean up resources                           │
-└───────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────┐
-│              CarPlayTemplateManager                            │
-│  @MainActor singleton                                          │
-├───────────────────────────────────────────────────────────────┤
-│  - Create templates (Tab Bar, List, Now Playing)              │
-│  - Handle user interactions                                    │
-│  - Manage audiobook playback                                   │
-│  - Cache audiobook data                                        │
-└───────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────┐
-│                   AudiobookPlayer                              │
-│  Shared instance for playback control                          │
-└───────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    HeadUnit["CarPlay Head Unit<br>Tab Bar Template<br>Now Playing / Library / Recent"]
+    HeadUnit --> SceneDelegate["CarPlaySceneDelegate<br>didConnect -> Set up root template<br>didDisconnect -> Clean up resources"]
+    SceneDelegate --> TemplateManager["CarPlayTemplateManager<br>@MainActor singleton<br>Create templates / Handle interactions<br>Manage playback / Cache data"]
+    TemplateManager --> Player["AudiobookPlayer<br>Shared instance for playback control"]
 ```
 
 ---
@@ -152,47 +124,25 @@ Uses `CPNowPlayingTemplate.shared` with custom buttons:
 
 ### Connection Flow
 
-```
-CarPlay Connected
-       │
-       ▼
-CarPlaySceneDelegate.didConnect()
-       │
-       ▼
-CarPlayTemplateManager.createRootTemplate()
-       │
-       ▼
-interfaceController.setRootTemplate()
-       │
-       ▼
-User sees Tab Bar
+```mermaid
+flowchart TD
+    A["CarPlay Connected"] --> B["CarPlaySceneDelegate.didConnect()"]
+    B --> C["CarPlayTemplateManager.createRootTemplate()"]
+    C --> D["interfaceController.setRootTemplate()"]
+    D --> E["User sees Tab Bar"]
 ```
 
 ### Playback Flow
 
-```
-User taps audiobook
-        │
-        ▼
-showAudiobookDetail()
-        │
-        ▼
-Fetch audiobook from API
-        │
-        ▼
-Display chapter list
-        │
-        ▼
-User taps "Play"/"Continue"
-        │
-        ▼
-AudiobookPlayer.loadAndPlay()
-        │
-        ▼
-Push CPNowPlayingTemplate
-        │
-        ▼
-Audio plays through car speakers
+```mermaid
+flowchart TD
+    A["User taps audiobook"] --> B["showAudiobookDetail()"]
+    B --> C["Fetch audiobook from API"]
+    C --> D["Display chapter list"]
+    D --> E["User taps Play/Continue"]
+    E --> F["AudiobookPlayer.loadAndPlay()"]
+    F --> G["Push CPNowPlayingTemplate"]
+    G --> H["Audio plays through car speakers"]
 ```
 
 ---

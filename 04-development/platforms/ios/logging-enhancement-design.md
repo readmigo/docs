@@ -37,39 +37,35 @@
 
 ### 3.1 整体架构
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Application Layer                         │
-├─────────────────────────────────────────────────────────────────┤
-│  ViewModifiers                                                   │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────────┐ │
-│  │ PageTracking │ │ Performance  │ │ InteractionTracking     │ │
-│  │ Modifier     │ │ Modifier     │ │ Modifier                │ │
-│  └──────────────┘ └──────────────┘ └──────────────────────────┘ │
-├─────────────────────────────────────────────────────────────────┤
-│  Navigation & State Tracking                                     │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                   NavigationTracker                       │   │
-│  │  • pageStack: [PageInfo]                                  │   │
-│  │  • breadcrumb: String                                     │   │
-│  │  • sessionFlowId: UUID                                    │   │
-│  └──────────────────────────────────────────────────────────┘   │
-├─────────────────────────────────────────────────────────────────┤
-│  Enhanced Logging Service                                        │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                  LoggingService (Enhanced)                │   │
-│  │  + pageEnter(name:, source:, metadata:)                   │   │
-│  │  + pageExit(name:, duration:, metadata:)                  │   │
-│  │  + performance(name:, metrics:)                           │   │
-│  │  + userAction(action:, target:, metadata:)                │   │
-│  └──────────────────────────────────────────────────────────┘   │
-├─────────────────────────────────────────────────────────────────┤
-│  Output Formatters                                               │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐   │
-│  │ ConsoleLog  │ │   OSLog     │ │    ServerBatch          │   │
-│  │ (Debug)     │ │             │ │                         │   │
-│  └─────────────┘ └─────────────┘ └─────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph AppLayer["Application Layer - ViewModifiers"]
+        PageTracking["PageTracking<br>Modifier"]
+        PerfModifier["Performance<br>Modifier"]
+        InteractionTracking["InteractionTracking<br>Modifier"]
+    end
+
+    subgraph NavTracking["Navigation & State Tracking"]
+        NavigationTracker["NavigationTracker<br>pageStack / breadcrumb / sessionFlowId"]
+    end
+
+    subgraph LogService["Enhanced Logging Service"]
+        LoggingService["LoggingService (Enhanced)<br>pageEnter / pageExit<br>performance / userAction"]
+    end
+
+    subgraph Output["Output Formatters"]
+        ConsoleLog["ConsoleLog<br>(Debug)"]
+        OSLog["OSLog"]
+        ServerBatch["ServerBatch"]
+    end
+
+    PageTracking --> NavigationTracker
+    PerfModifier --> NavigationTracker
+    InteractionTracking --> NavigationTracker
+    NavigationTracker --> LoggingService
+    LoggingService --> ConsoleLog
+    LoggingService --> OSLog
+    LoggingService --> ServerBatch
 ```
 
 ### 3.2 新增日志分类

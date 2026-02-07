@@ -2,29 +2,16 @@
 
 ## 系统概述
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         订阅系统全链路架构                                    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─────────────┐      ┌─────────────┐      ┌─────────────┐                 │
-│  │   iOS App   │◄────►│   Backend   │◄────►│  Dashboard  │                 │
-│  │  StoreKit 2 │      │   NestJS    │      │ React Admin │                 │
-│  └──────┬──────┘      └──────┬──────┘      └─────────────┘                 │
-│         │                    │                                              │
-│         ▼                    ▼                                              │
-│  ┌─────────────┐      ┌─────────────┐                                      │
-│  │ App Store   │─────►│ App Store   │                                      │
-│  │  Connect    │      │ Server API  │                                      │
-│  └─────────────┘      └─────────────┘                                      │
-│                              │                                              │
-│                              ▼                                              │
-│                       ┌─────────────┐                                      │
-│                       │  Webhooks   │                                      │
-│                       │ Notifications│                                      │
-│                       └─────────────┘                                      │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph "订阅系统全链路架构"
+        A["iOS App<br>StoreKit 2"] <--> B["Backend<br>NestJS"]
+        B <--> C["Dashboard<br>React Admin"]
+        A --> D["App Store<br>Connect"]
+        B --> E["App Store<br>Server API"]
+        D --> E
+        E --> F["Webhooks<br>Notifications"]
+    end
 ```
 
 ## 订阅产品定义
@@ -114,77 +101,42 @@
 
 ## 核心组件
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         客户端组件架构                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─────────────────────────────────────────────────────────────────┐        │
-│  │                    SubscriptionManager                          │        │
-│  │                    (单例, ObservableObject)                      │        │
-│  ├─────────────────────────────────────────────────────────────────┤        │
-│  │  Published Properties:                                          │        │
-│  │  • products: [Product]           可购买产品列表                  │        │
-│  │  • purchasedProductIds: Set      已购买产品 ID                   │        │
-│  │  • subscriptionState: State      当前订阅状态                    │        │
-│  │  • isSubscribed: Bool            是否已订阅                      │        │
-│  │  • currentTier: Tier             当前层级                        │        │
-│  │  • isLoading: Bool               加载状态                        │        │
-│  ├─────────────────────────────────────────────────────────────────┤        │
-│  │  Methods:                                                       │        │
-│  │  • loadProducts()                加载产品列表                    │        │
-│  │  • purchase(product)             执行购买                        │        │
-│  │  • restorePurchases()            恢复购买                        │        │
-│  │  • refreshSubscriptionStatus()   刷新订阅状态                    │        │
-│  │  • listenForTransactions()       监听交易更新                    │        │
-│  └─────────────────────────────────────────────────────────────────┘        │
-│                              │                                              │
-│          ┌───────────────────┼───────────────────┐                          │
-│          ▼                   ▼                   ▼                          │
-│  ┌───────────────┐   ┌───────────────┐   ┌───────────────┐                 │
-│  │FeatureGate   │   │ UsageTracker  │   │  APIClient    │                 │
-│  │Service       │   │               │   │               │                 │
-│  │功能门禁检查    │   │ 用量追踪      │   │ 后端通信      │                 │
-│  └───────────────┘   └───────────────┘   └───────────────┘                 │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["SubscriptionManager<br>(单例, ObservableObject)<br>products / purchasedProductIds / subscriptionState<br>loadProducts / purchase / restorePurchases"] --> B["FeatureGateService<br>功能门禁检查"]
+    A --> C["UsageTracker<br>用量追踪"]
+    A --> D["APIClient<br>后端通信"]
 ```
 
 ## 购买流程
 
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant PV as PaywallView
+    participant SM as SubscriptionManager
+    participant SK as StoreKit
+    participant BE as Backend
+
+    User->>PV: 选择产品
+    PV->>SM: purchase()
+    SM->>SK: product.purchase()
+    SK-->>SM: PurchaseResult
+    SM->>SM: checkVerified() [.success]
+    SM->>BE: verifyWithBackend()
+    BE-->>SM: VerifyReceiptResponse
+    SM->>SK: transaction.finish()
+    SM-->>PV: 更新状态
+    PV-->>User: 显示成功
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         购买流程时序                                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  用户        PaywallView    SubscriptionManager    StoreKit    Backend      │
-│   │              │                 │                  │           │         │
-│   │──选择产品───►│                 │                  │           │         │
-│   │              │──purchase()────►│                  │           │         │
-│   │              │                 │──product.purchase()─────────►│         │
-│   │              │                 │                  │           │         │
-│   │              │                 │◄─PurchaseResult──│           │         │
-│   │              │                 │                  │           │         │
-│   │              │                 │  [.success]                  │         │
-│   │              │                 │──checkVerified()─►           │         │
-│   │              │                 │                  │           │         │
-│   │              │                 │──verifyWithBackend()────────►│         │
-│   │              │                 │                              │         │
-│   │              │                 │◄────VerifyReceiptResponse────│         │
-│   │              │                 │                  │           │         │
-│   │              │                 │──transaction.finish()───────►│         │
-│   │              │                 │                  │           │         │
-│   │              │◄──更新状态──────│                  │           │         │
-│   │◄─显示成功────│                 │                  │           │         │
-│                                                                             │
-│  PurchaseResult 处理:                                                       │
-│  ─────────────────────────────────────────────────────────────────         │
-│  .success(verification)    验证交易 → 后端验证 → 完成交易                   │
-│  .pending                  交易待审批 (家长控制等)                           │
-│  .userCancelled            用户取消，不做处理                               │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+PurchaseResult 处理:
+
+| 结果 | 说明 |
+|------|------|
+| .success(verification) | 验证交易 -> 后端验证 -> 完成交易 |
+| .pending | 交易待审批 (家长控制等) |
+| .userCancelled | 用户取消，不做处理 |
 
 ## 交易监听
 
@@ -1083,81 +1035,67 @@
 
 ## 自动续订流程
 
+```mermaid
+sequenceDiagram
+    participant Apple
+    participant Webhook
+    participant Backend
+    participant User
+
+    Apple->>Apple: 到期前尝试扣费
+    alt 扣费成功
+        Apple->>Webhook: DID_RENEW
+        Webhook->>Backend: handleRenewal()
+        Backend->>User: 更新 expiresAt
+    else 扣费失败
+        Apple->>Backend: DID_FAIL_TO_RENEW
+        Backend->>User: 进入宽限期 (GRACE_PERIOD)
+    end
+    Note over Apple,User: 宽限期结束
+    Apple->>Backend: GRACE_PERIOD_EXPIRED
+    Backend->>User: 订阅过期 (EXPIRED)
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         自动续订时序                                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  Apple           Webhook              Backend              User             │
-│    │                │                    │                   │              │
-│    │  到期前尝试扣费 │                    │                   │              │
-│    │─────────────────                    │                   │              │
-│    │                │                    │                   │              │
-│    │  [扣费成功]    │                    │                   │              │
-│    │──DID_RENEW────►│                    │                   │              │
-│    │                │──handleRenewal()──►│                   │              │
-│    │                │                    │──更新 expiresAt──►│              │
-│    │                │                    │                   │              │
-│    │  [扣费失败]    │                    │                   │              │
-│    │──DID_FAIL_TO_RENEW─────────────────►│                   │              │
-│    │                │                    │──进入宽限期───────►│              │
-│    │                │                    │  (GRACE_PERIOD)   │              │
-│    │                │                    │                   │              │
-│    │  [宽限期结束]  │                    │                   │              │
-│    │──GRACE_PERIOD_EXPIRED──────────────►│                   │              │
-│    │                │                    │──订阅过期─────────►│              │
-│    │                │                    │  (EXPIRED)        │              │
-│                                                                             │
-│  宽限期说明:                                                                 │
-│  ─────────────────────────────────────────────────────────────────         │
-│  • 持续 16-28 天 (Apple 决定)                                               │
-│  • 期间仍可访问付费功能                                                      │
-│  • Apple 自动重试扣费                                                        │
-│  • 用户可更新支付方式                                                        │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+宽限期说明:
+
+| 项目 | 说明 |
+|------|------|
+| 持续时间 | 16-28 天 (Apple 决定) |
+| 功能访问 | 期间仍可访问付费功能 |
+| 扣费重试 | Apple 自动重试扣费 |
+| 用户操作 | 可更新支付方式 |
 
 ## 取消订阅
 
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Apple
+    participant Backend
+
+    User->>Apple: 取消订阅
+    Apple->>Backend: DID_CHANGE_RENEWAL_STATUS<br>(autoRenewStatus = 0)
+    Backend->>Backend: handleRenewalStatusChange()<br>更新状态: CANCELLED<br>保留 expiresAt 不变
+    Backend-->>User: 仍可使用到期日前
+    Note over User,Backend: 到期后
+    Apple->>Backend: EXPIRED
+    Backend->>Backend: 设为 FREE
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         取消订阅流程                                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  用户取消方式:                                                               │
-│  ─────────────────────────────────────────────────────────────────         │
-│  1. iOS 设置 > Apple ID > 订阅 > Readmigo > 取消订阅                        │
-│  2. App Store > 账户 > 订阅 > 取消                                          │
-│                                                                             │
-│  取消后流程:                                                                 │
-│  ─────────────────────────────────────────────────────────────────         │
-│  User          Apple          Webhook           Backend                     │
-│    │             │                │                 │                       │
-│    │──取消订阅───►│                │                 │                       │
-│    │             │──DID_CHANGE_RENEWAL_STATUS──────►│                       │
-│    │             │   (autoRenewStatus = 0)          │                       │
-│    │             │                │                 │                       │
-│    │             │                │──handleRenewalStatusChange()            │
-│    │             │                │                 │                       │
-│    │             │                │     更新状态: CANCELLED                 │
-│    │             │                │     保留 expiresAt 不变                 │
-│    │             │                │                 │                       │
-│    │◄─────────────────────仍可使用到期日前──────────│                       │
-│    │             │                │                 │                       │
-│    │             │──EXPIRED (到期后)───────────────►│                       │
-│    │             │                │                 │──设为 FREE            │
-│    │             │                │                 │                       │
-│                                                                             │
-│  关键点:                                                                     │
-│  ─────────────────────────────────────────────────────────────────         │
-│  • 取消 ≠ 立即失效                                                          │
-│  • CANCELLED 状态仍可访问付费功能                                           │
-│  • 到期后自动转为 EXPIRED → FREE                                            │
-│  • 用户可随时重新订阅                                                        │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+用户取消方式:
+
+| 方式 | 路径 |
+|------|------|
+| iOS 设置 | Apple ID > 订阅 > Readmigo > 取消订阅 |
+| App Store | 账户 > 订阅 > 取消 |
+
+关键点:
+
+| 要点 | 说明 |
+|------|------|
+| 取消不等于立即失效 | CANCELLED 状态仍可访问付费功能 |
+| 到期后自动降级 | EXPIRED -> FREE |
+| 重新订阅 | 用户可随时重新订阅 |
 
 ## 升级与降级
 
