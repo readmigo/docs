@@ -108,27 +108,25 @@ readmigo.app DNS Records (Cloudflare)
 
 ### 3.1 架构图
 
-```
-                              readmigo.app
-                                   │
-           ┌───────────────────────┼───────────────────────┐
-           │                       │                       │
-      ┌────▼────┐            ┌────▼────┐            ┌────▼────┐
-      │  官网    │            │  API    │            │  资源   │
-      │ (根域名) │            │ (子域名) │            │ (子域名) │
-      └────┬────┘            └────┬────┘            └────┬────┘
-           │                      │                      │
-    ┌──────┴──────┐       ┌──────┴──────┐        ┌──────┴──────┐
-    │             │       │             │        │             │
- Cloudflare    法律页面   api.         debug-   cdn.        assets.
-  Pages                  readmigo     api.     readmigo    readmigo
-    │                    .app        readmigo   .app        .app
-    │                      │          .app        │           │
-    ▼                      ▼            │         ▼           ▼
-  主页               Fly.io (生产)      ▼    Cloudflare R2   R2
-  /privacy                         Fly.io
-  /terms                          (调试)
-  /support
+```mermaid
+graph TD
+    ROOT["readmigo.app"] --> WEB["官网<br>(根域名)"]
+    ROOT --> API["API<br>(子域名)"]
+    ROOT --> RES["资源<br>(子域名)"]
+
+    WEB --> CF_PAGES["Cloudflare Pages"]
+    WEB --> LEGAL["法律页面"]
+    CF_PAGES --> HOMEPAGE["主页<br>/privacy<br>/terms<br>/support"]
+
+    API --> API_PROD["api.readmigo.app"]
+    API --> API_DEBUG["debug-api.readmigo.app"]
+    API_PROD --> FLYIO_PROD["Fly.io (生产)"]
+    API_DEBUG --> FLYIO_DEBUG["Fly.io (调试)"]
+
+    RES --> CDN["cdn.readmigo.app"]
+    RES --> ASSETS["assets.readmigo.app"]
+    CDN --> R2_1["Cloudflare R2"]
+    ASSETS --> R2_2["R2"]
 ```
 
 ### 3.2 子域名详细说明
@@ -219,71 +217,31 @@ Cloudflare SSL/TLS 设置：
 
 ### 6.1 完整服务架构
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Cloudflare (DNS + CDN)                        │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐   │
-│  │   官网       │  │   管理后台    │  │      R2 存储             │   │
-│  │              │  │              │  │                          │   │
-│  │ readmigo.app │  │ dashboard.   │  │  cdn.readmigo.app        │   │
-│  │              │  │ readmigo.app │  │  assets.readmigo.app     │   │
-│  │  Cloudflare  │  │  Cloudflare  │  │                          │   │
-│  │    Pages     │  │    Pages     │  │  - 书籍 EPUB             │   │
-│  │              │  │              │  │  - 封面图片              │   │
-│  │ - 主页       │  │ - React App  │  │  - 用户内容              │   │
-│  │ - /privacy   │  │ - 管理功能   │  │                          │   │
-│  │ - /terms     │  │              │  │                          │   │
-│  │ - /support   │  │              │  │                          │   │
-│  └──────────────┘  └──────────────┘  └──────────────────────────┘   │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   │ API 请求
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                            Fly.io                                    │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
-│  │  Production  │  │   Staging    │  │    Debug     │               │
-│  │              │  │              │  │              │               │
-│  │ api.         │  │ staging-api. │  │ debug-api.   │               │
-│  │ readmigo.app │  │ readmigo.app │  │ readmigo.app │               │
-│  │              │  │              │  │              │               │
-│  │ readmigo-api │  │ readmigo-    │  │ readmigo-    │               │
-│  │              │  │   staging    │  │    debug     │               │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘               │
-│         │                 │                 │                        │
-│         └────────────────┬┴─────────────────┘                        │
-│                          │                                           │
-│                          ▼                                           │
-│                   ┌──────────────┐                                   │
-│                   │    Workers   │                                   │
-│                   │ (Background) │                                   │
-│                   │              │                                   │
-│                   │ readmigo-    │                                   │
-│                   │   workers    │                                   │
-│                   └──────────────┘                                   │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         数据层                                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌──────────────┐  ┌──────────────┐                                 │
-│  │  PostgreSQL  │  │    Redis     │                                 │
-│  │   (Neon)     │  │  (Upstash)   │                                 │
-│  │              │  │              │                                 │
-│  │ - 用户数据   │  │ - 缓存       │                                 │
-│  │ - 书籍数据   │  │ - 任务队列   │                                 │
-│  │ - 阅读进度   │  │ - 会话存储   │                                 │
-│  └──────────────┘  └──────────────┘                                 │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph CF["Cloudflare (DNS + CDN)"]
+        WEBSITE["官网<br>readmigo.app<br>Cloudflare Pages<br>主页 / /privacy / /terms / /support"]
+        DASHBOARD["管理后台<br>dashboard.readmigo.app<br>Cloudflare Pages<br>React App / 管理功能"]
+        R2["R2 存储<br>cdn.readmigo.app<br>assets.readmigo.app<br>书籍 EPUB / 封面图片 / 用户内容"]
+    end
+
+    CF -->|"API 请求"| FLYIO
+
+    subgraph FLYIO["Fly.io"]
+        PROD["Production<br>api.readmigo.app<br>readmigo-api"]
+        STAGING["Staging<br>staging-api.readmigo.app<br>readmigo-staging"]
+        DEBUG["Debug<br>debug-api.readmigo.app<br>readmigo-debug"]
+        PROD --> WORKERS["Workers<br>(Background)<br>readmigo-workers"]
+        STAGING --> WORKERS
+        DEBUG --> WORKERS
+    end
+
+    FLYIO --> DATA
+
+    subgraph DATA["数据层"]
+        PG["PostgreSQL (Neon)<br>用户数据 / 书籍数据 / 阅读进度"]
+        REDIS["Redis (Upstash)<br>缓存 / 任务队列 / 会话存储"]
+    end
 ```
 
 ### 6.2 服务清单
