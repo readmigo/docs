@@ -247,27 +247,30 @@ global-safe-books.json
 
 ### 6.3 技术实现
 
+**当前流程:**
+
+```mermaid
+flowchart LR
+    A["SE 网站"] --> B["下载全部"] --> C["导入数据库"]
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    导入流程调整                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  当前流程:                                                    │
-│  SE 网站 ──→ 下载全部 ──→ 导入数据库                          │
-│                                                               │
-│  调整后流程:                                                  │
-│  SE 网站 ──→ 对比安全书单 ──→ 过滤 ──→ 导入数据库            │
-│                  │                                            │
-│                  ▼                                            │
-│          global-safe-books.json                               │
-│                                                               │
-│  过滤逻辑:                                                    │
-│  if book.slug in safeBooks:                                   │
-│      import(book)                                             │
-│  else:                                                        │
-│      skip(book, reason='not globally safe')                   │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
+
+**调整后流程:**
+
+```mermaid
+flowchart LR
+    A["SE 网站"] --> B["对比安全书单"]
+    B --> C["过滤"]
+    C --> D["导入数据库"]
+    E["global-safe-books.json"] --> B
+```
+
+**过滤逻辑:**
+
+```
+if book.slug in safeBooks:
+    import(book)
+else:
+    skip(book, reason='not globally safe')
 ```
 
 ---
