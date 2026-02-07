@@ -43,15 +43,12 @@
 
 ## 架构速览
 
-```
-┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
-│    LOCAL      │  │   DEBUGGING   │  │    STAGING    │  │  PRODUCTION   │
-│  开发者本机    │  │  远程调试环境  │  │  预发布环境    │  │   生产环境    │
-│ localhost:3000│  │debug.readmigo │  │staging.readmigo│  │api.readmigo   │
-└───────────────┘  └───────────────┘  └───────────────┘  └───────────────┘
-       ↓                  ↓                  ↓                  ↓
-    Docker            Fly.io             Fly.io             Fly.io
-   本地数据           匿名数据            匿名数据           真实数据
+```mermaid
+graph TD
+    A["LOCAL<br>开发者本机<br>localhost:3000"] --> A1["Docker<br>本地数据"]
+    B["DEBUGGING<br>远程调试环境<br>debug.readmigo"] --> B1["Fly.io<br>匿名数据"]
+    C["STAGING<br>预发布环境<br>staging.readmigo"] --> C1["Fly.io<br>匿名数据"]
+    D["PRODUCTION<br>生产环境<br>api.readmigo"] --> D1["Fly.io<br>真实数据"]
 ```
 
 ---

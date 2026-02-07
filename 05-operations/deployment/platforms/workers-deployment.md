@@ -4,24 +4,14 @@ This guide explains how to deploy and manage background workers for batch job pr
 
 ## Architecture Overview
 
-```
-┌─────────────────────┐     ┌─────────────────────┐
-│   Fly.io API        │     │   Fly.io Workers    │
-│   (readmigo-api)    │     │ (readmigo-workers)  │
-│                     │     │                     │
-│   - HTTP endpoints  │     │   - Job processors  │
-│   - Job submission  │     │   - AI enrichment   │
-│   - Queue stats     │     │   - Batch tasks     │
-└─────────┬───────────┘     └──────────┬──────────┘
-          │                            │
-          └────────────┬───────────────┘
-                       │
-              ┌────────▼────────┐
-              │     Redis       │
-              │   (Upstash)     │
-              │                 │
-              │  Bull MQ Queues │
-              └─────────────────┘
+```mermaid
+graph TD
+    A["Fly.io API<br>(readmigo-api)<br><br>- HTTP endpoints<br>- Job submission<br>- Queue stats"]
+    B["Fly.io Workers<br>(readmigo-workers)<br><br>- Job processors<br>- AI enrichment<br>- Batch tasks"]
+    C["Redis<br>(Upstash)<br><br>Bull MQ Queues"]
+
+    A --> C
+    B --> C
 ```
 
 ## Prerequisites

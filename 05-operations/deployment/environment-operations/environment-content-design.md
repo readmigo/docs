@@ -38,47 +38,34 @@
 
 ## 2. Environment 与 Content 的关系
 
+```mermaid
+graph TD
+    subgraph "ENVIRONMENT (Infrastructure Layer)"
+        L["LOCAL<br><br>DB: local / R2: local / Redis: 0<br>chinese_content: TRUE<br>Data: 10本书"]
+        D["DEBUG<br><br>DB: debug / R2: debug / Redis: 1<br>chinese_content: TRUE<br>Data: 100本书"]
+        S["STAGING<br><br>DB: staging / R2: staging / Redis: 2<br>chinese_content: TRUE<br>Data: 生产快照"]
+        P["PRODUCTION<br><br>DB: prod / R2: prod / Redis: 3<br>chinese_content: FALSE<br>Data: 真实"]
+    end
+
+    L --> LC["Content: en,zh"]
+    D --> DC["Content: en,zh"]
+    S --> SC["Content: en,zh"]
+    P --> PC["Content: en only"]
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                              ENVIRONMENT                                             │
-│                         (Infrastructure Layer)                                       │
-│                                                                                      │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  │
-│  │     LOCAL       │  │     DEBUG       │  │    STAGING      │  │  PRODUCTION  │  │
-│  │                 │  │                 │  │                 │  │              │  │
-│  │ DB: local       │  │ DB: debug       │  │ DB: staging     │  │ DB: prod     │  │
-│  │ R2: local       │  │ R2: debug       │  │ R2: staging     │  │ R2: prod     │  │
-│  │ Redis: 0        │  │ Redis: 1        │  │ Redis: 2        │  │ Redis: 3     │  │
-│  │                 │  │                 │  │                 │  │              │  │
-│  │ ┌─────────────┐ │  │ ┌─────────────┐ │  │ ┌─────────────┐ │  │ ┌──────────┐ │  │
-│  │ │  Features   │ │  │ │  Features   │ │  │ │  Features   │ │  │ │ Features │ │  │
-│  │ │             │ │  │ │             │ │  │ │             │ │  │ │          │ │  │
-│  │ │ chinese_    │ │  │ │ chinese_    │ │  │ │ chinese_    │ │  │ │ chinese_ │ │  │
-│  │ │ content:    │ │  │ │ content:    │ │  │ │ content:    │ │  │ │ content: │ │  │
-│  │ │   TRUE      │ │  │ │   TRUE      │ │  │ │   TRUE      │ │  │ │  FALSE   │ │  │
-│  │ └─────────────┘ │  │ └─────────────┘ │  │ └─────────────┘ │  │ └──────────┘ │  │
-│  │                 │  │                 │  │                 │  │              │  │
-│  │ Data: 10本书    │  │ Data: 100本书   │  │ Data: 生产快照  │  │ Data: 真实   │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘  └──────────────┘  │
-│          │                     │                    │                   │          │
-│          ▼                     ▼                    ▼                   ▼          │
-│   Content: en,zh        Content: en,zh       Content: en,zh      Content: en only │
-│                                                                                     │
-└─────────────────────────────────────────────────────────────────────────────────────┘
 
 R2 Bucket 隔离策略：
-├─ readmigo-local:      最小测试集 (~10 本书, ~50MB)
-├─ readmigo-debug:      完整 Top 100 测试数据 (~100 本书, ~550MB) ← 重点
-├─ readmigo-staging:    生产数据快照，用于预发布测试
-└─ readmigo-production: 真实用户数据，仅新增不删除
-```
+- readmigo-local: 最小测试集 (~10 本书, ~50MB)
+- readmigo-debug: 完整 Top 100 测试数据 (~100 本书, ~550MB) -- 重点
+- readmigo-staging: 生产数据快照，用于预发布测试
+- readmigo-production: 真实用户数据，仅新增不删除
 
 ### 2.1 制约关系
 
-```
-Environment ──决定──> 可用的 Feature Flags 配置
-     │
-     └──> Feature Flag (chinese_content) ──决定──> Content 可见性
+```mermaid
+graph LR
+    A["Environment"] -->|"决定"| B["可用的 Feature Flags 配置"]
+    A -->|"决定"| C["Feature Flag (chinese_content)"]
+    C -->|"决定"| D["Content 可见性"]
 ```
 
 **规则**:
@@ -100,36 +87,18 @@ Environment ──决定──> 可用的 Feature Flags 配置
 
 ### 3.1 Dashboard 架构
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        DASHBOARD                                 │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │                      App Bar                                │ │
-│  │  ┌─────────────────┐  ┌─────────────────┐                  │ │
-│  │  │ Environment     │  │ Content Filter  │                  │ │
-│  │  │ Selector        │  │ (可选)          │                  │ │
-│  │  │ [Production ▼]  │  │ [All ▼]         │                  │ │
-│  │  └─────────────────┘  └─────────────────┘                  │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │                   API Client                                │ │
-│  │                                                             │ │
-│  │  baseURL = getApiUrl(selectedEnvironment)                  │ │
-│  │  headers = { 'X-Content-Filter': contentFilter }           │ │
-│  │                                                             │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                              │                                   │
-│         ┌────────────────────┼────────────────────┐             │
-│         ▼                    ▼                    ▼             │
-│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐       │
-│  │ Local API   │     │ Staging API │     │ Prod API    │       │
-│  │ :3000       │     │ staging.xxx │     │ api.xxx     │       │
-│  └─────────────┘     └─────────────┘     └─────────────┘       │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A["App Bar<br><br>Environment Selector: [Production]<br>Content Filter: [All]"]
+    B["API Client<br><br>baseURL = getApiUrl(selectedEnvironment)<br>headers = X-Content-Filter: contentFilter"]
+    C["Local API<br>:3000"]
+    D["Staging API<br>staging.xxx"]
+    E["Prod API<br>api.xxx"]
+
+    A --> B
+    B --> C
+    B --> D
+    B --> E
 ```
 
 ### 3.2 Context 设计
@@ -153,37 +122,15 @@ interface ContentContextType {
 
 ### 3.3 数据流
 
-```
-User selects Environment
-         │
-         ▼
-┌─────────────────────────────┐
-│ EnvironmentContext updates  │
-│ - Save to localStorage      │
-│ - Update apiBaseUrl         │
-│ - Trigger API client reset  │
-└─────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────┐
-│ Fetch /config/client        │
-│ - Get feature flags         │
-│ - Get allowed languages     │
-└─────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────┐
-│ ContentContext updates      │
-│ - Set availableLanguages    │
-│ - Reset contentFilter       │
-└─────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────┐
-│ All pages re-fetch data     │
-│ - With new API base URL     │
-│ - With content filter param │
-└─────────────────────────────┘
+```mermaid
+graph TD
+    A["User selects Environment"]
+    B["EnvironmentContext updates<br><br>- Save to localStorage<br>- Update apiBaseUrl<br>- Trigger API client reset"]
+    C["Fetch /config/client<br><br>- Get feature flags<br>- Get allowed languages"]
+    D["ContentContext updates<br><br>- Set availableLanguages<br>- Reset contentFilter"]
+    E["All pages re-fetch data<br><br>- With new API base URL<br>- With content filter param"]
+
+    A --> B --> C --> D --> E
 ```
 
 ### 3.4 R2 存储环境隔离架构
@@ -410,25 +357,15 @@ wrangler r2 object list readmigo-debug
 
 ### 4.3 Content Filter 与 Feature Flag 的关系
 
+```mermaid
+graph TD
+    A["Dashboard Content Filter<br>(UI选择)"] --> B["仅用于 Dashboard<br>管理员预览效果"]
+    C["Feature Flag<br>(后端配置)"] --> D["用于 Client App<br>控制用户可见性"]
 ```
-Dashboard Content Filter (UI选择)     Feature Flag (后端配置)
-         │                                    │
-         │                                    │
-         ▼                                    ▼
-┌─────────────────┐                 ┌─────────────────┐
-│ 仅用于 Dashboard │                 │ 用于 Client App │
-│ 管理员预览效果   │                 │ 控制用户可见性   │
-└─────────────────┘                 └─────────────────┘
 
-Dashboard 管理员始终可以:
-- 看到所有语言的内容 (用于管理)
-- 使用 Content Filter 预览用户视角
-- 编辑任何语言的内容
+**Dashboard 管理员**始终可以: 看到所有语言的内容 (用于管理)、使用 Content Filter 预览用户视角、编辑任何语言的内容。
 
-Client App 用户只能:
-- 看到 Feature Flag 允许的语言内容
-- 无法切换 Content Filter
-```
+**Client App 用户**只能: 看到 Feature Flag 允许的语言内容、无法切换 Content Filter。
 
 ---
 
@@ -634,43 +571,14 @@ enum AppEnvironment {
 
 ### 9.2 Content 控制流程
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     iOS Client 启动                              │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ GET /config/client                                               │
-│                                                                  │
-│ Response:                                                        │
-│ {                                                                │
-│   "environment": "production",                                   │
-│   "features": {                                                  │
-│     "chineseContent": false,                                     │
-│     "allowedLanguages": ["en"]                                  │
-│   }                                                              │
-│ }                                                                │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ AppConfigManager 缓存配置                                        │
-│                                                                  │
-│ - 存储 allowedLanguages                                         │
-│ - 所有数据请求自动过滤                                            │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ GET /categories/cascade                                          │
-│                                                                  │
-│ 后端自动根据:                                                     │
-│ 1. 当前部署环境的 chinese_content flag                           │
-│ 2. 用户 ID (可选的白名单)                                        │
-│                                                                  │
-│ 返回过滤后的分类数据                                              │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A["iOS Client 启动"]
+    B["GET /config/client<br><br>Response: environment: production<br>features: chineseContent: false<br>allowedLanguages: [en]"]
+    C["AppConfigManager 缓存配置<br><br>- 存储 allowedLanguages<br>- 所有数据请求自动过滤"]
+    D["GET /categories/cascade<br><br>后端自动根据:<br>1. 当前部署环境的 chinese_content flag<br>2. 用户 ID (可选的白名单)<br><br>返回过滤后的分类数据"]
+
+    A --> B --> C --> D
 ```
 
 ### 9.3 iOS 不同环境表现

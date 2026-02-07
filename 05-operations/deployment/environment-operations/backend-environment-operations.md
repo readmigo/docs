@@ -31,48 +31,16 @@
 
 ### 2.1 数据同步架构
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         DATA SYNC PIPELINE                               │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   PRODUCTION DATABASE                                                    │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │  users | books | authors | reading_sessions | vocabulary        │   │
-│   └────────────────────────────────────┬────────────────────────────┘   │
-│                                        │                                 │
-│                                        ▼                                 │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │                     ANONYMIZATION PIPELINE                       │   │
-│   │                                                                  │   │
-│   │  1. Export    ──>  2. Transform  ──>  3. Anonymize  ──>  4. Import │
-│   │     (pg_dump)      (filter)           (hash/fake)        (pg_restore)│
-│   │                                                                  │   │
-│   │  ┌──────────────────────────────────────────────────────────┐   │   │
-│   │  │                   ANONYMIZATION RULES                     │   │   │
-│   │  │                                                           │   │   │
-│   │  │  users.email       → SHA256(email) + @anonymized.local   │   │   │
-│   │  │  users.name        → Faker.name()                         │   │   │
-│   │  │  users.appleUserId → SHA256(appleUserId)                 │   │   │
-│   │  │  users.avatar      → default_avatar.png                   │   │   │
-│   │  │                                                           │   │   │
-│   │  │  subscriptions     → EXCLUDED (敏感支付信息)              │   │   │
-│   │  │  refresh_tokens    → EXCLUDED (安全凭证)                  │   │   │
-│   │  │  audit_logs        → EXCLUDED (审计追踪)                  │   │   │
-│   │  └──────────────────────────────────────────────────────────┘   │   │
-│   │                                                                  │   │
-│   └────────────────────────────┬────────────────────────────────────┘   │
-│                                │                                         │
-│                ┌───────────────┴───────────────┐                        │
-│                ▼                               ▼                        │
-│   ┌─────────────────────────────┐   ┌─────────────────────────────┐    │
-│   │      DEBUGGING DATABASE     │   │      STAGING DATABASE       │    │
-│   │                             │   │                             │    │
-│   │  Weekly sync (Sundays 2AM)  │   │  Daily sync (Daily 3AM)    │    │
-│   │  On-demand manual trigger   │   │  Before major releases     │    │
-│   └─────────────────────────────┘   └─────────────────────────────┘    │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A["PRODUCTION DATABASE<br><br>users | books | authors | reading_sessions | vocabulary"]
+    B["ANONYMIZATION PIPELINE<br><br>1. Export (pg_dump)<br>2. Transform (filter)<br>3. Anonymize (hash/fake)<br>4. Import (pg_restore)<br><br>Rules:<br>users.email -> SHA256 + @anonymized.local<br>users.name -> Faker.name()<br>users.appleUserId -> SHA256<br>users.avatar -> default_avatar.png<br>subscriptions -> EXCLUDED<br>refresh_tokens -> EXCLUDED<br>audit_logs -> EXCLUDED"]
+    C["DEBUGGING DATABASE<br><br>Weekly sync (Sundays 2AM)<br>On-demand manual trigger"]
+    D["STAGING DATABASE<br><br>Daily sync (Daily 3AM)<br>Before major releases"]
+
+    A --> B
+    B --> C
+    B --> D
 ```
 
 ### 2.2 同步规则
