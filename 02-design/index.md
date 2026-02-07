@@ -10,7 +10,7 @@
 
 | 文档 | 描述 |
 |------|------|
-| [design-system.md](./design-system.md) | 产品设计系统（品牌视觉、色彩、字体、核心页面原型） |
+| [design-system.md](./design-system.md) | 设计系统规范（品牌色彩、文字色、背景色、排版、间距、阅读器主题） |
 | [interaction-design.md](./interaction-design.md) | 交互设计规范（手势系统、文字选择、翻页动画、AI反馈） |
 | [typography-research.md](./typography-research.md) | 专业排版技术调研（连字符、首字下沉、中英混排）目标：50%→95%+ |
 | [book-display-styles.md](./book-display-styles.md) | 7种书籍展示样式（Style 0-6）+ 5级榜单分类体系 |
