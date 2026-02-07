@@ -1,0 +1,15 @@
+:root {
+  --vp-layout-max-width: 1920px;
+}
+
+.VPDoc .container {
+  max-width: 1920px !important;
+}
+
+.VPDoc .content {
+  max-width: 1536px !important;
+}
+
+.VPDoc .content-container {
+  max-width: 1536px !important;
+}
