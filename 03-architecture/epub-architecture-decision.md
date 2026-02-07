@@ -322,29 +322,21 @@ class TTSNavigator {
 
 ### 6.2 为什么不只做 Pipeline？
 
+```mermaid
+graph LR
+    A["完美 EPUB"] --> B["JS 手动分页<br>(问题根源在这里)"] --> C["仍然有 bug"]
 ```
-即使 Pipeline 输出完美的 EPUB：
-┌──────────────────────────────────────────────────────┐
-│ 完美 EPUB ──────→ JS 手动分页 ──────→ 仍然有 bug     │
-│                        ↑                              │
-│                   问题根源在这里                       │
-└──────────────────────────────────────────────────────┘
 
 Pipeline 解决的是输入问题，但渲染问题还在。
-```
 
 ### 6.3 为什么不只做 CSS Column？
 
+```mermaid
+graph LR
+    A["脏数据 EPUB<br>(问题在这里)"] --> B["CSS Column"] --> C["显示 boilerplate"]
 ```
-即使阅读器完美：
-┌──────────────────────────────────────────────────────┐
-│ 脏数据 EPUB ────→ CSS Column ────→ 显示 boilerplate  │
-│      ↑                                                │
-│  问题在这里                                           │
-└──────────────────────────────────────────────────────┘
 
 CSS Column 解决的是渲染问题，但源文件问题还在。
-```
 
 ---
 
@@ -511,19 +503,17 @@ function highlightCurrentUtterance(range: Range) {
 ### 9.4 仅单一方案的局限性
 
 **仅 Pipeline（不改分页算法）：**
-```
-完美 EPUB ────→ JS 手动分页 ────→ 仍有 15 个 bug
-                     ↑
-              问题根源未解决
+```mermaid
+graph LR
+    A["完美 EPUB"] --> B["JS 手动分页<br>(问题根源未解决)"] --> C["仍有 15 个 bug"]
 ```
 - 即使源文件完美，分页算法的边界情况仍会导致问题
 - 每本新书格式都可能触发新的分页 bug
 
 **仅 CSS Column（不清洗源文件）：**
-```
-脏数据 EPUB ────→ CSS Column ────→ 显示 boilerplate
-      ↑
-  源文件问题未解决
+```mermaid
+graph LR
+    A["脏数据 EPUB<br>(源文件问题未解决)"] --> B["CSS Column"] --> C["显示 boilerplate"]
 ```
 - Gutenberg 版权信息会显示在阅读内容中
 - 章节结构混乱，用户体验差

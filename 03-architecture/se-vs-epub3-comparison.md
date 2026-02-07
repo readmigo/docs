@@ -115,45 +115,17 @@ SE 扩展的 meta property:
 
 ### 4.1 epub:type 词汇表
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    EPUB 3 Structural Semantics                   │
-│  (EPUB 3.3 定义的标准词汇)                                        │
-├─────────────────────────────────────────────────────────────────┤
-│  frontmatter, bodymatter, backmatter                            │
-│  chapter, part, division, volume                                │
-│  prologue, epilogue, introduction, preface                      │
-│  toc, landmarks, page-list                                      │
-│  footnote, endnote, noteref                                     │
-│  ...                                                            │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                Standard Ebooks 扩展词汇                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  z3998 词汇表 (DAISY/NISO Z39.98 标准):                         │
-│  ├── z3998:fiction / z3998:non-fiction                         │
-│  ├── z3998:name-title    # 称谓 (Mr., Dr.)                     │
-│  ├── z3998:given-name    # 名                                  │
-│  ├── z3998:family-name   # 姓                                  │
-│  ├── z3998:personal-name # 人名                                │
-│  ├── z3998:place         # 地名                                │
-│  ├── z3998:event         # 事件                                │
-│  ├── z3998:roman         # 罗马数字                            │
-│  ├── z3998:initialism    # 首字母缩写 (U.S.A.)                 │
-│  ├── z3998:acronym       # 缩写词 (NATO)                       │
-│  └── z3998:verse         # 诗歌                                │
-│                                                                 │
-│  se 词汇表 (SE 自定义):                                         │
-│  ├── se:name.vessel      # 船名                                │
-│  ├── se:name.publication # 出版物名                            │
-│  ├── se:name.legal-case  # 法律案例名                          │
-│  ├── se:era              # 年代标记 (AD, BC)                   │
-│  └── se:letter.dateline  # 信件日期行                          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    EPUB3["EPUB 3 Structural Semantics<br>(EPUB 3.3 定义的标准词汇)<br>frontmatter, bodymatter, backmatter<br>chapter, part, division, volume<br>prologue, epilogue, footnote, endnote..."]
+    SE["Standard Ebooks 扩展词汇"]
+
+    subgraph SE_Vocab["SE 扩展词汇"]
+        Z3998["z3998 词汇表<br>fiction, non-fiction, name-title<br>personal-name, place, event<br>roman, initialism, acronym, verse"]
+        SECustom["se 词汇表<br>name.vessel, name.publication<br>name.legal-case, era, letter.dateline"]
+    end
+
+    EPUB3 --> SE_Vocab
 ```
 
 ### 4.2 语义标记示例对比
@@ -181,37 +153,13 @@ SE 扩展的 meta property:
 
 ### 5.2 SE CSS 分层架构
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  core.css - SE 基础排版规则                                      │
-├─────────────────────────────────────────────────────────────────┤
-│  • 全局字体设置                                                  │
-│  • 段落缩进 (text-indent: 1em)                                  │
-│  • 标题样式 (font-variant: small-caps)                          │
-│  • 断页控制 (page-break-after: avoid)                           │
-│  • 老式数字 (font-variant-numeric: oldstyle-nums)               │
-│  • 自动断字 (hyphens: auto)                                     │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  local.css - 书籍专用样式                                        │
-├─────────────────────────────────────────────────────────────────┤
-│  • 诗歌缩进                                                      │
-│  • 信件格式                                                      │
-│  • 戏剧对话                                                      │
-│  • 特殊排版需求                                                  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  se.css - SE 模板样式 (版权页、版本说明等)                        │
-├─────────────────────────────────────────────────────────────────┤
-│  • imprint 页面样式                                              │
-│  • colophon 页面样式                                             │
-│  • titlepage 样式                                                │
-│  • SE logo 样式                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    Core["core.css - SE 基础排版规则<br>全局字体设置 / 段落缩进<br>标题样式 / 断页控制<br>老式数字 / 自动断字"]
+    Local["local.css - 书籍专用样式<br>诗歌缩进 / 信件格式<br>戏剧对话 / 特殊排版需求"]
+    SE["se.css - SE 模板样式<br>imprint 页面 / colophon 页面<br>titlepage / SE logo"]
+
+    Core --> Local --> SE
 ```
 
 ### 5.3 SE 特有 CSS 规则

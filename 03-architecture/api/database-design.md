@@ -557,76 +557,31 @@ CREATE INDEX idx_daily_stats_user ON daily_stats(user_id, date DESC);
 
 ### 6.3 数据模型关系图
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Entity Relationship Diagram                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌──────────┐         ┌──────────────┐                                  │
-│  │  users   │────────▶│ subscriptions│                                  │
-│  └────┬─────┘         └──────────────┘                                  │
-│       │                                                                 │
-│       │                           ┌──────────┐                          │
-│       │                           │  authors │  ← 核心实体              │
-│       │                           └────┬─────┘                          │
-│       │                    ┌───────────┼───────────┐                    │
-│       │                    │           │           │                    │
-│       │                    ▼           ▼           ▼                    │
-│       │           ┌────────────┐ ┌──────────┐ ┌────────────────┐        │
-│       │           │  timeline  │ │  quotes  │ │  chat_sessions │        │
-│       │           │  _events   │ │          │ │   (AI对话)     │        │
-│       │           └────────────┘ └──────────┘ └────────────────┘        │
-│       │                                │                │               │
-│       │                                │                ▼               │
-│       │                                │       ┌────────────────┐       │
-│       │                                │       │ chat_messages  │       │
-│       │                                │       └────────────────┘       │
-│       │                                │                                │
-│       │         ┌──────────────────────┤                                │
-│       │         │                      ▼                                │
-│       │         │                ┌──────────┐                           │
-│       │         │                │  books   │◀──────────────────┐       │
-│       │         │                └────┬─────┘                   │       │
-│       │         │                     │                         │       │
-│       ▼         ▼                     ▼                         │       │
-│  ┌──────────────────┐           ┌──────────┐                    │       │
-│  │   user_books     │◀──────────│ chapters │                    │       │
-│  │  (阅读进度)      │           └──────────┘                    │       │
-│  └────────┬─────────┘                                           │       │
-│           │                                                     │       │
-│           ▼                                                     │       │
-│  ┌──────────────────┐                                           │       │
-│  │ reading_sessions │                                           │       │
-│  │   (阅读会话)     │                                           │       │
-│  └──────────────────┘                                           │       │
-│                                                                 │       │
-│  ┌──────────┐         ┌──────────────────┐     ┌────────────────┐       │
-│  │  users   │────────▶│ user_vocabulary  │◀────│   vocabulary   │       │
-│  └──────────┘         │    (生词本)      │     │   (全局词库)   │       │
-│                       └────────┬─────────┘     └────────────────┘       │
-│                                │                                        │
-│                                ▼                                        │
-│                       ┌──────────────────┐                              │
-│                       │  review_records  │                              │
-│                       │   (复习记录)     │                              │
-│                       └──────────────────┘                              │
-│                                                                         │
-│  ┌──────────┐         ┌──────────────────┐                              │
-│  │  users   │────────▶│ ai_interactions  │                              │
-│  └──────────┘         │   (AI交互)       │                              │
-│                       └──────────────────┘                              │
-│                                                                         │
-│  ┌──────────┐         ┌──────────────────┐                              │
-│  │  users   │────────▶│   daily_stats    │                              │
-│  └──────────┘         │   (每日统计)     │                              │
-│                       └──────────────────┘                              │
-│                                                                         │
-│  ┌──────────┐         ┌──────────────────┐                              │
-│  │  users   │────────▶│ favorite_authors │◀────────┘                    │
-│  └──────────┘         │   (收藏作者)     │                              │
-│                       └──────────────────┘                              │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+erDiagram
+    users ||--o| subscriptions : has
+    users ||--o{ user_books : has
+    users ||--o{ user_vocabulary : has
+    users ||--o{ ai_interactions : has
+    users ||--o{ daily_stats : has
+    users ||--o{ favorite_authors : has
+
+    authors ||--o{ timeline_events : has
+    authors ||--o{ quotes : has
+    authors ||--o{ chat_sessions : has
+    authors ||--o{ books : writes
+
+    chat_sessions ||--o{ chat_messages : contains
+
+    books ||--o{ chapters : contains
+    books ||--o{ user_books : "added to"
+
+    user_books ||--o{ reading_sessions : tracks
+
+    vocabulary ||--o{ user_vocabulary : "referenced by"
+    user_vocabulary ||--o{ review_records : generates
+
+    favorite_authors }o--|| authors : references
 ```
 
 ---

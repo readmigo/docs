@@ -304,38 +304,24 @@ selectionchange + 250ms debounce
 
 #### 流程1: 段落级翻译展示
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ 多来源文件                                                   │
-│   ↓                                                         │
-│ SE create_draft (PG清洗) + PG HTMLParser (通用清洗)          │
-│   ↓                                                         │
-│ SE typography.py (标点规范化)                                │
-│   ↓                                                         │
-│ 段落标记 (<p data-paragraph-id="...">)                       │
-│   ↓                                                         │
-│ epub.js 分页 + 触摸                                          │
-│   ↓                                                         │
-│ 双击监听 → 段落ID → 翻译API → 弹窗展示                        │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    A["多来源文件"] --> B["SE create_draft (PG清洗)<br>+ PG HTMLParser (通用清洗)"]
+    B --> C["SE typography.py (标点规范化)"]
+    C --> D["段落标记<br>p data-paragraph-id"]
+    D --> E["epub.js 分页 + 触摸"]
+    E --> F["双击监听 -> 段落ID -> 翻译API -> 弹窗展示"]
 ```
 
 #### 流程2: TTS 音文同步
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ 多来源文件                                                   │
-│   ↓                                                         │
-│ SE create_draft + PG HTMLParser                              │
-│   ↓                                                         │
-│ SE typography.py + SE hyphenate (断词)                       │
-│   ↓                                                         │
-│ 句子/段落标记 (<span data-sentence-id="...">)                │
-│   ↓                                                         │
-│ epub.js 分页 + CFI 定位                                      │
-│   ↓                                                         │
-│ TTS API → 时间戳 → CFI 映射 → 高亮同步                       │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    A["多来源文件"] --> B["SE create_draft + PG HTMLParser"]
+    B --> C["SE typography.py + SE hyphenate (断词)"]
+    C --> D["句子/段落标记<br>span data-sentence-id"]
+    D --> E["epub.js 分页 + CFI 定位"]
+    E --> F["TTS API -> 时间戳 -> CFI 映射 -> 高亮同步"]
 ```
 
 ### 5.3 优先级排序
@@ -360,29 +346,16 @@ selectionchange + 250ms debounce
 
 ### 6.1 推荐架构
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Readmigo Content Pipeline                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐              │
-│  │  Source  │───→│  Clean   │───→│ Normalize│              │
-│  │  Loader  │    │  Module  │    │  Module  │              │
-│  └──────────┘    └──────────┘    └──────────┘              │
-│       ↓               ↓               ↓                     │
-│  ┌──────────────────────────────────────────┐              │
-│  │           Unified XHTML Output            │              │
-│  │  - 段落ID: <p data-pid="ch1-p3">          │              │
-│  │  - 句子ID: <span data-sid="ch1-s15">      │              │
-│  │  - 规范标点、软连字符                       │              │
-│  └──────────────────────────────────────────┘              │
-│                         ↓                                   │
-│  ┌─────────────────┐  ┌─────────────────┐                 │
-│  │   iOS Reader    │  │ Android Reader  │                 │
-│  │  (Swift/WKWeb)  │  │ (Kotlin/WebView)│                 │
-│  └─────────────────┘  └─────────────────┘                 │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Pipeline["Readmigo Content Pipeline"]
+        SL["Source Loader"] --> CM["Clean Module"] --> NM["Normalize Module"]
+    end
+
+    SL & CM & NM --> Output["Unified XHTML Output<br>段落ID / 句子ID<br>规范标点 / 软连字符"]
+
+    Output --> iOS["iOS Reader<br>(Swift/WKWeb)"]
+    Output --> Android["Android Reader<br>(Kotlin/WebView)"]
 ```
 
 ### 6.2 模块职责

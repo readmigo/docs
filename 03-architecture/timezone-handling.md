@@ -36,36 +36,14 @@
 
 ## Architecture Overview
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                           DATA FLOW                                       │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   iOS/Android/Web Client                                                 │
-│   ┌─────────────────────────────────────────────────────────────┐       │
-│   │  User sees: "2026-01-13 09:45 (Beijing Time)"               │       │
-│   │  User inputs: Local time picker                              │       │
-│   │  Sends to API: ISO 8601 UTC "2026-01-13T01:45:00.000Z"      │       │
-│   └─────────────────────────────────────────────────────────────┘       │
-│                              │                                           │
-│                              ▼                                           │
-│   Backend API                                                            │
-│   ┌─────────────────────────────────────────────────────────────┐       │
-│   │  Receives: UTC timestamp                                     │       │
-│   │  Processes: UTC only (setUTCHours, getUTCDate, etc.)        │       │
-│   │  Logs: UTC with ISO 8601 format                              │       │
-│   │  Returns: UTC timestamp                                      │       │
-│   └─────────────────────────────────────────────────────────────┘       │
-│                              │                                           │
-│                              ▼                                           │
-│   Database (PostgreSQL)                                                  │
-│   ┌─────────────────────────────────────────────────────────────┐       │
-│   │  Column type: TIMESTAMP WITH TIME ZONE                       │       │
-│   │  Storage: UTC (always)                                       │       │
-│   │  Queries: UTC boundaries                                     │       │
-│   └─────────────────────────────────────────────────────────────┘       │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    Client["iOS/Android/Web Client<br>User sees: Beijing Time<br>User inputs: Local time picker<br>Sends to API: ISO 8601 UTC"]
+    Backend["Backend API<br>Receives: UTC timestamp<br>Processes: UTC only<br>Logs: UTC with ISO 8601<br>Returns: UTC timestamp"]
+    DB["Database (PostgreSQL)<br>Column type: TIMESTAMP WITH TIME ZONE<br>Storage: UTC (always)<br>Queries: UTC boundaries"]
+
+    Client -->|"ISO 8601 UTC"| Backend
+    Backend -->|"UTC timestamp"| DB
 ```
 
 ---

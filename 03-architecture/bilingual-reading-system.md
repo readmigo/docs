@@ -10,138 +10,69 @@
 
 ### 1.1 整体架构
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        数据处理层                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
-│  │   EN EPUB    │    │   ZH EPUB    │    │   ECDICT     │      │
-│  │   (原文)     │    │   (译本)     │    │   (词典)     │      │
-│  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘      │
-│         │                   │                   │               │
-│         └─────────┬─────────┘                   │               │
-│                   ▼                             │               │
-│         ┌─────────────────────┐                 │               │
-│         │  Bilingual Pipeline │                 │               │
-│         │  ├── EPUB Parser    │                 │               │
-│         │  ├── Semantic Aligner│                │               │
-│         │  ├── Tokenizer      │◄────────────────┘               │
-│         │  └── Vocabulary Linker                │               │
-│         └──────────┬──────────┘                                 │
-│                    │                                            │
-│                    ▼                                            │
-│         ┌─────────────────────┐                                 │
-│         │   NLP Service       │                                 │
-│         │   (SpaCy + Sentence │                                 │
-│         │    Transformers)    │                                 │
-│         └─────────────────────┘                                 │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        数据存储层                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    PostgreSQL (Neon)                      │  │
-│  ├──────────────────────────────────────────────────────────┤  │
-│  │  BilingualBook ─┬─► BilingualParagraph ─► ParagraphToken │  │
-│  │                 │                               │         │  │
-│  │                 │                               ▼         │  │
-│  │                 │                          Vocabulary     │  │
-│  │                 │                                         │  │
-│  │                 └─► Book ─► Chapter                       │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                  Cloudflare R2                            │  │
-│  │  └── books/{book-id}/book.epub (英文原文)                  │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         API 层                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  GET /books/:bookId/bilingual                                   │
-│      └── 返回双语书籍元数据 + 章节列表                            │
-│                                                                 │
-│  GET /books/:bookId/bilingual/chapters/:order                   │
-│      └── 返回单章节内容 (段落 + tokens + 词汇)                    │
-│                                                                 │
-│  GET /books/:bookId/bilingual/vocabulary?chapters=1,2,3         │
-│      └── 批量获取指定章节的词汇数据                               │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       iOS 客户端                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                   BilingualReaderView                    │   │
-│  ├─────────────────────────────────────────────────────────┤   │
-│  │                                                         │   │
-│  │  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   │   │
-│  │  │ EN Paragraph│   │ ZH Paragraph│   │ Vocab Popup │   │   │
-│  │  │ (可点击词汇) │   │  (中文译文) │   │  (释义面板) │   │   │
-│  │  └─────────────┘   └─────────────┘   └─────────────┘   │   │
-│  │                                                         │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                   EPUB Reader Engine                     │   │
-│  │  └── ReadiumKit (原文排版 + 翻页)                         │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Processing["数据处理层"]
+        EN["EN EPUB<br>(原文)"]
+        ZH["ZH EPUB<br>(译本)"]
+        ECDICT["ECDICT<br>(词典)"]
+        BP["Bilingual Pipeline<br>EPUB Parser / Semantic Aligner<br>Tokenizer / Vocabulary Linker"]
+        NLP["NLP Service<br>(SpaCy + Sentence Transformers)"]
+
+        EN & ZH --> BP
+        ECDICT --> BP
+        BP --> NLP
+    end
+
+    subgraph Storage["数据存储层"]
+        PG["PostgreSQL (Neon)<br>BilingualBook -> BilingualParagraph -> ParagraphToken<br>BilingualBook -> Book -> Chapter<br>ParagraphToken -> Vocabulary"]
+        R2S["Cloudflare R2<br>books/{book-id}/book.epub"]
+    end
+
+    subgraph APILayer["API 层"]
+        API1["GET /books/:bookId/bilingual"]
+        API2["GET /books/:bookId/bilingual/chapters/:order"]
+        API3["GET /books/:bookId/bilingual/vocabulary"]
+    end
+
+    subgraph iOS["iOS 客户端"]
+        Reader["BilingualReaderView<br>EN Paragraph / ZH Paragraph / Vocab Popup"]
+        Engine["EPUB Reader Engine<br>ReadiumKit"]
+    end
+
+    Processing --> Storage --> APILayer --> iOS
 ```
 
 ### 1.2 数据流
 
+```mermaid
+graph TB
+    subgraph Step1["1. EPUB 解析"]
+        EN_EPUB["EN.epub"] --> EN_P["英文章节/段落"]
+        ZH_EPUB["ZH.epub"] --> ZH_P["中文章节/段落"]
+    end
+
+    subgraph Step2["2. 语义对齐 (Semantic Alignment)"]
+        EN_P2["EN Paragraphs"] <-->|"Score: 0.85~0.92"| ZH_P2["ZH Paragraphs"]
+    end
+
+    subgraph Step3["3. 分词 (Tokenization via SpaCy)"]
+        Text["原文句子"] --> Tokens["分词结果<br>停词 / 词汇 分类"]
+    end
+
+    subgraph Step4["4. 词汇关联 (Vocabulary Linking)"]
+        Token["Token"] --> Vocab["Vocabulary<br>word, phonetic<br>definition, definition_zh"]
+    end
+
+    subgraph Step5["5. 数据库存储"]
+        BP["BilingualParagraph"] --> PT["ParagraphToken"] --> V["Vocabulary"]
+    end
+
+    Step1 --> Step2 --> Step3 --> Step4 --> Step5
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                      数据处理流程                               │
-└────────────────────────────────────────────────────────────────┘
 
-1. EPUB 解析
-   EN.epub ─────────────► 英文章节/段落
-   ZH.epub ─────────────► 中文章节/段落
-
-2. 语义对齐 (Semantic Alignment)
-   ┌─────────────────────────────────────────────────────────┐
-   │  EN Paragraphs          ZH Paragraphs                   │
-   │  ┌────────────┐         ┌────────────┐                  │
-   │  │ Paragraph 1│◄───────►│ 段落 1     │  Score: 0.85    │
-   │  │ Paragraph 2│◄───────►│ 段落 2     │  Score: 0.78    │
-   │  │ Paragraph 3│◄───────►│ 段落 3     │  Score: 0.92    │
-   │  └────────────┘         └────────────┘                  │
-   │                                                         │
-   │  算法: paraphrase-multilingual-MiniLM-L12-v2           │
-   │  方法: 余弦相似度 + 贪心匹配                             │
-   └─────────────────────────────────────────────────────────┘
-
-3. 分词 (Tokenization via SpaCy)
-   "The quick brown fox" ─► [The][quick][brown][fox]
-                            ↓     ↓      ↓     ↓
-                           停词   词汇    词汇   词汇
-
-4. 词汇关联 (Vocabulary Linking)
-   Token "quick" ─► Vocabulary {
-                      word: "quick",
-                      phonetic: "/kwɪk/",
-                      definition: "moving fast",
-                      definition_zh: "快速的"
-                    }
-
-5. 数据库存储
-   BilingualParagraph ─► ParagraphToken ─► Vocabulary
-```
+- 对齐算法: paraphrase-multilingual-MiniLM-L12-v2
+- 对齐方法: 余弦相似度 + 贪心匹配
 
 ---
 
@@ -149,50 +80,13 @@
 
 ### 2.1 数据获取策略
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│                    iOS 数据加载流程                             │
-└────────────────────────────────────────────────────────────────┘
-
-                    用户打开书籍
-                         │
-                         ▼
-        ┌────────────────────────────────┐
-        │  1. 获取书籍元数据              │
-        │  GET /books/:id/bilingual      │
-        │                                │
-        │  返回:                          │
-        │  - bilingualBookId             │
-        │  - status (COMPLETED/NEEDS_REVIEW)│
-        │  - chapters: [{order, title}]  │
-        └───────────────┬────────────────┘
-                        │
-                        ▼
-        ┌────────────────────────────────┐
-        │  2. 加载 EPUB (英文原文)        │
-        │  Download from R2:             │
-        │  books/{id}/book.epub          │
-        │                                │
-        │  ReadiumKit 负责排版渲染        │
-        └───────────────┬────────────────┘
-                        │
-                        ▼
-        ┌────────────────────────────────┐
-        │  3. 按需加载章节双语数据        │
-        │  GET /books/:id/bilingual/     │
-        │      chapters/:order           │
-        │                                │
-        │  用户翻到新章节时触发           │
-        │  支持预加载下一章               │
-        └───────────────┬────────────────┘
-                        │
-                        ▼
-        ┌────────────────────────────────┐
-        │  4. 本地缓存                    │
-        │  - 章节数据缓存到 CoreData     │
-        │  - 词汇数据全局缓存             │
-        │  - 支持离线阅读                 │
-        └────────────────────────────────┘
+```mermaid
+graph TB
+    Open["用户打开书籍"]
+    Open --> Meta["1. 获取书籍元数据<br>GET /books/:id/bilingual<br>返回: bilingualBookId, status, chapters"]
+    Meta --> EPUB["2. 加载 EPUB (英文原文)<br>Download from R2: books/{id}/book.epub<br>ReadiumKit 负责排版渲染"]
+    EPUB --> Chapter["3. 按需加载章节双语数据<br>GET /books/:id/bilingual/chapters/:order<br>用户翻到新章节时触发<br>支持预加载下一章"]
+    Chapter --> Cache["4. 本地缓存<br>章节数据缓存到 CoreData<br>词汇数据全局缓存<br>支持离线阅读"]
 ```
 
 ### 2.2 API 响应数据结构
@@ -334,24 +228,14 @@ GET /books/:bookId/bilingual/chapters/:order 响应:
 
 ### 3.1 数据模型关系
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│                       数据模型关系图                            │
-└────────────────────────────────────────────────────────────────┘
-
-Book (1) ◄─────────────────────────► (1) BilingualBook
-  │                                          │
-  │ 1:N                                      │ 1:N
-  ▼                                          ▼
-Chapter                              BilingualParagraph
-  │                                          │
-  │                                          │ 1:N
-  │                                          ▼
-  │                                   ParagraphToken
-  │                                          │
-  │                                          │ N:1
-  │                                          ▼
-  └──────────────────────────────────► Vocabulary
+```mermaid
+erDiagram
+    Book ||--|| BilingualBook : "1:1"
+    Book ||--o{ Chapter : "1:N"
+    BilingualBook ||--o{ BilingualParagraph : "1:N"
+    BilingualParagraph ||--o{ ParagraphToken : "1:N"
+    ParagraphToken }o--|| Vocabulary : "N:1"
+    Chapter }o--|| Vocabulary : "references"
 ```
 
 ### 3.2 表结构
