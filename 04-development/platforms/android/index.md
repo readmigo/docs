@@ -47,21 +47,32 @@ android/app/src/main/java/com/readmigo/
 │   └── di/                      # Hilt 模块
 │
 ├── core/                        # 核心模块
-│   ├── common/                  # 公共工具
+│   ├── analytics/               # 数据分析
 │   ├── data/                    # 数据层基础
+│   ├── di/                      # Hilt 依赖注入
 │   ├── domain/                  # 领域层基础
+│   ├── image/                   # 图片处理
+│   ├── localization/            # 国际化
+│   ├── logging/                 # 日志
 │   ├── network/                 # 网络配置
-│   └── ui/                      # UI 基础组件
+│   ├── offline/                 # 离线支持
+│   ├── services/                # 核心服务
+│   ├── ui/                      # UI 基础组件
+│   └── utils/                   # 工具函数
 │
-├── feature/                     # 功能模块 (8 个)
+├── features/                    # 功能模块 (12 个)
+│   ├── about/                   # 关于
+│   ├── agora/                   # 社区
+│   ├── ai/                      # AI 功能
 │   ├── auth/                    # 认证
 │   ├── library/                 # 书架
+│   ├── messaging/               # 消息
+│   ├── onboarding/              # 引导
+│   ├── profile/                 # 个人资料
 │   ├── reader/                  # 阅读器
-│   ├── ai/                      # AI 功能
-│   ├── learning/                # 学习
-│   ├── audiobook/               # 有声书
-│   ├── settings/                # 设置
-│   └── explore/                 # 探索
+│   ├── stats/                   # 统计
+│   ├── subscription/            # 订阅
+│   └── vocabulary/              # 词汇
 │
 └── navigation/                  # 导航配置
     └── NavGraph.kt
@@ -138,7 +149,7 @@ android/app/src/main/java/com/readmigo/
 |------|------|
 | Kotlin 文件 | 178 |
 | 测试文件 | 89 |
-| 功能模块 | 8 |
+| 功能模块 | 12 |
 | Compose 组件 | 50+ |
 | 页面/屏幕 | 20+ |
 

@@ -24,21 +24,7 @@
    - Hide individual posts
 
 3. **Data Model**
-   ```swift
-   struct AgoraPost {
-       let id: String
-       let author: Author
-       let quote: Quote
-       let simulatedPostTime: Date
-       var likeCount: Int
-       var commentCount: Int
-       var shareCount: Int
-       var isLiked: Bool
-       var isBookmarked: Bool
-       var comments: [Comment]?
-   }
-   ```
-
+   
 ### Existing Backend
 
 **Location:** `apps/backend/src/modules/agora/`
@@ -361,41 +347,6 @@ model AgoraAuthorConfig {
 
 ## Backend API Endpoints
 
-### Admin Endpoints (Dashboard)
-
-```typescript
-// Posts
-GET    /admin/agora/posts          // List all posts with filters
-GET    /admin/agora/posts/:id      // Get post details
-POST   /admin/agora/posts          // Create new post
-PATCH  /admin/agora/posts/:id      // Update post
-DELETE /admin/agora/posts/:id      // Delete post
-POST   /admin/agora/posts/generate // Bulk generate posts
-
-// Comments
-GET    /admin/agora/comments       // List all comments
-PATCH  /admin/agora/comments/:id   // Update comment status
-DELETE /admin/agora/comments/:id   // Delete comment
-
-// Moderation
-GET    /admin/agora/reports        // List reports
-PATCH  /admin/agora/reports/:id    // Resolve report
-
-// Analytics
-GET    /admin/agora/analytics/overview    // Overview metrics
-GET    /admin/agora/analytics/posts       // Post analytics
-GET    /admin/agora/analytics/users       // User analytics
-GET    /admin/agora/analytics/trends      // Trend data
-
-// Settings
-GET    /admin/agora/settings       // Get all settings
-PATCH  /admin/agora/settings       // Update settings
-
-// Author Config
-GET    /admin/agora/authors        // List author configs
-PATCH  /admin/agora/authors/:id    // Update author config
-```
-
 ---
 
 ## Dashboard UI Components
@@ -419,87 +370,6 @@ apps/dashboard/src/pages/agora/
     ├── EngagementChart.tsx   # Engagement metrics chart
     ├── ModerationActions.tsx # Quick moderation buttons
     └── PostGenerator.tsx     # Bulk post generator
-```
-
-### i18n Translations
-
-```typescript
-// apps/dashboard/src/i18n/en.ts
-agora: {
-  name: 'Agora |||| Agora',
-  posts: {
-    name: 'Post |||| Posts',
-    fields: {
-      author: 'Author',
-      content: 'Content',
-      source: 'Source',
-      likes: 'Likes',
-      comments: 'Comments',
-      shares: 'Shares',
-      status: 'Status',
-      publishedAt: 'Published',
-    },
-    status: {
-      draft: 'Draft',
-      scheduled: 'Scheduled',
-      active: 'Active',
-      hidden: 'Hidden',
-      flagged: 'Flagged',
-    },
-    actions: {
-      generate: 'Generate Posts',
-      hide: 'Hide Post',
-      feature: 'Feature Post',
-    },
-  },
-  comments: {
-    name: 'Comment |||| Comments',
-    // ...
-  },
-  reports: {
-    name: 'Report |||| Reports',
-    // ...
-  },
-  settings: {
-    name: 'Settings',
-    // ...
-  },
-  analytics: {
-    name: 'Analytics',
-    // ...
-  },
-}
-
-// apps/dashboard/src/i18n/zh-Hans.ts
-agora: {
-  name: '城邦',
-  posts: {
-    name: '帖子',
-    fields: {
-      author: '作者',
-      content: '内容',
-      source: '来源',
-      likes: '点赞',
-      comments: '评论',
-      shares: '分享',
-      status: '状态',
-      publishedAt: '发布时间',
-    },
-    status: {
-      draft: '草稿',
-      scheduled: '已排期',
-      active: '已发布',
-      hidden: '已隐藏',
-      flagged: '已标记',
-    },
-    actions: {
-      generate: '生成帖子',
-      hide: '隐藏帖子',
-      feature: '置顶帖子',
-    },
-  },
-  // ...
-}
 ```
 
 ---

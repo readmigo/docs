@@ -30,19 +30,6 @@
 | 双重认证 | Apple ID 已开启 | ☐ |
 | 税务与银行信息 | 在 App Store Connect 中完成配置 | ☐ |
 
-### 1.2 证书与配置文件
-
-```bash
-# 所需证书
-├── Apple Distribution Certificate (发布证书)
-├── Apple Push Notification service (APNs) Certificate (可选)
-└── Sign in with Apple Key
-
-# 所需 Provisioning Profile
-├── App Store Distribution Profile
-└── Bundle Identifier: com.readmigo.app
-```
-
 ### 1.3 技术要求检查
 
 | 检查项 | Readmigo 状态 | 备注 |
@@ -509,21 +496,6 @@ Services: Sign in with Apple ✅
 | CFBundleShortVersionString | 1.0 | 用户可见版本号 |
 | CFBundleVersion | 1 | 构建号，每次提交递增 |
 
-### 8.3 Archive 流程
-
-```bash
-# 1. 选择 Any iOS Device 作为目标
-# 2. Product → Archive
-# 3. 等待 Archive 完成
-
-# 或使用命令行
-xcodebuild archive \
-  -project Readmigo.xcodeproj \
-  -scheme Readmigo \
-  -archivePath ./build/Readmigo.xcarchive \
-  -destination 'generic/platform=iOS'
-```
-
 ### 8.4 上传到 App Store Connect
 
 **方式 1: Xcode Organizer**
@@ -536,15 +508,6 @@ xcodebuild archive \
 **方式 2: Transporter**
 1. 导出 .ipa 文件
 2. 使用 Transporter 应用上传
-
-**方式 3: 命令行**
-```bash
-xcrun altool --upload-app \
-  -f ./build/Readmigo.ipa \
-  -t ios \
-  -u your@apple.id \
-  -p @keychain:AC_PASSWORD
-```
 
 ### 8.5 构建处理
 

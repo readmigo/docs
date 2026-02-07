@@ -132,71 +132,14 @@
 ### 1. 需求确认
 阅读 [operations-data-requirements.md](./operations-data-requirements.md)，确认需求和优先级。
 
-### 2. 数据库准备
-```bash
-# 创建迁移
-cd packages/database
-npx prisma migrate dev --name add_retention_table
-
-# 添加索引
-# 见文档中的 SQL 索引创建语句
-```
-
-### 3. 后端开发
-```bash
-cd apps/backend
-
-# 创建模块
-nest g module modules/admin/reading-stats
-nest g controller modules/admin/reading-stats
-nest g service modules/admin/reading-stats
-
-# 实现 API
-# 参考文档中的 API 设计和 SQL 查询示例
-```
-
-### 4. 前端开发
-```bash
-cd apps/dashboard
-
-# 创建页面和组件
-mkdir -p src/pages/reading-stats/components
-
-# 实现页面
-# 参考文档中的页面设计 wireframe
-```
-
 ### 5. 测试验证
 - 功能测试
 - 性能测试（大数据量）
 - 数据准确性验证
 
-### 6. 部署发布
-```bash
-# 后端部署（自动）
-git push origin main  # GitHub Actions 自动部署
-
-# 前端部署
-cd apps/dashboard
-npm run build
-# Vercel 自动部署
-```
-
 ---
 
 ## 性能优化
-
-### 数据库索引
-```sql
--- reading_sessions 索引
-CREATE INDEX idx_reading_sessions_started_at ON reading_sessions(started_at);
-CREATE INDEX idx_reading_sessions_user_started ON reading_sessions(user_id, started_at);
-CREATE INDEX idx_reading_sessions_userbook_started ON reading_sessions(user_book_id, started_at);
-
--- user_retention 索引
-CREATE INDEX idx_user_retention_cohort_date ON user_retention(cohort_date);
-CREATE INDEX idx_user_retention_channel ON user_retention(channel);
-```
 
 ### 缓存策略
 - 使用 Redis 缓存热点查询
@@ -215,20 +158,6 @@ CREATE INDEX idx_user_retention_channel ON user_retention(channel);
 - **Recharts**: 折线图、柱状图、饼图、漏斗图
 - **react-calendar-heatmap**: 热力图
 - **MUI Table**: 数据表格
-
-### 配色方案
-```typescript
-export const chartColors = {
-  primary: '#7C8DF5',    // 紫蓝
-  success: '#6ED6A8',    // 绿
-  warning: '#FFD36A',    // 黄
-  danger: '#FF6B6B',     // 红
-  info: '#7BAAFF',       // 蓝
-  purple: '#9A8CF2',     // 紫
-  pink: '#F3A6DC',       // 粉
-  orange: '#FFC26A',     // 橙
-};
-```
 
 ---
 

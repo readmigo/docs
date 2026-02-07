@@ -66,14 +66,6 @@ Core/                # 5 files
 
 采用 **Apple 官方 String Catalog** 方案 (iOS 16+)：
 
-```swift
-// 使用方式
-Text("reader.settings.title")  // SwiftUI 自动查找 Localizable.xcstrings
-
-// 或者使用 String(localized:) API
-let title = String(localized: "reader.settings.title")
-```
-
 **优势**：
 - Xcode 原生支持，可视化编辑翻译
 - 支持 pluralization 和 device variations
@@ -145,21 +137,6 @@ subscription.*     # 订阅
 
 **String Extension 示例**：
 
-```swift
-extension String {
-    var localized: String {
-        String(localized: String.LocalizationValue(self))
-    }
-
-    func localized(with arguments: CVarArg...) -> String {
-        String(format: self.localized, arguments: arguments)
-    }
-}
-
-// 使用
-Text("reader.settings.title".localized)
-```
-
 ### Phase 2: 核心功能本地化 (高优先级)
 
 | 模块 | 文件数 | 预估字符串 | 优先级 |
@@ -204,78 +181,6 @@ Text("reader.settings.title".localized)
 
 ## 4. 具体文件修改示例
 
-### 4.1 Before (ReaderSettingsView.swift)
-
-```swift
-struct ReaderSettingsView: View {
-    var body: some View {
-        List {
-            Section("Speed") {
-                Slider(value: $speed, in: 0.5...2.0)
-                Text("Current: \(speed, specifier: "%.1f")x")
-            }
-
-            Section("Voice") {
-                Picker("Select Voice", selection: $selectedVoice) {
-                    ForEach(voices) { voice in
-                        Text(voice.name)
-                    }
-                }
-            }
-        }
-        .navigationTitle("Settings")
-    }
-}
-```
-
-### 4.2 After (ReaderSettingsView.swift)
-
-```swift
-struct ReaderSettingsView: View {
-    var body: some View {
-        List {
-            Section("reader.settings.speed") {
-                Slider(value: $speed, in: 0.5...2.0)
-                Text("reader.settings.currentSpeed \(speed, specifier: "%.1f")")
-            }
-
-            Section("reader.settings.voice") {
-                Picker("reader.settings.selectVoice", selection: $selectedVoice) {
-                    ForEach(voices) { voice in
-                        Text(voice.name) // 保持动态内容不变
-                    }
-                }
-            }
-        }
-        .navigationTitle("reader.settings.title")
-    }
-}
-```
-
-### 4.3 Localizable.xcstrings 结构
-
-```json
-{
-  "sourceLanguage": "en",
-  "strings": {
-    "reader.settings.title": {
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Settings" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "设置" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "設定" } }
-      }
-    },
-    "reader.settings.speed": {
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Speed" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "语速" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "語速" } }
-      }
-    }
-  }
-}
-```
-
 ---
 
 ## 5. 注意事项
@@ -298,36 +203,7 @@ struct ReaderSettingsView: View {
 
 **带参数示例**：
 
-```swift
-// xcstrings 中定义
-"reader.progress": {
-  "localizations": {
-    "en": { "stringUnit": { "value": "Chapter %lld of %lld" } },
-    "zh-Hans": { "stringUnit": { "value": "第 %lld 章，共 %lld 章" } }
-  }
-}
-
-// 代码中使用
-Text("reader.progress \(currentChapter) \(totalChapters)")
-```
-
 **复数形式示例**：
-
-```swift
-// xcstrings 中定义 (使用 stringsdict 或 xcstrings plural)
-"library.bookCount": {
-  "localizations": {
-    "en": {
-      "variations": {
-        "plural": {
-          "one": { "stringUnit": { "value": "%lld book" } },
-          "other": { "stringUnit": { "value": "%lld books" } }
-        }
-      }
-    }
-  }
-}
-```
 
 ---
 

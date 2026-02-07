@@ -111,18 +111,6 @@ Features/Import/
 
 ## 7. 已实现的API端点
 
-iOS端已集成的API (`APIEndpoints.swift`):
-
-```swift
-// User Books (Import)
-static let userBooks = "/user-books"
-static let userBooksQuota = "/user-books/quota"
-static let userBooksImportInitiate = "/user-books/import/initiate"
-static let userBooksImportComplete = "/user-books/import/complete"
-static func userBooksImportStatus(_ jobId: String) -> String { "/user-books/import/\(jobId)/status" }
-static func userBooksImported(_ bookId: String) -> String { "/user-books/imported/\(bookId)" }
-```
-
 ---
 
 ## 8. 总结
@@ -159,11 +147,6 @@ scripts/book-ingestion/processors/
 ### 9.3 iOS 客户端更新
 
 **FileUploadService.swift** - 添加 MIME 类型：
-
-```swift
-case "azw", "azw3":
-    return "application/vnd.amazon.ebook"
-```
 
 **ImportEntryView.swift** - 更新支持格式：
 

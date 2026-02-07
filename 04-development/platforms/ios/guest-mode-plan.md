@@ -63,50 +63,13 @@ flowchart TD
 3. **LoginPromptView.swift** - 新建登录提示弹窗组件
 4. **各功能视图** - 在需要登录的操作前添加检查
 
-### 4.2 AuthManager 扩展
-
-```swift
-// 新增属性
-var isGuestMode: Bool { !isAuthenticated }
-
-// 新增方法
-func requireLogin(for feature: String, completion: @escaping (Bool) -> Void)
-```
-
 ### 4.3 登录提示弹窗设计
-
-```swift
-struct LoginPromptView: View {
-    let feature: String  // 功能名称，如 "保存阅读进度"
-    let onLogin: () -> Void
-    let onDismiss: () -> Void
-}
-```
 
 提示文案示例：
 - 保存阅读进度：「登录后可同步阅读进度到云端」
 - 添加书签：「登录后可保存书签和笔记」
 - 收藏词汇：「登录后可将生词添加到词汇本」
 - 点赞引言：「登录后可收藏喜欢的引言」
-
-### 4.4 使用方式
-
-```swift
-// 在需要登录的操作前调用
-Button("添加到书架") {
-    if authManager.isAuthenticated {
-        // 执行添加操作
-        addToLibrary()
-    } else {
-        // 显示登录提示
-        showLoginPrompt = true
-    }
-}
-.loginPrompt(
-    isPresented: $showLoginPrompt,
-    feature: "添加到书架"
-)
-```
 
 ---
 

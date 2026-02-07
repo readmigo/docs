@@ -18,19 +18,21 @@ Readmigo React Native 应用使用 Expo + React Native 构建，为 iOS 和 Andr
 ## 项目结构
 
 ```
-apps/mobile/
+mobile/
 ├── app/                    # Expo Router 路由
 │   ├── (auth)/            # 认证相关页面
 │   ├── (tabs)/            # 主 Tab 导航
 │   └── book/              # 书籍详情/阅读器
 ├── src/
 │   ├── components/        # 共享组件
-│   ├── features/          # 功能模块
-│   ├── services/          # API 服务
-│   ├── stores/            # Zustand 状态
+│   ├── components/        # 共享组件 (feedback, layout, navigation, ui)
+│   ├── features/          # 功能模块 (15 个)
 │   ├── hooks/             # 自定义 Hooks
-│   ├── theme/             # 设计系统
 │   ├── i18n/              # 国际化
+│   ├── services/          # API 服务 (api, notifications, storage)
+│   ├── stores/            # Zustand 状态
+│   ├── theme/             # 设计系统
+│   ├── types/             # 类型定义
 │   └── utils/             # 工具函数
 └── assets/                # 静态资源
 ```
@@ -71,14 +73,21 @@ apps/mobile/
 
 | 模块 | 描述 | 状态 |
 |------|------|------|
-| Auth | 用户认证（邮箱、Google、Apple） | ✅ |
-| Reader | EPUB 阅读器 | ✅ |
-| Audiobook | 有声书播放 | ✅ |
-| Library | 书库管理 | ✅ |
-| Learning | 学习统计 | ✅ |
-| Vocabulary | 词汇学习 | ✅ |
+| About | 关于页面 | ✅ |
+| Agora | 社区功能 | ✅ |
 | AI | AI 解释/翻译 | ✅ |
+| Auth | 用户认证（邮箱、Google、Apple） | ✅ |
+| Audiobook | 有声书播放 | ✅ |
+| Books | 书籍浏览 | ✅ |
+| Learning | 学习统计 | ✅ |
+| Library | 书库管理 | ✅ |
+| Messaging | 消息系统 | ✅ |
+| Reader | EPUB 阅读器 | ✅ |
+| Search | 搜索功能 | ✅ |
+| Settings | 应用设置 | ✅ |
+| Social | 社交功能 | ✅ |
 | Subscriptions | 订阅管理 | ✅ |
+| Vocabulary | 词汇学习 | ✅ |
 
 ## 支持平台
 

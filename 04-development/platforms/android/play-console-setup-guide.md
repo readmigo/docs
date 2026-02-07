@@ -143,9 +143,7 @@ The demo account has Premium subscription activated for testing all features.
 | 是否包含模拟赌博？ | 否 |
 
 4. 点击 **"保存"** → **"提交"**
-5. 预期评级结果：**所有地区 3+/PEGI 3/Everyone**
-
-### 2.4 目标受众群体
+5. 预期评级结果：### 2.4 目标受众群体
 
 **路径**: 政策 → 应用内容 → 目标受众群体和内容
 
@@ -155,9 +153,7 @@ The demo account has Premium subscription activated for testing all features.
 
 > 注意：选择 18+ 可以避免额外的儿童隐私合规要求（COPPA）
 
-点击 **"保存"** → **"下一步"**
-
-**面向儿童设计的功能**:
+点击 **"保存"** → **面向儿童设计的功能**:
 | 问题 | 回答 |
 |------|------|
 | 是否包含面向儿童设计的功能？ | ☑️ 否 |
@@ -665,21 +661,6 @@ Start your English reading journey today!
 
 1. 选择 **"让 Google 管理并保护您的应用签名密钥（推荐）"**
 2. 上传上传密钥
-
-### 10.2 生成上传密钥
-
-```bash
-# 生成上传密钥
-keytool -genkey -v -keystore upload-keystore.jks \
-  -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias upload
-
-# 导出证书
-keytool -export -rfc \
-  -keystore upload-keystore.jks \
-  -alias upload \
-  -file upload_certificate.pem
-```
 
 ---
 

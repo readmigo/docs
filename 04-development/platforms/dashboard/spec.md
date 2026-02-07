@@ -238,17 +238,6 @@ apps/dashboard/
 
 **筛选器**:
 
-```typescript
-interface BookFilters {
-  status?: 'PENDING' | 'PROCESSING' | 'ACTIVE' | 'INACTIVE' | 'ERROR';
-  source?: 'STANDARD_EBOOKS' | 'GUTENBERG' | 'INTERNET_ARCHIVE' | 'USER_UPLOAD';
-  minDifficulty?: number;
-  maxDifficulty?: number;
-  hasChapters?: boolean;
-  search?: string;
-}
-```
-
 **批量操作**:
 
 - ✅ 批量上架 (设置status为ACTIVE)
@@ -264,49 +253,7 @@ interface BookFilters {
 
 **左侧 - 基本信息表单**:
 
-```typescript
-interface BookFormData {
-  // 基本信息
-  title: string;              // 必填
-  author: string;             // 必填
-  description?: string;       // 富文本编辑器
-  language: string;           // 默认 'en'
-
-  // 分类
-  subjects: string[];         // 多选标签
-  genres: string[];           // 多选标签
-
-  // 文件
-  epubUrl: string;            // EPUB文件URL (只读/上传)
-  coverUrl?: string;          // 封面URL (上传)
-  coverThumbUrl?: string;     // 缩略图URL (自动生成)
-
-  // 难度
-  difficultyScore?: number;   // 0-100滑块
-  fleschScore?: number;       // 自动计算，只读
-
-  // 来源
-  source: BookSource;
-  sourceId?: string;
-  sourceUrl?: string;
-
-  // 状态
-  status: BookStatus;
-  publishedAt?: Date;
-}
-```
-
 **右侧 - 章节管理**:
-
-```typescript
-interface ChapterData {
-  id: string;
-  order: number;
-  title: string;
-  href: string;
-  wordCount?: number;
-}
-```
 
 **章节列表功能**:
 - 拖拽排序
@@ -355,14 +302,6 @@ interface ChapterData {
 
 **上传组件规格**:
 
-```typescript
-interface UploadConfig {
-  accept: '.epub';
-  maxSize: 50 * 1024 * 1024;  // 50MB
-  endpoint: 'POST /admin/books/upload';
-}
-```
-
 #### 2.4 书籍导入 (批量)
 
 **路由**: `/books/import`
@@ -377,21 +316,6 @@ interface UploadConfig {
 | CSV导入 | 批量导入书籍元数据 | 上传CSV文件 |
 
 **导入任务管理**:
-
-```typescript
-interface ImportTask {
-  id: string;
-  source: BookSource;
-  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
-  totalBooks: number;
-  processedBooks: number;
-  successBooks: number;
-  failedBooks: number;
-  startedAt: Date;
-  completedAt?: Date;
-  errors: string[];
-}
-```
 
 **导入任务列表**: 显示进行中和历史任务
 
@@ -463,20 +387,6 @@ interface ImportTask {
 - 批量移动书籍到其他分类
 
 **分类表单字段**:
-
-```typescript
-interface CategoryFormData {
-  name: string;           // 中文名称
-  nameEn: string;         // 英文名称
-  slug: string;           // URL标识符 (如 fiction, sci-fi)
-  parentId?: string;      // 父分类ID (可选)
-  description?: string;   // 分类描述
-  iconUrl?: string;       // 分类图标
-  coverUrl?: string;      // 分类封面图
-  sortOrder: number;      // 排序权重
-  isActive: boolean;      // 是否启用
-}
-```
 
 #### 3.3 分类数据模型
 
@@ -679,57 +589,6 @@ model BookCategory {
 
 **表单字段**:
 
-```typescript
-interface BookListFormData {
-  // 基本信息
-  name: string;              // 榜单名称
-  nameEn?: string;           // 英文名称
-  subtitle?: string;         // 副标题/简介
-  description?: string;      // 详细描述 (Markdown)
-  coverUrl?: string;         // 榜单封面图
-
-  // 类型
-  type: BookListType;
-
-  // 显示配置
-  displayPosition: DisplayPosition[];  // 可多选: HOME/DISCOVER/CATEGORY_PAGE
-  sortOrder: number;
-  displayStyle: 'CAROUSEL' | 'HORIZONTAL' | 'VERTICAL' | 'GRID';
-  maxDisplayCount?: number;
-  showRank?: boolean;        // 显示排名序号
-  showDescription?: boolean; // 显示书籍推荐语
-
-  // 状态
-  status: 'ACTIVE' | 'INACTIVE' | 'SCHEDULED';
-  scheduledAt?: Date;
-  expiresAt?: Date;
-
-  // 自动更新 (仅排行榜类型)
-  autoUpdate?: boolean;
-  updateFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
-  rankingCriteria?: 'READERS' | 'COMPLETION' | 'RATING' | 'NEWEST';
-
-  // AI推荐配置 (AI_RECOMMENDED/PERSONALIZED/AI_FEATURED类型)
-  isAiGenerated?: boolean;
-  aiPrompt?: string;           // AI生成书单的prompt
-  aiModel?: string;            // 使用的AI模型
-  targetLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ALL';
-  targetFeature?: 'VOCABULARY' | 'SPEAKING' | 'WRITING' | 'READING' | 'LISTENING' | 'ALL';
-}
-
-enum BookListType {
-  EDITORS_PICK     // 编辑精选
-  ANNUAL_BEST      // 年度书单
-  UNIVERSITY       // 名校书单
-  CELEBRITY        // 名人书单
-  RANKING          // 主题排行榜
-  COLLECTION       // 专题合集
-  AI_RECOMMENDED   // AI推荐
-  PERSONALIZED     // 个性化推荐
-  AI_FEATURED      // AI特色书单
-}
-```
-
 **书籍管理面板**:
 
 - 左侧: 书籍搜索和筛选
@@ -741,19 +600,6 @@ enum BookListType {
   - 拖拽排序
   - 设置自定义推荐语
   - 批量操作
-
-```typescript
-interface BookListItem {
-  id: string;
-  bookListId: string;
-  bookId: string;
-  book?: Book;              // 关联的书籍信息
-  sortOrder: number;
-  customDescription?: string; // 编辑推荐语
-  addedAt: Date;
-  addedBy?: string;         // 添加人
-}
-```
 
 #### 4.4 榜单数据模型
 
@@ -844,47 +690,6 @@ model BookListItem {
   @@index([bookListId, sortOrder])
   @@map("book_list_items")
 }
-```
-
-#### 4.5 API端点
-
-```yaml
-# 分类管理
-GET    /api/v1/admin/categories              # 获取分类树
-GET    /api/v1/admin/categories/:id          # 分类详情
-POST   /api/v1/admin/categories              # 创建分类
-PUT    /api/v1/admin/categories/:id          # 更新分类
-DELETE /api/v1/admin/categories/:id          # 删除分类
-PUT    /api/v1/admin/categories/reorder      # 重排序
-
-# 书籍分类关联
-POST   /api/v1/admin/books/:id/categories    # 设置书籍分类
-GET    /api/v1/admin/categories/:id/books    # 获取分类下书籍
-
-# 榜单CRUD
-GET    /api/v1/admin/booklists              # 列表 (分页、筛选)
-GET    /api/v1/admin/booklists/:id          # 详情 (含书籍列表)
-POST   /api/v1/admin/booklists              # 创建
-PUT    /api/v1/admin/booklists/:id          # 更新
-DELETE /api/v1/admin/booklists/:id          # 删除
-
-# 榜单书籍管理
-GET    /api/v1/admin/booklists/:id/items    # 获取榜单书籍
-POST   /api/v1/admin/booklists/:id/items    # 添加书籍 (支持批量)
-DELETE /api/v1/admin/booklists/:id/items/:bookId  # 移除书籍
-PUT    /api/v1/admin/booklists/:id/items/reorder  # 重排序
-
-# 榜单操作
-POST   /api/v1/admin/booklists/:id/publish   # 上线
-POST   /api/v1/admin/booklists/:id/unpublish # 下线
-POST   /api/v1/admin/booklists/:id/duplicate # 复制
-POST   /api/v1/admin/booklists/:id/refresh   # 刷新排行榜数据
-
-# 客户端API (公开)
-GET    /api/v1/categories                    # 获取分类树
-GET    /api/v1/categories/:slug/books        # 获取分类下书籍
-GET    /api/v1/booklists                     # 获取活跃榜单
-GET    /api/v1/booklists/:id                 # 获取榜单详情
 ```
 
 ---
@@ -1048,40 +853,6 @@ GET    /api/v1/booklists/:id                 # 获取榜单详情
 
 **路由**: `/ai/settings`
 
-**配置项**:
-
-```typescript
-interface AIConfig {
-  // Provider开关
-  providers: {
-    deepseek: { enabled: boolean; apiKey: string };
-    openai: { enabled: boolean; apiKey: string };
-    anthropic: { enabled: boolean; apiKey: string };
-  };
-
-  // 路由配置
-  routing: {
-    [key in AITaskType]: {
-      primary: { provider: string; model: string };
-      fallback: { provider: string; model: string };
-    };
-  };
-
-  // 限制配置
-  limits: {
-    freeUserDailyLimit: number;
-    proUserDailyLimit: number;
-    premiumUserDailyLimit: number;
-  };
-
-  // 缓存配置
-  cache: {
-    enabled: boolean;
-    ttlSeconds: number;
-  };
-}
-```
-
 ---
 
 ### 6. 订阅管理
@@ -1118,30 +889,6 @@ interface AIConfig {
 | 操作 | - | 查看/调整 |
 
 #### 6.3 订阅配置
-
-**套餐配置**:
-
-```typescript
-interface PlanConfig {
-  FREE: {
-    aiDailyLimit: number;      // 每日AI调用限制
-    booksLimit: number;        // 书架容量
-    features: string[];        // 功能列表
-  };
-  PRO: {
-    price: number;             // 月价格 (USD)
-    aiDailyLimit: number;
-    booksLimit: number;
-    features: string[];
-  };
-  PREMIUM: {
-    price: number;
-    aiDailyLimit: number;      // -1 = 无限
-    booksLimit: number;        // -1 = 无限
-    features: string[];
-  };
-}
-```
 
 ---
 
@@ -1228,28 +975,6 @@ interface PlanConfig {
 
 **配置项**:
 
-```typescript
-interface SystemConfig {
-  // 应用配置
-  app: {
-    maintenanceMode: boolean;
-    maintenanceMessage: string;
-  };
-
-  // 存储配置
-  storage: {
-    r2BucketName: string;
-    r2PublicUrl: string;
-  };
-
-  // 通知配置
-  notifications: {
-    emailEnabled: boolean;
-    pushEnabled: boolean;
-  };
-}
-```
-
 #### 8.3 操作日志
 
 **路由**: `/settings/logs`
@@ -1274,222 +999,11 @@ interface SystemConfig {
 
 Dashboard使用React Admin的Data Provider模式与后端API集成。
 
-```typescript
-// src/dataProvider.ts
-import { DataProvider } from 'react-admin';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
-
-const apiClient = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// 请求拦截器 - 添加认证Token
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-export const dataProvider: DataProvider = {
-  // 获取列表
-  getList: async (resource, params) => {
-    const { page, perPage } = params.pagination;
-    const { field, order } = params.sort;
-    const query = {
-      page,
-      limit: perPage,
-      sortBy: field,
-      sortOrder: order.toLowerCase(),
-      ...params.filter,
-    };
-
-    const { data } = await apiClient.get(`/admin/${resource}`, { params: query });
-
-    return {
-      data: data.items,
-      total: data.total,
-    };
-  },
-
-  // 获取单个
-  getOne: async (resource, params) => {
-    const { data } = await apiClient.get(`/admin/${resource}/${params.id}`);
-    return { data };
-  },
-
-  // 创建
-  create: async (resource, params) => {
-    const { data } = await apiClient.post(`/admin/${resource}`, params.data);
-    return { data };
-  },
-
-  // 更新
-  update: async (resource, params) => {
-    const { data } = await apiClient.put(`/admin/${resource}/${params.id}`, params.data);
-    return { data };
-  },
-
-  // 删除
-  delete: async (resource, params) => {
-    await apiClient.delete(`/admin/${resource}/${params.id}`);
-    return { data: params.previousData };
-  },
-
-  // 批量删除
-  deleteMany: async (resource, params) => {
-    await Promise.all(
-      params.ids.map(id => apiClient.delete(`/admin/${resource}/${id}`))
-    );
-    return { data: params.ids };
-  },
-
-  // 批量获取
-  getMany: async (resource, params) => {
-    const { data } = await apiClient.get(`/admin/${resource}`, {
-      params: { ids: params.ids.join(',') },
-    });
-    return { data: data.items };
-  },
-
-  // 获取关联引用
-  getManyReference: async (resource, params) => {
-    const { page, perPage } = params.pagination;
-    const { data } = await apiClient.get(`/admin/${resource}`, {
-      params: {
-        [params.target]: params.id,
-        page,
-        limit: perPage,
-      },
-    });
-    return {
-      data: data.items,
-      total: data.total,
-    };
-  },
-};
-```
-
 ### 后端Admin API端点
-
-需要在后端实现以下Admin API:
-
-```yaml
-# 书籍管理
-GET    /api/v1/admin/books              # 列表 (分页、筛选、排序)
-GET    /api/v1/admin/books/:id          # 详情
-POST   /api/v1/admin/books              # 创建
-PUT    /api/v1/admin/books/:id          # 更新
-DELETE /api/v1/admin/books/:id          # 删除
-POST   /api/v1/admin/books/upload       # 上传EPUB
-POST   /api/v1/admin/books/:id/publish  # 上架
-POST   /api/v1/admin/books/:id/unpublish # 下架
-POST   /api/v1/admin/books/import       # 触发导入任务
-GET    /api/v1/admin/books/import-tasks # 导入任务列表
-
-# 章节管理
-GET    /api/v1/admin/books/:bookId/chapters
-POST   /api/v1/admin/books/:bookId/chapters
-PUT    /api/v1/admin/books/:bookId/chapters/:id
-DELETE /api/v1/admin/books/:bookId/chapters/:id
-POST   /api/v1/admin/books/:bookId/chapters/reorder
-
-# 榜单管理
-GET    /api/v1/admin/booklists              # 列表 (分页、筛选)
-GET    /api/v1/admin/booklists/:id          # 详情 (含书籍列表)
-POST   /api/v1/admin/booklists              # 创建
-PUT    /api/v1/admin/booklists/:id          # 更新
-DELETE /api/v1/admin/booklists/:id          # 删除
-GET    /api/v1/admin/booklists/:id/items    # 获取榜单书籍
-POST   /api/v1/admin/booklists/:id/items    # 添加书籍
-DELETE /api/v1/admin/booklists/:id/items/:bookId  # 移除书籍
-PUT    /api/v1/admin/booklists/:id/items/reorder  # 重排序
-POST   /api/v1/admin/booklists/:id/publish   # 上线
-POST   /api/v1/admin/booklists/:id/unpublish # 下线
-POST   /api/v1/admin/booklists/:id/duplicate # 复制
-
-# 用户管理
-GET    /api/v1/admin/users
-GET    /api/v1/admin/users/:id
-PUT    /api/v1/admin/users/:id
-POST   /api/v1/admin/users/:id/disable
-POST   /api/v1/admin/users/:id/enable
-
-# 词汇管理
-GET    /api/v1/admin/vocabulary
-POST   /api/v1/admin/vocabulary
-PUT    /api/v1/admin/vocabulary/:id
-DELETE /api/v1/admin/vocabulary/:id
-POST   /api/v1/admin/vocabulary/import
-
-# AI监控
-GET    /api/v1/admin/ai/stats
-GET    /api/v1/admin/ai/usage
-GET    /api/v1/admin/ai/config
-PUT    /api/v1/admin/ai/config
-
-# 订阅管理
-GET    /api/v1/admin/subscriptions
-GET    /api/v1/admin/subscriptions/:id
-PUT    /api/v1/admin/subscriptions/:id
-
-# 数据分析
-GET    /api/v1/admin/analytics/overview
-GET    /api/v1/admin/analytics/user-growth
-GET    /api/v1/admin/analytics/reading-activity
-GET    /api/v1/admin/analytics/ai-usage
-GET    /api/v1/admin/analytics/top-books
-GET    /api/v1/admin/analytics/revenue
-
-# 系统设置
-GET    /api/v1/admin/settings
-PUT    /api/v1/admin/settings
-GET    /api/v1/admin/admins
-POST   /api/v1/admin/admins
-PUT    /api/v1/admin/admins/:id
-DELETE /api/v1/admin/admins/:id
-GET    /api/v1/admin/logs
-```
 
 ---
 
 ## UI组件规范
-
-### 主题配色
-
-```typescript
-const theme = {
-  palette: {
-    primary: {
-      main: '#1976d2',      // 主色 - 蓝色
-      light: '#42a5f5',
-      dark: '#1565c0',
-    },
-    secondary: {
-      main: '#9c27b0',      // 辅助色 - 紫色
-    },
-    success: {
-      main: '#2e7d32',      // 成功 - 绿色
-    },
-    warning: {
-      main: '#ed6c02',      // 警告 - 橙色
-    },
-    error: {
-      main: '#d32f2f',      // 错误 - 红色
-    },
-    background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
-    },
-  },
-};
-```
 
 ### 状态标签颜色
 
@@ -1606,148 +1120,6 @@ const theme = {
 ### 已完成的 Admin API
 
 **总计: 93+ 个端点**
-
-```yaml
-# ═══════════════════════════════════════════════════════════════
-# 书籍管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/books              ✅  # 书籍列表 (分页、筛选、排序)
-GET    /admin/books/:id          ✅  # 书籍详情
-POST   /admin/books              ✅  # 创建书籍
-PUT    /admin/books/:id          ✅  # 更新书籍 (全量)
-PATCH  /admin/books/:id          ✅  # 更新书籍 (部分)
-DELETE /admin/books/:id          ✅  # 删除书籍
-POST   /admin/books/:id/publish  ✅  # 上架
-POST   /admin/books/:id/unpublish ✅ # 下架
-
-# ═══════════════════════════════════════════════════════════════
-# 作者管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/authors            ✅  # 作者列表
-GET    /admin/authors/:id        ✅  # 作者详情
-PUT    /admin/authors/:id        ✅  # 更新作者
-PATCH  /admin/authors/:id        ✅  # 部分更新作者
-GET    /admin/author-timeline-events ✅  # 作者时间线事件
-GET    /admin/author-quotes      ✅  # 作者名言
-
-# ═══════════════════════════════════════════════════════════════
-# 用户管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/users              ✅  # 用户列表 (高级筛选)
-GET    /admin/users/:id          ✅  # 用户详情
-GET    /admin/users/:id/billing  ✅  # 用户账单信息
-GET    /admin/users/:id/reading  ✅  # 用户阅读数据
-GET    /admin/users/:id/vocabulary ✅ # 用户词汇数据
-GET    /admin/users/:id/deletion-logs ✅ # 删除日志
-GET    /admin/users/:id/account-graph ✅ # 账号关系图
-GET    /admin/users/:id/export   ✅  # 导出用户数据 (GDPR)
-
-# ═══════════════════════════════════════════════════════════════
-# 账号删除管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/accounts/pending-deletion ✅ # 待删除用户列表
-POST   /admin/accounts/:id/execute-deletion ✅ # 执行删除
-POST   /admin/accounts/:id/cancel-deletion ✅ # 取消删除
-
-# ═══════════════════════════════════════════════════════════════
-# 订阅管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/subscriptions      ✅  # 订阅列表
-GET    /admin/subscriptions/:userId ✅ # 用户订阅详情
-POST   /admin/subscriptions/:userId/extend ✅ # 延长订阅
-POST   /admin/subscriptions/:userId/grant ✅ # 授予订阅
-POST   /admin/subscriptions/:userId/revoke ✅ # 撤销订阅
-POST   /admin/subscriptions/:userId/change-tier ✅ # 变更套餐
-GET    /admin/subscriptions/stats/overview ✅ # 订阅统计
-
-# ═══════════════════════════════════════════════════════════════
-# 订单/交易管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/transactions       ✅  # 订单列表 (筛选、分页)
-
-# ═══════════════════════════════════════════════════════════════
-# 分类管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/categories         ✅  # 分类树
-GET    /admin/categories/:id     ✅  # 分类详情
-POST   /admin/categories         ✅  # 创建分类
-PUT    /admin/categories/:id     ✅  # 更新分类
-DELETE /admin/categories/:id     ✅  # 删除分类
-PUT    /admin/categories/reorder ✅  # 重排序
-
-# ═══════════════════════════════════════════════════════════════
-# 榜单管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/booklists          ✅  # 榜单列表
-GET    /admin/booklists/:id      ✅  # 榜单详情
-POST   /admin/booklists          ✅  # 创建榜单
-PUT    /admin/booklists/:id      ✅  # 更新榜单
-PATCH  /admin/booklists/:id      ✅  # 部分更新
-DELETE /admin/booklists/:id      ✅  # 删除榜单
-POST   /admin/booklists/:id/publish   ✅ # 上线
-POST   /admin/booklists/:id/unpublish ✅ # 下线
-POST   /admin/booklists/:id/duplicate ✅ # 复制
-GET    /admin/booklists/:id/items     ✅ # 获取书籍
-POST   /admin/booklists/:id/items     ✅ # 添加书籍
-DELETE /admin/booklists/:id/items/:bookId ✅ # 移除书籍
-PUT    /admin/booklists/:id/items/reorder ✅ # 重排序
-
-# ═══════════════════════════════════════════════════════════════
-# 金句管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/quotes             ✅  # 金句列表
-GET    /admin/quotes/:id         ✅  # 金句详情
-POST   /admin/quotes             ✅  # 创建金句
-PUT    /admin/quotes/:id         ✅  # 更新金句
-DELETE /admin/quotes/:id         ✅  # 删除金句
-
-# ═══════════════════════════════════════════════════════════════
-# 明信片管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/postcard-templates      ✅ # 模板列表
-GET    /admin/postcard-templates/:id  ✅ # 模板详情
-POST   /admin/postcard-templates      ✅ # 创建模板
-PUT    /admin/postcard-templates/:id  ✅ # 更新模板
-DELETE /admin/postcard-templates/:id  ✅ # 删除模板
-GET    /admin/postcards               ✅ # 用户明信片列表
-GET    /admin/postcards/:id           ✅ # 明信片详情
-DELETE /admin/postcards/:id           ✅ # 删除明信片
-
-# ═══════════════════════════════════════════════════════════════
-# 消息系统
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/messages/threads       ✅ # 消息线程列表
-GET    /admin/messages/threads/:id   ✅ # 线程详情
-POST   /admin/messages/threads/:id/reply ✅ # 回复消息
-PATCH  /admin/messages/threads/:id/status ✅ # 更新状态
-PATCH  /admin/messages/threads/:id/assign ✅ # 分配客服
-GET    /admin/messages/stats         ✅ # 消息统计
-
-# ═══════════════════════════════════════════════════════════════
-# 导入批次管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/import/batches         ✅ # 批次列表
-GET    /admin/import/batches/:id     ✅ # 批次详情
-GET    /admin/import/batches/stats   ✅ # 批次统计
-POST   /admin/import/batches/:id/start ✅ # 启动批次
-POST   /admin/import/batches/:id/cancel ✅ # 取消批次
-POST   /admin/import/batches/:id/complete ✅ # 完成批次
-DELETE /admin/import/batches/:id/rollback ✅ # 回滚批次
-
-# ═══════════════════════════════════════════════════════════════
-# 数据分析
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/analytics/overview     ✅ # 仪表盘概览
-GET    /admin/analytics/top-books    ✅ # 热门书籍
-GET    /admin/ai/stats               ✅ # AI使用统计
-GET    /admin/support/dashboard      ✅ # 支持仪表盘
-
-# ═══════════════════════════════════════════════════════════════
-# Agora 社区管理
-# ═══════════════════════════════════════════════════════════════
-GET    /admin/agora/stats            ✅ # Agora统计
-POST   /admin/agora/import           ✅ # 从真实数据源导入内容
-```
 
 ---
 
@@ -2425,40 +1797,6 @@ Dashboard 查询链:
 
 ### 5. 数据安全与审计
 
-#### 5.1 操作日志设计
-
-```typescript
-interface AdminOperationLog {
-  id: string;
-
-  // 操作人
-  adminId: string;
-  adminName: string;
-  adminRole: AdminRole;
-
-  // 操作信息
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'PUBLISH' | 'UNPUBLISH' | 'CONFIG_CHANGE';
-  resourceType: 'BOOK' | 'BOOKLIST' | 'USER' | 'SUBSCRIPTION' | 'AI_CONFIG' | 'SYSTEM';
-  resourceId: string;
-  resourceName: string;
-
-  // 变更详情
-  changes: {
-    field: string;
-    oldValue: any;
-    newValue: any;
-  }[];
-
-  // 请求信息
-  ipAddress: string;
-  userAgent: string;
-  requestId: string;
-
-  // 时间
-  createdAt: Date;
-}
-```
-
 #### 5.2 敏感操作审批流程
 
 ```
@@ -2555,79 +1893,6 @@ Dashboard 作为运营中心，需要关联多个子系统的数据。核心关�
 | **ELK** | Log Field | `accountId:{accountId}` | 日志查看器 |
 | **Analytics** | Event Property | `account_id = ?` | 行为分析Tab |
 | **Billing** | Transaction Field | `account_id = ?` | 账单Tab |
-
-#### 6.3 用户详情页数据聚合
-
-```typescript
-// Dashboard 用户详情页数据结构
-interface UserDetailView {
-  // 基础信息 (PostgreSQL)
-  profile: {
-    id: string;                    // accountId
-    displayName: string;
-    email: string;
-    avatarUrl: string;
-    englishLevel: string;
-    createdAt: Date;
-    lastActiveAt: Date;
-  };
-
-  // 订阅信息 (PostgreSQL)
-  subscription: {
-    planType: 'FREE' | 'PRO' | 'PREMIUM';
-    status: string;
-    expiresAt: Date;
-    originalTransactionId: string;
-  };
-
-  // 学习统计 (PostgreSQL - 聚合)
-  stats: {
-    totalReadingMinutes: number;
-    totalBooksRead: number;
-    totalVocabulary: number;
-    currentStreak: number;
-    aiCallsToday: number;
-    aiCallsTotal: number;
-  };
-
-  // 阅读历史 (PostgreSQL)
-  readingHistory: {
-    currentBooks: UserBook[];
-    completedBooks: UserBook[];
-    recentSessions: ReadingSession[];
-  };
-
-  // 词汇统计 (PostgreSQL)
-  vocabularyStats: {
-    total: number;
-    byStatus: {
-      NEW: number;
-      LEARNING: number;
-      MASTERED: number;
-    };
-    recentWords: UserVocabulary[];
-  };
-
-  // 错误记录 (Sentry API)
-  errors: {
-    recentCrashes: SentryIssue[];
-    totalCrashCount: number;
-    lastCrashAt: Date;
-  };
-
-  // 操作日志 (ELK API)
-  logs: {
-    recentApiCalls: LogEntry[];
-    recentErrors: LogEntry[];
-  };
-
-  // 账单记录 (PostgreSQL)
-  billing: {
-    transactions: Transaction[];
-    totalSpent: number;
-  };
-}
-```
 
 #### 6.4 问题排查数据流
 
@@ -2792,25 +2057,6 @@ interface UserDetailView {
 # Dashboard环境变量 (.env)
 VITE_API_URL=http://localhost:3000/api/v1
 VITE_APP_NAME=Readmigo Dashboard
-```
-
-### B. 开发命令
-
-```bash
-# 安装依赖
-pnpm install
-
-# 开发模式
-pnpm dev
-
-# 构建
-pnpm build
-
-# 类型检查
-pnpm typecheck
-
-# 代码检查
-pnpm lint
 ```
 
 ### C. 参考文档

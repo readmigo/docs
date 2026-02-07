@@ -291,28 +291,6 @@ flowchart TD
 | 类型文件 | camelCase | `book.types.ts` |
 | 常量 | UPPER_SNAKE | `API_BASE_URL` |
 
-### 8.2 导入顺序
-
-```typescript
-// 1. React/Next.js
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
-// 2. 第三方库
-import { useQuery } from '@tanstack/react-query';
-import { z } from 'zod';
-
-// 3. 内部模块
-import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/features/auth/stores';
-
-// 4. 类型
-import type { Book } from '@/types';
-
-// 5. 样式
-import styles from './BookCard.module.css';
-```
-
 ---
 
 ## 9. 相关文档

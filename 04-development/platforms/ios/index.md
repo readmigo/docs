@@ -48,35 +48,46 @@ ios/Readmigo/
 │   └── AppDelegate.swift
 │
 ├── Core/                       # 核心模块
+│   ├── Components/             # 公共组件
 │   ├── Config/                 # 配置管理
+│   ├── Localization/           # 国际化
 │   ├── Models/                 # 数据模型
+│   ├── Network/                # 网络层
 │   ├── Services/               # 核心服务
 │   ├── Storage/                # 存储管理
 │   ├── UI/                     # 基础 UI 组件
-│   ├── Utils/                  # 工具函数
-│   └── Localization/           # 国际化
+│   └── Utils/                  # 工具函数
 │
 ├── Features/                   # 功能模块
-│   ├── Auth/                   # 认证
-│   ├── Reader/                 # 阅读器
-│   ├── Library/                # 书架
-│   ├── Learning/               # 学习
+│   ├── About/                  # 关于
+│   ├── Agora/                  # 社区
 │   ├── AI/                     # AI 功能
 │   ├── Analytics/              # 数据分析
-│   ├── Settings/               # 设置
-│   ├── Onboarding/             # 引导
-│   ├── Subscriptions/          # 订阅
+│   ├── AnnualReport/           # 年度报告
+│   ├── Audiobook/              # 有声书
+│   ├── Auth/                   # 认证
 │   ├── Authors/                # 作者
-│   ├── Quotes/                 # 名言
 │   ├── Badges/                 # 成就
-│   ├── Postcards/              # 明信片
 │   ├── BookLists/              # 书单
 │   ├── Bookmarks/              # 书签
+│   ├── CarPlay/                # CarPlay
+│   ├── Devices/                # 设备管理
+│   ├── Help/                   # 帮助中心
+│   ├── Import/                 # 书籍导入
+│   ├── Learning/               # 学习
+│   ├── Library/                # 书架
+│   ├── Me/                     # 个人页面
+│   ├── Medals/                 # 勋章
 │   ├── Messaging/              # 消息
-│   ├── About/                  # 关于
-│   ├── Profile/                # 个人资料
 │   ├── Offline/                # 离线功能
+│   ├── Onboarding/             # 引导
+│   ├── Postcards/              # 明信片
+│   ├── Profile/                # 个人资料
+│   ├── Quotes/                 # 名言
+│   ├── Reader/                 # 阅读器
 │   ├── Search/                 # 搜索
+│   ├── Settings/               # 设置
+│   ├── Subscriptions/          # 订阅
 │   └── Version/                # 版本管理
 │
 └── Resources/                  # 资源文件
@@ -94,10 +105,10 @@ ios/Readmigo/
 | AI | 查词、翻译、问答 | [features/ai.md](./features/ai.md) |
 | Library | 书架管理 | [features/library.md](./features/library.md) |
 | Learning | 词汇学习 | [features/learning.md](./features/learning.md) |
-| Analytics | 阅读统计 | [features/analytics.md](./features/analytics.md) |
+| Audiobook | 有声书 | [features/audiobook.md](./features/audiobook.md) |
 | Auth | 登录注册 | [login-design.md](./login-design.md) |
 | Settings | 应用设置 | [features/settings.md](./features/settings.md) |
-| Subscriptions | 订阅管理 | [features/subscriptions.md](./features/subscriptions.md) |
+| Subscriptions | 订阅管理 | [features/subscription-implementation.md](./features/subscription-implementation.md) |
 
 ---
 
@@ -152,10 +163,9 @@ ios/Readmigo/
 
 | 指标 | 数量 |
 |------|------|
-| Swift 文件 | 150+ |
-| 功能模块 | 20+ |
-| SwiftUI 视图 | 100+ |
-| 服务类 | 30+ |
+| Swift 文件 | 290+ |
+| 功能模块 | 30 |
+| SwiftUI 视图 | 115+ |
 
 ---
 

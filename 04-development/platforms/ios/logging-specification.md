@@ -238,9 +238,3 @@ flowchart TD
 
 每次 API 请求生成 `X-Correlation-ID` header，用于串联前后端日志：
 
-```swift
-// APIClient
-let correlationId = UUID().uuidString
-request.setValue(correlationId, forHTTPHeaderField: "X-Correlation-ID")
-LoggingService.shared.setCorrelationId(correlationId)
-```

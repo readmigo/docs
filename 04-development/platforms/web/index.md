@@ -43,17 +43,20 @@
 ## 2. 代码库结构
 
 ```
-apps/web/src/
+web/src/
 ├── app/                          # Next.js App Router
 │   ├── (auth)/                   # 认证布局组
 │   │   ├── login/
 │   │   └── register/
 │   ├── (main)/                   # 主应用布局组
+│   │   ├── audiobooks/
 │   │   ├── author/[id]/
 │   │   ├── book/[id]/
+│   │   ├── community/
 │   │   ├── explore/
 │   │   ├── learn/
 │   │   ├── library/
+│   │   ├── papers/
 │   │   ├── settings/
 │   │   └── vocabulary/
 │   ├── (reader)/                 # 阅读器布局组
@@ -65,14 +68,15 @@ apps/web/src/
 │   ├── shared/                   # 通用组件
 │   └── ui/                       # Radix 封装 (23+)
 │
-├── features/                     # 功能模块 (8 个)
+├── features/                     # 功能模块 (9 个)
 │   ├── ai/                       # AI 功能
-│   ├── auth/                     # 认证
 │   ├── audiobook/                # 有声书
+│   ├── auth/                     # 认证
 │   ├── author/                   # 作者
 │   ├── learning/                 # 学习
 │   ├── library/                  # 书架
 │   ├── offline/                  # 离线支持
+│   ├── papers/                   # 学术论文
 │   └── reader/                   # 阅读器
 │
 ├── lib/                          # 工具库
@@ -141,7 +145,7 @@ apps/web/src/
 |------|------|
 | TypeScript 文件 | 113 |
 | 测试文件 | 242 |
-| 功能模块 | 8 |
+| 功能模块 | 9 |
 | UI 组件 | 23+ |
 | 页面路由 | 15+ |
 
@@ -158,20 +162,6 @@ apps/web/src/
 ---
 
 ## 7. 快速开始
-
-```bash
-# 安装依赖
-pnpm install
-
-# 启动开发服务器
-pnpm --filter web dev
-
-# 构建生产版本
-pnpm --filter web build
-
-# 运行测试
-pnpm --filter web test
-```
 
 ---
 

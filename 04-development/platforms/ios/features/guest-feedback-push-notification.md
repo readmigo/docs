@@ -57,26 +57,9 @@ sequenceDiagram
 |------|------|------|------|
 | `/guest-feedback/push-token` | POST | 无 | 注册推送 Token |
 
-请求体:
-```json
-{
-  "deviceId": "xxx-xxx-xxx",
-  "pushToken": "apns-token-string"
-}
-```
-
 ---
 
 ## 环境变量
-
-```bash
-# APNs 配置 (后端)
-APNS_KEY_ID=xxxxxxxxxx
-APNS_TEAM_ID=xxxxxxxxxx
-APNS_KEY_PATH=/path/to/AuthKey.p8
-APNS_BUNDLE_ID=com.readmigo.app
-APNS_PRODUCTION=true
-```
 
 ---
 

@@ -30,18 +30,6 @@
 | 付款资料 | 已设置收款账户 (Google Payments) | ☐ |
 | 双重认证 | Google 账号已开启 | ☐ |
 
-### 1.2 签名配置
-
-```bash
-# 所需签名
-├── Upload Key (上传密钥) - 用于签署上传的 AAB
-├── App Signing Key (应用签名密钥) - 由 Google Play 管理
-└── Release Keystore 备份 - 安全保存
-
-# 使用 Play App Signing
-# Google Play 会管理应用签名密钥，开发者使用上传密钥
-```
-
 ### 1.3 技术要求检查
 
 | 检查项 | Readmigo 状态 | 备注 |
@@ -92,8 +80,6 @@
 ## 3. 应用信息填写
 
 ### 3.1 商品详情 (Store Listing)
-
-**英文版本（主语言）：**
 
 **Short description (80 字符):**
 ```
@@ -149,8 +135,6 @@ Start your English reading journey today. Download Readmigo and discover the joy
 Terms of Use: https://readmigo.app/terms
 Privacy Policy: https://readmigo.app/privacy
 ```
-
-**中文版本（本地化）：**
 
 **简短说明：**
 ```
@@ -268,9 +252,7 @@ Readmigo 是一款 AI 原生的英文阅读学习应用，专为全球英语学�
 | 位置共享 | 无 |
 | 数字商品购买 | 是（订阅） |
 
-预期评级：**Everyone (所有人)**
-
-### 4.4 目标受众
+预期评级：### 4.4 目标受众
 
 | 字段 | 值 |
 |------|-----|
@@ -425,9 +407,7 @@ test2@gmail.com
 
 1. 访问 [Google Cloud Console](https://console.cloud.google.com)
 2. 创建或选择项目
-3. 启用 **Google Sign-In API**
-
-### 7.2 OAuth 2.0 配置
+3. 启用 ### 7.2 OAuth 2.0 配置
 
 **创建 OAuth 客户端 ID：**
 
@@ -444,86 +424,11 @@ test2@gmail.com
 | Package name | com.readmigo.app |
 | SHA-1 fingerprint | [从 keystore 获取] |
 
-获取 SHA-1:
-```bash
-# Debug keystore
-keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-
-# Release keystore
-keytool -list -v -keystore your-release-key.keystore -alias your-key-alias
-```
-
-### 7.3 代码配置
-
-```kotlin
-// build.gradle
-implementation("com.google.android.gms:play-services-auth:20.7.0")
-
-// 获取 Web Client ID 用于后端验证
-val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-    .requestIdToken(getString(R.string.web_client_id))
-    .requestEmail()
-    .build()
-```
-
 ---
 
 ## 8. 构建与上传
 
-### 8.1 构建配置
-
-**build.gradle.kts (app):**
-
-```kotlin
-android {
-    namespace = "com.readmigo.app"
-    compileSdk = 34
-
-    defaultConfig {
-        applicationId = "com.readmigo.app"
-        minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            signingConfig = signingConfigs.getByName("release")
-        }
-    }
-
-    bundle {
-        language {
-            enableSplit = true
-        }
-        density {
-            enableSplit = true
-        }
-        abi {
-            enableSplit = true
-        }
-    }
-}
-```
-
 ### 8.2 签名配置
-
-**创建 keystore:**
-
-```bash
-keytool -genkey -v -keystore readmigo-release.keystore \
-  -alias readmigo \
-  -keyalg RSA \
-  -keysize 2048 \
-  -validity 10000
-```
 
 **signing.properties (勿提交到 Git):**
 
@@ -534,16 +439,6 @@ keyAlias=readmigo
 keyPassword=your_key_password
 ```
 
-### 8.3 构建 AAB
-
-```bash
-# 使用 Gradle
-./gradlew bundleRelease
-
-# 输出位置
-# app/build/outputs/bundle/release/app-release.aab
-```
-
 ### 8.4 上传到 Google Play
 
 **方式 1: Play Console 网页**
@@ -551,9 +446,7 @@ keyPassword=your_key_password
 2. 上传 AAB 文件
 3. 填写版本说明
 4. 点击 **Review release**
-5. 点击 **Start rollout to Production**
-
-**方式 2: Google Play Developer API**
+5. 点击 **方式 2: Google Play Developer API**
 
 使用 CI/CD 自动化上传（如 Fastlane）。
 
@@ -613,16 +506,6 @@ keyPassword=your_key_password
 ### 9.2 权限说明
 
 在 strings.xml 中添加权限说明：
-
-```xml
-<!-- 网络权限 -->
-<!-- 无需额外说明 -->
-
-<!-- 如需其他权限，添加说明 -->
-<string name="permission_rationale_storage">
-    需要存储权限以保存离线书籍
-</string>
-```
 
 ### 9.3 版本说明 (Release Notes)
 
@@ -710,19 +593,6 @@ Full privacy policy: https://readmigo.app/privacy
 - [ ] 设置评分请求时机（完成首本书等）
 - [ ] 定期回复用户评价
 - [ ] 负面评价及时跟进
-
-**In-App Review API 使用：**
-
-```kotlin
-val manager = ReviewManagerFactory.create(context)
-val request = manager.requestReviewFlow()
-request.addOnCompleteListener { task ->
-    if (task.isSuccessful) {
-        val reviewInfo = task.result
-        manager.launchReviewFlow(activity, reviewInfo)
-    }
-}
-```
 
 ### 10.4 ASO 优化
 

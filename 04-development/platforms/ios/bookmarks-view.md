@@ -130,59 +130,6 @@ Modal for creating new highlights.
 
 ## Data Models
 
-### BookmarkType
-
-```swift
-enum BookmarkType: CaseIterable {
-    case bookmark   // Page marker
-    case highlight  // Text highlight
-    case annotation // Note/annotation
-
-    var displayName: String
-    var icon: String
-    var color: Color
-}
-```
-
-### Bookmark
-
-```swift
-struct Bookmark: Identifiable {
-    let id: String
-    let type: BookmarkType
-    let position: BookmarkPosition
-    let selectedText: String?
-    let note: String?
-    let title: String?
-    let highlightColor: HighlightColor?
-    let createdAt: Date
-}
-```
-
-### BookmarkPosition
-
-```swift
-struct BookmarkPosition {
-    let chapterId: String
-    let cfi: String?
-    let scrollPosition: Float?
-    let pageNumber: Int?
-
-    var description: String  // "Chapter 3, Page 42"
-}
-```
-
-### HighlightColor
-
-```swift
-enum HighlightColor: String, CaseIterable {
-    case yellow, green, blue, pink, purple, orange
-
-    var color: Color
-    var backgroundColor: Color  // For text background
-}
-```
-
 ---
 
 ## User Flows
@@ -236,36 +183,6 @@ BookmarksView → Swipe item left → 🗑️ Delete
 ---
 
 ## Integration
-
-### With Reader
-
-```swift
-// In ReaderView
-.sheet(isPresented: $showBookmarks) {
-    BookmarksView(bookId: book.id) { position in
-        viewModel.navigateTo(position)
-    }
-}
-```
-
-### With Text Selection
-
-```swift
-// In TextSelectionMenu
-Button("Highlight") {
-    showCreateHighlight = true
-}
-.sheet(isPresented: $showCreateHighlight) {
-    CreateHighlightSheet(
-        bookId: bookId,
-        chapterId: currentChapterId,
-        position: selectionPosition,
-        selectedText: selectedText
-    ) { bookmark in
-        // Handle saved bookmark
-    }
-}
-```
 
 ---
 

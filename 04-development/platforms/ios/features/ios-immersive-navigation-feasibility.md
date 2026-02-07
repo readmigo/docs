@@ -62,25 +62,6 @@ iOS 26 (WWDC 2025) 引入的全新设计语言，是 iOS 7 以来最大的视觉
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 核心 API
-
-```swift
-// 1. Scroll Edge Effect 控制
-.scrollEdgeEffectStyle(.soft, for: .top)    // 柔和模糊
-.scrollEdgeEffectStyle(.hard, for: .bottom) // 硬边缘
-
-// 2. Glass Effect
-.glassEffect(.regular)
-.glassEffect(.prominent)
-
-// 3. Tab Bar 最小化
-TabView { }
-    .tabBarMinimizeBehavior(.onScrollDown)
-
-// 4. 导航过渡动画
-.navigationTransition(.zoom(sourceID: id, in: namespace))
-```
-
 ### 优势
 
 | 特性 | 说明 |

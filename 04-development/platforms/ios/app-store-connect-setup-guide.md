@@ -44,9 +44,7 @@
 1. 登录 [App Store Connect](https://appstoreconnect.apple.com)
 2. 点击顶部的 **"My Apps"** 按钮
 3. 点击左上角的 **"+"** 按钮
-4. 选择 **"New App"**
-
-### 1.2 填写基本信息
+4. 选择 ### 1.2 填写基本信息
 
 在弹出的对话框中填写：
 
@@ -119,9 +117,7 @@
 - Graphic Sexual Content and Nudity: **No**
 
 3. 结果应该是：**4+**
-4. 点击 **"Done"**
-
-### 2.3 隐私政策URL
+4. 点击 ### 2.3 隐私政策URL
 
 | 字段 | 填写内容 |
 |------|---------|
@@ -140,9 +136,7 @@
 1. 点击 **"+ Version or Platform"**
 2. 选择 **"iOS"**
 3. Version输入：`1.0`
-4. 点击 **"Create"**
-
-### 3.2 版本信息
+4. 点击 ### 3.2 版本信息
 
 #### App Store截图（暂时可以跳过，稍后准备好后上传）
 
@@ -417,12 +411,6 @@ Sign in with Apple 已完整实现。
 ### 9.2 Entitlements 配置
 
 当前 `Readmigo.entitlements` 已配置:
-```xml
-<key>com.apple.developer.applesignin</key>
-<array>
-    <string>Default</string>
-</array>
-```
 
 ### 9.3 Apple Developer Portal 配置
 
@@ -455,22 +443,6 @@ CarPlay 支持已完整实现，用于有声书播放。
 ### 10.2 Info.plist 配置
 
 已配置 CarPlay 场景:
-```xml
-<key>UIApplicationSceneManifest</key>
-<dict>
-    <key>CPTemplateApplicationSceneSessionRoleApplication</key>
-    <array>
-        <dict>
-            <key>UISceneClassName</key>
-            <string>CPTemplateApplicationScene</string>
-            <key>UISceneConfigurationName</key>
-            <string>CarPlay</string>
-            <key>UISceneDelegateClassName</key>
-            <string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
-        </dict>
-    </array>
-</dict>
-```
 
 ### 10.3 Apple Developer Portal 配置
 
@@ -496,24 +468,6 @@ CarPlay 支持已完整实现，用于有声书播放。
 ### 11.2 待完成的代码
 
 在 `AppDelegate` 或启动流程中添加:
-
-```swift
-// 请求推送权限
-UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-    if granted {
-        DispatchQueue.main.async {
-            UIApplication.shared.registerForRemoteNotifications()
-        }
-    }
-}
-
-// 处理 APNs token
-func application(_ application: UIApplication,
-                 didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-    let token = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
-    DeviceManager.shared.updatePushToken(token)
-}
-```
 
 ### 11.3 Apple Developer Portal 配置
 
@@ -542,10 +496,6 @@ func application(_ application: UIApplication,
 ### 12.3 App Store URL
 
 ⚠️ **待更新**: 当前使用占位符 URL:
-```swift
-// VersionManager.swift:183
-private let appStoreURL = URL(string: "https://apps.apple.com/app/readmigo/id123456789")!
-```
 
 上架后需更新为实际的 App Store ID。
 

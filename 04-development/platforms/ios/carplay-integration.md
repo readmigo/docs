@@ -91,33 +91,6 @@ Uses `CPNowPlayingTemplate.shared` with custom buttons:
 
 ## Scene Configuration
 
-### Info.plist
-
-```xml
-<key>UIApplicationSceneManifest</key>
-<dict>
-    <key>UISceneConfigurations</key>
-    <dict>
-        <key>CPTemplateApplicationSceneSessionRoleApplication</key>
-        <array>
-            <dict>
-                <key>UISceneConfigurationName</key>
-                <string>CarPlay</string>
-                <key>UISceneDelegateClassName</key>
-                <string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
-            </dict>
-        </array>
-    </dict>
-</dict>
-```
-
-### Entitlements
-
-```xml
-<key>com.apple.developer.carplay-audio</key>
-<true/>
-```
-
 ---
 
 ## Data Flow
@@ -179,39 +152,6 @@ Response: { currentChapter: Int, currentPosition: Float }
 ---
 
 ## Models
-
-### AudiobookListItem
-
-```swift
-struct AudiobookListItem: Decodable {
-    let id: String
-    let title: String
-    let author: String
-    let coverUrl: String?
-    let duration: Int  // seconds
-}
-```
-
-### Audiobook (Full)
-
-```swift
-struct Audiobook: Decodable {
-    let id: String
-    let title: String
-    let author: String
-    let coverUrl: String?
-    let chapters: [AudiobookChapter]
-}
-```
-
-### AudiobookProgress
-
-```swift
-struct AudiobookProgress: Decodable {
-    let currentChapter: Int
-    let currentPosition: Float  // seconds
-}
-```
 
 ---
 

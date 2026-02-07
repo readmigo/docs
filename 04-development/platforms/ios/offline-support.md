@@ -60,15 +60,6 @@ graph TD
 - 刷新按钮
 
 使用示例：
-```swift
-if dataSource == .cache {
-    OfflineBannerView(lastSyncTime: lastSyncTime) {
-        Task {
-            await refreshData()
-        }
-    }
-}
-```
 
 ### 2. ResponseCacheService 扩展
 
@@ -90,15 +81,6 @@ if dataSource == .cache {
 ### 3. 数据源状态跟踪
 
 各 Manager 新增属性：
-```swift
-@Published var dataSource: DataSourceType = .network
-@Published var lastSyncTime: Date?
-
-enum DataSourceType {
-    case network
-    case cache
-}
-```
 
 ### 4. 国际化字符串
 

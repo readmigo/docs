@@ -100,46 +100,6 @@ Modal sheet displaying full FAQ content.
 
 ## Data Models
 
-### FAQ
-
-```swift
-struct FAQ: Identifiable, Decodable {
-    let id: String
-    let question: String       // English
-    let questionZh: String?    // Chinese
-    let answer: String         // English
-    let answerZh: String?      // Chinese
-    let categoryId: String
-    let isPinned: Bool
-    let viewCount: Int
-    let helpfulYes: Int
-    let helpfulNo: Int
-    let sortOrder: Int
-
-    // Computed
-    var localizedQuestion: String
-    var localizedAnswer: String
-    var helpfulPercentage: Double
-}
-```
-
-### FAQCategory
-
-```swift
-struct FAQCategory: Identifiable, Decodable {
-    let id: String
-    let name: String           // English
-    let nameZh: String?        // Chinese
-    let icon: String?          // SF Symbol name
-    let sortOrder: Int
-    var faqs: [FAQ]
-
-    // Computed
-    var localizedName: String
-    var faqCount: Int
-}
-```
-
 ---
 
 ## FAQService
@@ -153,27 +113,6 @@ struct FAQCategory: Identifiable, Decodable {
 | GET | `/faqs/search?q=` | Search FAQs |
 | POST | `/faqs/:id/feedback` | Submit helpfulness feedback |
 | POST | `/faqs/:id/view` | Track FAQ view |
-
-### Methods
-
-```swift
-@MainActor
-class FAQService: ObservableObject {
-    static let shared = FAQService()
-
-    @Published var categories: [FAQCategory] = []
-    @Published var featuredFAQs: [FAQ] = []
-    @Published var searchResults: [FAQ] = []
-    @Published var isLoading = false
-
-    func loadAllFAQs() async
-    func loadFeaturedFAQs() async
-    func searchFAQs(query: String) async
-    func submitFeedback(faqId: String, helpful: Bool) async -> Bool
-    func trackView(faqId: String) async
-    func clearSearch()
-}
-```
 
 ---
 
