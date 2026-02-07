@@ -11,12 +11,12 @@
 │                    后端文档覆盖率分析                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  代码模块: 36 个                                                 │
+│  代码模块: 42 个                                                 │
 │  数据模型: 87 个                                                 │
 │  API 端点: 200+ 个                                              │
 │                                                                  │
 │  文档覆盖                                                        │
-│  ├── 已有文档的模块: 36/36 (100%)  ✅                           │
+│  ├── 已有文档的模块: 42 个模块                                  │
 │  ├── 后端专属文档:   docs/04-development/backend/modules/ (10个) │
 │  └── 通用模块文档:   docs/07-modules/modules/ (24个)            │
 │                                                                  │
@@ -45,7 +45,7 @@
 | booklists | `modules/booklists/` | `backend/modules/booklists.md` | ✅ 完整 |
 | reading | `modules/reading/` | `modules/reading.md` | ✅ 完整 |
 | annotations | `modules/annotations/` | `modules/annotations.md` | ✅ 完整 |
-| import | `modules/import/` | `infrastructure/book-import-system.md` | ✅ 完整 |
+| bilingual | `modules/bilingual/` | - | 无专属文档 |
 
 ### 2.3 学习系统模块
 
@@ -344,7 +344,7 @@ docs/04-development/backend/
 | 文档 | 更新内容 |
 |------|----------|
 | database-design.md | 更新为 87 个模型 |
-| backend-architecture.md | 同步 36 个模块 |
+| backend-architecture.md | 同步 42 个模块 |
 
 ---
 

@@ -203,227 +203,101 @@
 
 #### 3.3.1 translations 表 (核心翻译表)
 
-```sql
-CREATE TABLE translations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID (PK) | Auto-generated primary key |
+| entity_type | VARCHAR(50) | 实体类型 ('book', 'author', 'genre' 等) |
+| entity_id | UUID | 关联实体的 ID |
+| field_name | VARCHAR(50) | 翻译字段名 ('title', 'description', 'bio' 等) |
+| locale | VARCHAR(10) | 目标语言代码 ('en', 'zh-Hans', 'ja' 等) |
+| value | TEXT | 翻译内容 |
+| source | VARCHAR(20) | 来源 (default: 'manual')，可选: 'ai', 'opencc' |
+| status | VARCHAR(20) | 状态 (default: 'draft')，可选: 'reviewed', 'published' |
+| created_at | TIMESTAMPTZ | 创建时间 |
+| updated_at | TIMESTAMPTZ | 更新时间 |
+| created_by | UUID | 翻译者/审核者 |
 
-    -- 实体关联
-    entity_type VARCHAR(50) NOT NULL,   -- 'book', 'author', 'genre', etc.
-    entity_id UUID NOT NULL,            -- 关联实体的 ID
+**唯一约束:** (entity_type, entity_id, field_name, locale)
 
-    -- 翻译内容
-    field_name VARCHAR(50) NOT NULL,    -- 'title', 'description', 'bio', etc.
-    locale VARCHAR(10) NOT NULL,        -- 'en', 'zh-Hans', 'ja', etc.
-    value TEXT NOT NULL,                -- 翻译后的内容
+**索引:**
 
-    -- 元信息
-    source VARCHAR(20) DEFAULT 'manual', -- 'manual', 'ai', 'opencc'
-    status VARCHAR(20) DEFAULT 'draft',  -- 'draft', 'reviewed', 'published'
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    created_by UUID,                     -- 翻译者/审核者
+| Index | Columns | Purpose |
+|-------|---------|---------|
+| idx_translations_entity | entity_type, entity_id | 实体查询 |
+| idx_translations_locale | locale | 语言查询 |
+| idx_translations_lookup | entity_type, entity_id, locale | 复合查询优化 |
 
-    -- 约束
-    UNIQUE (entity_type, entity_id, field_name, locale)
-);
+#### supported_locales 表 (配置)
 
--- 复合索引 (核心查询优化)
-CREATE INDEX idx_translations_entity ON translations(entity_type, entity_id);
-CREATE INDEX idx_translations_locale ON translations(locale);
-CREATE INDEX idx_translations_lookup ON translations(entity_type, entity_id, locale);
+| Column | Type | Description |
+|--------|------|-------------|
+| locale | VARCHAR(10) (PK) | 语言代码 |
+| name | VARCHAR(50) | 显示名称 |
+| native_name | VARCHAR(50) | 原生名称 |
+| is_rtl | BOOLEAN | RTL 标记 |
+| fallback_locale | VARCHAR(10) | 回退语言 |
+| is_active | BOOLEAN | 是否启用 |
+| sort_order | INT | 排序 |
 
--- 支持语言表 (配置)
-CREATE TABLE supported_locales (
-    locale VARCHAR(10) PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,           -- 'English', '简体中文'
-    native_name VARCHAR(50) NOT NULL,    -- 'English', '简体中文'
-    is_rtl BOOLEAN DEFAULT false,        -- 阿拉伯语等 RTL 语言
-    fallback_locale VARCHAR(10),         -- 回退语言
-    is_active BOOLEAN DEFAULT true,
-    sort_order INT DEFAULT 0
-);
-
--- 初始化支持语言
-INSERT INTO supported_locales (locale, name, native_name, is_rtl, fallback_locale, sort_order) VALUES
-('en', 'English', 'English', false, NULL, 1),
-('zh-Hans', 'Simplified Chinese', '简体中文', false, 'en', 2),
-('zh-Hant', 'Traditional Chinese', '繁體中文', false, 'zh-Hans', 3),
-('es', 'Spanish', 'Español', false, 'en', 4),
-('ar', 'Arabic', 'العربية', true, 'en', 5),
-('pt', 'Portuguese', 'Português', false, 'en', 6),
-('id', 'Indonesian', 'Bahasa Indonesia', false, 'en', 7),
-('fr', 'French', 'Français', false, 'en', 8),
-('ja', 'Japanese', '日本語', false, 'en', 9),
-('ru', 'Russian', 'Русский', false, 'en', 10),
-('de', 'German', 'Deutsch', false, 'en', 11),
-('ko', 'Korean', '한국어', false, 'en', 12);
-```
+初始化数据包含 12 种语言: en, zh-Hans, zh-Hant, es, ar, pt, id, fr, ja, ru, de, ko
 
 #### 3.3.2 books 表 (主表保留英文默认值)
 
-```sql
-CREATE TABLE books (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    -- 默认字段 (英文)
-    title VARCHAR(500) NOT NULL,
-    author VARCHAR(255) NOT NULL,
-    description TEXT,
-
-    -- 非本地化字段
-    cover_url VARCHAR(500),
-    difficulty_score DECIMAL(3,1),
-    word_count INT,
-    chapter_count INT,
-
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+| Column | Type | 本地化 | Description |
+|--------|------|--------|-------------|
+| id | UUID (PK) | - | 主键 |
+| title | VARCHAR(500) | 是 | 英文书名 (默认值) |
+| author | VARCHAR(255) | 是 | 英文作者名 (默认值) |
+| description | TEXT | 是 | 英文简介 (默认值) |
+| cover_url | VARCHAR(500) | 否 | 封面 URL |
+| difficulty_score | DECIMAL(3,1) | 否 | 难度评分 |
+| word_count | INT | 否 | 字数 |
+| chapter_count | INT | 否 | 章节数 |
 
 #### 3.3.3 authors 表
 
-```sql
-CREATE TABLE authors (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    -- 默认字段 (英文)
-    name VARCHAR(255) NOT NULL,
-    bio TEXT,
-
-    -- 非本地化字段
-    avatar_url VARCHAR(500),
-    birth_year INT,
-    death_year INT,
-    nationality VARCHAR(50),
-
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+| Column | Type | 本地化 | Description |
+|--------|------|--------|-------------|
+| id | UUID (PK) | - | 主键 |
+| name | VARCHAR(255) | 是 | 英文名 (默认值) |
+| bio | TEXT | 是 | 英文简介 (默认值) |
+| avatar_url | VARCHAR(500) | 否 | 头像 URL |
+| birth_year | INT | 否 | 出生年份 |
+| death_year | INT | 否 | 逝世年份 |
+| nationality | VARCHAR(50) | 否 | 国籍 |
 
 #### 3.3.4 genres 表 (分类)
 
-```sql
-CREATE TABLE genres (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    slug VARCHAR(50) UNIQUE NOT NULL,  -- 'adventure', 'romance'
-
-    -- 默认字段 (英文)
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-
-    icon VARCHAR(50),
-    sort_order INT DEFAULT 0
-);
-```
+| Column | Type | 本地化 | Description |
+|--------|------|--------|-------------|
+| id | UUID (PK) | - | 主键 |
+| slug | VARCHAR(50) UNIQUE | 否 | URL 标识 (e.g., 'adventure') |
+| name | VARCHAR(100) | 是 | 英文名称 (默认值) |
+| description | TEXT | 是 | 英文描述 |
+| icon | VARCHAR(50) | 否 | 图标 |
+| sort_order | INT | 否 | 排序 |
 
 ### 3.4 Prisma Schema
 
-```prisma
-model Translation {
-  id          String   @id @default(uuid())
-  entityType  String   @map("entity_type")
-  entityId    String   @map("entity_id")
-  fieldName   String   @map("field_name")
-  locale      String
-  value       String
-  source      String   @default("manual")
-  status      String   @default("draft")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  createdBy   String?  @map("created_by")
+Prisma models 定义在 `packages/database/prisma/schema.prisma` 中。核心本地化相关模型:
 
-  @@unique([entityType, entityId, fieldName, locale])
-  @@index([entityType, entityId])
-  @@index([locale])
-  @@index([entityType, entityId, locale])
-  @@map("translations")
-}
+| Model | Table | Key Fields | Description |
+|-------|-------|------------|-------------|
+| Translation | translations | entityType, entityId, fieldName, locale, value, source, status | 核心翻译表 |
+| SupportedLocale | supported_locales | locale, name, nativeName, isRtl, fallbackLocale | 语言配置表 |
+| Book | books | title, author, description (英文默认值) | 书籍主表 |
+| Author | authors | name, bio (英文默认值) | 作者主表 |
+| Genre | genres | slug, name, description (英文默认值) | 分类主表 |
 
-model SupportedLocale {
-  locale         String   @id
-  name           String
-  nativeName     String   @map("native_name")
-  isRtl          Boolean  @default(false) @map("is_rtl")
-  fallbackLocale String?  @map("fallback_locale")
-  isActive       Boolean  @default(true) @map("is_active")
-  sortOrder      Int      @default(0) @map("sort_order")
+所有主表字段存储英文内容作为默认值，其他语言翻译通过 Translation 模型关联。
 
-  @@map("supported_locales")
-}
-
-model Book {
-  id              String   @id @default(uuid())
-  title           String
-  author          String
-  description     String?
-  coverUrl        String?  @map("cover_url")
-  difficultyScore Decimal? @map("difficulty_score")
-  wordCount       Int?     @map("word_count")
-  chapterCount    Int?     @map("chapter_count")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  @@map("books")
-}
-
-model Author {
-  id          String   @id @default(uuid())
-  name        String
-  bio         String?
-  avatarUrl   String?  @map("avatar_url")
-  birthYear   Int?     @map("birth_year")
-  deathYear   Int?     @map("death_year")
-  nationality String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("authors")
-}
-
-model Genre {
-  id          String  @id @default(uuid())
-  slug        String  @unique
-  name        String
-  description String?
-  icon        String?
-  sortOrder   Int     @default(0) @map("sort_order")
-
-  @@map("genres")
-}
-```
-
-### 3.5 查询示例
+### 3.5 查询模式
 
 #### 获取本地化书籍
 
-```sql
-SELECT
-    b.id,
-    COALESCE(t_title.value, b.title) AS title,
-    COALESCE(t_author.value, b.author) AS author,
-    COALESCE(t_desc.value, b.description) AS description,
-    b.cover_url,
-    b.difficulty_score
-FROM books b
-LEFT JOIN translations t_title
-    ON t_title.entity_type = 'book'
-    AND t_title.entity_id = b.id
-    AND t_title.field_name = 'title'
-    AND t_title.locale = 'zh-Hans'
-LEFT JOIN translations t_author
-    ON t_author.entity_type = 'book'
-    AND t_author.entity_id = b.id
-    AND t_author.field_name = 'author'
-    AND t_author.locale = 'zh-Hans'
-LEFT JOIN translations t_desc
-    ON t_desc.entity_type = 'book'
-    AND t_desc.entity_id = b.id
-    AND t_desc.field_name = 'description'
-    AND t_desc.locale = 'zh-Hans'
-WHERE b.id = 'book-123';
-```
+查询流程: 从 books 表获取基础数据 (英文)，然后 LEFT JOIN translations 表获取 title、author、description 三个字段的目标语言翻译，使用 COALESCE 实现回退 (翻译不存在时使用英文原值)。
+
+查询条件包括: entity_type = 'book', 目标 entity_id, 各 field_name, 以及目标 locale。
 
 ---
 
@@ -749,43 +623,15 @@ WHERE b.id = 'book-123';
 
 #### 5.3.1 客户端 API (返回本地化内容)
 
-```text
-GET /api/books/123
-Accept-Language: zh-Hans
+**请求:** GET /api/books/123 (Accept-Language: zh-Hans)
 
-Response:
-{
-  "id": "123",
-  "title": "傲慢与偏见",
-  "author": "简·奥斯汀",
-  "description": "这是一部由简·奥斯汀于1813年创作的浪漫小说...",
-  "coverUrl": "https://...",
-  "difficulty": "中级"
-}
-```
+客户端 API 根据 Accept-Language header 返回对应语言的本地化字段 (title, author, description 等)。非本地化字段 (coverUrl, difficulty 等) 不受语言影响。
 
 #### 5.3.2 管理后台 API (返回所有翻译)
 
-```text
-GET /api/admin/books/123/translations
+**请求:** GET /api/admin/books/123/translations
 
-Response:
-{
-  "id": "123",
-  "translations": {
-    "title": {
-      "en": "Pride and Prejudice",
-      "zh-Hans": { "value": "傲慢与偏见", "source": "wikipedia", "status": "published" },
-      "zh-Hant": { "value": "傲慢與偏見", "source": "opencc", "status": "draft" },
-      "ja": { "value": "高慢と偏見", "source": "ai", "status": "reviewed" }
-    },
-    "author": {
-      "en": "Jane Austen",
-      "zh-Hans": { "value": "简·奥斯汀", "source": "wikipedia", "status": "published" }
-    }
-  }
-}
-```
+管理后台 API 返回实体所有语言的翻译版本。每个字段下按 locale 分组，包含 value、source、status 三个属性。英文值直接来自主表，其他语言来自 translations 表。
 
 ---
 
@@ -996,24 +842,16 @@ Response:
 
 ### 9.2 缺失翻译日志
 
-客户端在请求本地化内容时，如遇到回退情况，记录日志：
+客户端在请求本地化内容时，如遇到回退情况，系统记录 WARNING 级别日志，包含以下信息:
 
-```json
-{
-  "level": "WARNING",
-  "category": "Localization",
-  "message": "Missing translation fallback",
-  "metadata": {
-    "entityType": "book",
-    "entityId": "book-123",
-    "field": "title",
-    "requestedLocale": "es",
-    "fallbackLocale": "en",
-    "originalValue": "Pride and Prejudice"
-  },
-  "timestamp": "2025-12-28T10:30:00Z"
-}
-```
+| 日志字段 | 说明 |
+|----------|------|
+| entityType | 实体类型 (book, author 等) |
+| entityId | 实体 ID |
+| field | 缺失翻译的字段名 |
+| requestedLocale | 请求的语言 |
+| fallbackLocale | 实际回退到的语言 |
+| originalValue | 回退后返回的原始值 |
 
 ### 9.3 告警规则
 
@@ -1145,34 +983,11 @@ Response:
 - 直接使用服务端返回的已本地化字段
 - 仅使用翻译文件存储纯 UI 文案
 
-#### 12.2.2 示例代码
+#### 12.2.2 客户端实现要点
 
-```swift
-// ✅ 正确：直接使用服务端返回的 name
-struct DiscoverTab {
-    let name: String      // 服务端已本地化
-    let nameEn: String    // 英文备用
-
-    var displayName: String {
-        name  // 直接使用，不查本地翻译表
-    }
-}
-
-// ✅ 正确：直接使用服务端返回的 genres
-struct Book {
-    let genres: [String]  // 服务端已本地化
-
-    var localizedGenres: [String] {
-        genres  // 直接使用，不做客户端翻译
-    }
-}
-
-// ❌ 错误：在客户端做数据翻译
-var displayName: String {
-    let key = "discoverTab.\(slug)"
-    return key.localized  // 不应该这样做
-}
-```
+- 直接使用服务端返回的 name 字段 (已本地化)，不查本地翻译表
+- 直接使用服务端返回的 genres 数组 (已本地化)，不做客户端翻译
+- 不应在客户端构造翻译 key 去查本地翻译文件 (如 "discoverTab.xxx".localized)
 
 ### 12.3 Localizable.xcstrings 内容规范
 

@@ -190,13 +190,11 @@
 
 ### iOS 实现位置
 
-```
-ios/Readmigo/Features/
-└── Devices/
-    ├── DevicesView.swift         设备列表页
-    ├── DeviceRowView.swift       单设备行
-    └── DeviceManager.swift       设备管理逻辑
-```
+| 文件 | 说明 |
+|------|------|
+| ios/Readmigo/Features/Devices/DevicesView.swift | 设备列表页 |
+| ios/Readmigo/Features/Devices/DeviceRowView.swift | 单设备行 |
+| ios/Readmigo/Features/Devices/DeviceManager.swift | 设备管理逻辑 |
 
 ### 设备标识生成
 

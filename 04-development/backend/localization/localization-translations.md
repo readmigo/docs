@@ -128,45 +128,42 @@
 
 ### 2.1 Translations Table
 
-```sql
-CREATE TABLE translations (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  entity_type   VARCHAR(50) NOT NULL,     -- Entity type identifier
-  entity_id     VARCHAR(100) NOT NULL,    -- Entity UUID or slug
-  field_name    VARCHAR(50) NOT NULL,     -- Field to translate
-  locale        VARCHAR(10) NOT NULL,     -- Target locale code
-  value         TEXT NOT NULL,            -- Translated content
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID (PK) | Auto-generated primary key |
+| entity_type | VARCHAR(50) | Entity type identifier (e.g., 'book', 'author') |
+| entity_id | VARCHAR(100) | Entity UUID or slug |
+| field_name | VARCHAR(50) | Field to translate (e.g., 'title', 'name') |
+| locale | VARCHAR(10) | Target locale code (e.g., 'zh-Hans') |
+| value | TEXT | Translated content |
+| source | VARCHAR(20) | Translation source (default: 'manual') |
+| status | VARCHAR(20) | Publication status (default: 'published') |
+| created_at | TIMESTAMP | Creation timestamp |
+| updated_at | TIMESTAMP | Last update timestamp |
+| created_by | UUID | Translator user ID |
 
-  -- Metadata
-  source        VARCHAR(20) DEFAULT 'manual',    -- Translation source
-  status        VARCHAR(20) DEFAULT 'published', -- Publication status
-  created_at    TIMESTAMP DEFAULT NOW(),
-  updated_at    TIMESTAMP DEFAULT NOW(),
-  created_by    UUID,                            -- Translator user ID
+**Unique constraint:** (entity_type, entity_id, field_name, locale)
 
-  UNIQUE(entity_type, entity_id, field_name, locale)
-);
+**Indexes:**
 
--- Indexes for query optimization
-CREATE INDEX idx_translations_entity ON translations(entity_type, entity_id);
-CREATE INDEX idx_translations_locale ON translations(entity_type, entity_id, locale);
-CREATE INDEX idx_translations_locale_only ON translations(locale);
-CREATE INDEX idx_translations_source ON translations(source);
-```
+| Index | Columns | Purpose |
+|-------|---------|---------|
+| idx_translations_entity | entity_type, entity_id | Entity lookup |
+| idx_translations_locale | entity_type, entity_id, locale | Locale-specific lookup |
+| idx_translations_locale_only | locale | Locale scan |
+| idx_translations_source | source | Source filtering |
 
 ### 2.2 Supported Locales Table
 
-```sql
-CREATE TABLE supported_locales (
-  locale          VARCHAR(10) PRIMARY KEY,
-  name            VARCHAR(50) NOT NULL,      -- 'Simplified Chinese'
-  native_name     VARCHAR(50) NOT NULL,      -- '简体中文'
-  is_rtl          BOOLEAN DEFAULT FALSE,     -- Right-to-left (Arabic)
-  fallback_locale VARCHAR(10),               -- Fallback language
-  is_active       BOOLEAN DEFAULT TRUE,
-  sort_order      INT DEFAULT 0
-);
-```
+| Column | Type | Description |
+|--------|------|-------------|
+| locale | VARCHAR(10) (PK) | Locale code |
+| name | VARCHAR(50) | Display name (e.g., 'Simplified Chinese') |
+| native_name | VARCHAR(50) | Native name (e.g., '简体中文') |
+| is_rtl | BOOLEAN | Right-to-left flag (for Arabic) |
+| fallback_locale | VARCHAR(10) | Fallback language |
+| is_active | BOOLEAN | Active flag |
+| sort_order | INT | Display order |
 
 ---
 
@@ -750,27 +747,9 @@ CREATE TABLE supported_locales (
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 6.3 Response Example
+### 6.3 Response Behavior
 
-```json
-{
-  "posts": [
-    {
-      "id": "post-123",
-      "postType": "AUTHOR",
-      "author": {
-        "id": "author-456",
-        "name": "简·奥斯汀",           // Localized from translations
-        "bio": "英国女性小说家..."      // Localized from translations
-      },
-      "quote": {
-        "id": "quote-789",
-        "text": "傲慢让别人无法爱上我..." // Localized from translations
-      }
-    }
-  ]
-}
-```
+When locale is zh-Hans, the Agora response returns localized author names, bios, and quote texts from the translations table. Fields without translations fall back to English.
 
 ---
 
@@ -875,13 +854,13 @@ CREATE TABLE supported_locales (
 
 ### 9.2 Locale Context Structure
 
-```typescript
-interface LocaleContext {
-  locale: string;           // 'zh-Hans'
-  fallbackChain: string[];  // ['zh-Hans', 'en']
-  isRtl: boolean;           // false
-}
-```
+The LocaleContext object injected into each request contains:
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| locale | string | Normalized locale code | 'zh-Hans' |
+| fallbackChain | string[] | Ordered fallback chain | ['zh-Hans', 'en'] |
+| isRtl | boolean | Right-to-left flag | false |
 
 ---
 
@@ -889,16 +868,15 @@ interface LocaleContext {
 
 ### 10.1 Manual Refresh
 
-```
-POST /api/v1/recommendation/cache/refresh
+**Endpoint:** POST /api/v1/recommendation/cache/refresh
 
-Response:
-{
-  "tabs": 2,        // Number of locale caches refreshed
-  "books": 16,      // Number of book caches refreshed
-  "duration": 3500  // Time in milliseconds
-}
-```
+**Response fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| tabs | number | Number of locale caches refreshed |
+| books | number | Number of book caches refreshed |
+| duration | number | Time in milliseconds |
 
 ### 10.2 Refresh Triggers
 
@@ -1264,19 +1242,11 @@ Response:
 
 ### 12.4 Required Indexes
 
-```sql
--- Primary lookup index (most common query)
-CREATE INDEX idx_trans_lookup
-  ON translations(entity_type, entity_id, locale);
-
--- Batch check index
-CREATE INDEX idx_trans_entity_locale
-  ON translations(entity_type, locale);
-
--- Unique constraint index
-CREATE UNIQUE INDEX idx_trans_unique
-  ON translations(entity_type, entity_id, field_name, locale);
-```
+| Index Name | Columns | Purpose |
+|------------|---------|---------|
+| idx_trans_lookup | entity_type, entity_id, locale | Primary lookup (most common query) |
+| idx_trans_entity_locale | entity_type, locale | Batch check |
+| idx_trans_unique | entity_type, entity_id, field_name, locale (UNIQUE) | Uniqueness constraint |
 
 ### 12.5 Partitioning Strategy (Recommended for 100K+ books)
 

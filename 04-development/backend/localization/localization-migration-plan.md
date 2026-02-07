@@ -170,17 +170,14 @@
 
 ### 3.2 需要创建的迁移文件
 
-```
-packages/database/prisma/migrations/
-├── 20260103_migrate_discover_tabs_to_translations/
-│   └── migration.sql
-├── 20260103_migrate_categories_to_translations/
-│   └── migration.sql
-├── 20260104_migrate_medals_to_translations/
-│   └── migration.sql
-└── 20260105_migrate_faq_to_translations/
-    └── migration.sql
-```
+| 迁移文件 | 内容 | Phase |
+|----------|------|-------|
+| 20260103_migrate_discover_tabs_to_translations | DiscoverTab 数据迁移 | 1 |
+| 20260103_migrate_categories_to_translations | Category 数据迁移 | 1 |
+| 20260104_migrate_medals_to_translations | Medal 数据迁移 | 2 |
+| 20260105_migrate_faq_to_translations | FAQ/FAQCategory 数据迁移 | 3 |
+
+迁移文件位于 `packages/database/prisma/migrations/` 目录下。
 
 ---
 
@@ -197,20 +194,12 @@ packages/database/prisma/migrations/
 
 ### 4.2 回滚方案
 
-```sql
--- 如果需要回滚 Phase 1
--- 1. 恢复 name_en 列
-ALTER TABLE discover_tabs ADD COLUMN name_en VARCHAR(50);
+如果需要回滚 Phase 1:
 
--- 2. 从 translations 恢复英文值
-UPDATE discover_tabs
-SET name_en = name,
-    name = (SELECT value FROM translations
-            WHERE entity_type = 'discoverTab'
-            AND entity_id = discover_tabs.id::text
-            AND field_name = 'name'
-            AND locale = 'zh-Hans');
-```
+1. 恢复 discover_tabs 表的 name_en 列
+2. 将当前 name 值 (英文) 复制回 name_en
+3. 从 translations 表恢复 zh-Hans 翻译值到 name 列
+4. 对 categories 表执行同样操作
 
 ---
 

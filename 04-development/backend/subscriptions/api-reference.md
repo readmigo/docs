@@ -6,10 +6,10 @@ All subscription endpoints require authentication via JWT token in the `Authoriz
 
 ## Base URL
 
-```
-Production: https://api.readmigo.app
-Staging: https://api-staging.readmigo.app
-```
+| Environment | URL |
+|-------------|-----|
+| Production | https://api.readmigo.app |
+| Staging | https://api-staging.readmigo.app |
 
 ## Endpoints Summary
 

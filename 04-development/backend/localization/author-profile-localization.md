@@ -171,11 +171,8 @@
 
 ## 本地化文件位置
 
-```
-ios/Readmigo/Localizable.xcstrings
-```
+| 文件 | 路径 |
+|------|------|
+| iOS 本地化文件 | ios/Readmigo/Localizable.xcstrings |
 
-支持语言：
-- English (en)
-- 简体中文 (zh-Hans)
-- 繁體中文 (zh-Hant)
+**支持语言:** English (en), 简体中文 (zh-Hans), 繁體中文 (zh-Hant)

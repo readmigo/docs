@@ -99,9 +99,7 @@ books/{bookId}/
 
 ### 5.1 单本书丰富化
 
-```
-POST /api/v1/admin/import/enrich/:bookId?force=true
-```
+**Endpoint:** POST /api/v1/admin/import/enrich/:bookId
 
 | 参数 | 类型 | 默认值 | 说明 |
 |-----|------|-------|------|
@@ -109,9 +107,7 @@ POST /api/v1/admin/import/enrich/:bookId?force=true
 
 ### 5.2 批量丰富化
 
-```
-POST /api/v1/admin/import/enrich?force=true
-```
+**Endpoint:** POST /api/v1/admin/import/enrich
 
 | 参数 | 类型 | 默认值 | 说明 |
 |-----|------|-------|------|
