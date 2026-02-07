@@ -321,37 +321,16 @@ flowchart TD
 
 ### 7.1 同步状态机
 
-```
-               ┌─────────────┐
-               │  disabled   │
-               │   (禁用)    │
-               └──────┬──────┘
-                      │ enable()
-                      ▼
-               ┌─────────────┐
-     ┌────────►│   idle      │◄────────┐
-     │         │   (空闲)    │         │
-     │         └──────┬──────┘         │
-     │                │ startSync()    │
-     │                ▼                │
-     │         ┌─────────────┐         │
-     │         │  syncing    │         │
-     │         │  (同步中)   │         │
-     │         └──────┬──────┘         │
-     │                │                │
-     │    ┌───────────┼───────────┐    │
-     │    ▼           ▼           ▼    │
-     │ pause()   userScroll   stopSync()
-     │    │           │           │    │
-     │    ▼           ▼           ▼    │
-     │ ┌───────┐ ┌─────────┐ ┌───────┐ │
-     │ │paused │ │suspended│ │ idle  │─┘
-     │ │(暂停) │ │(用户干预)│ └───────┘
-     │ └───┬───┘ └────┬────┘
-     │     │          │
-     │     │ resume() │ timeout/tap
-     │     │          │
-     └─────┴──────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> disabled
+    disabled --> idle : enable()
+    idle --> syncing : startSync()
+    syncing --> paused : pause()
+    syncing --> suspended : userScroll
+    syncing --> idle : stopSync()
+    paused --> syncing : resume()
+    suspended --> syncing : timeout/tap
 ```
 
 ### 7.2 配置选项
