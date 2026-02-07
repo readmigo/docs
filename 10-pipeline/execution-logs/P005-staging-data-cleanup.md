@@ -62,17 +62,11 @@ This pipeline handles **translation quality issues** in the staging environment,
 
 ### 2.2 Localization Architecture
 
-```
-┌──────────────┐     ┌─────────────────┐     ┌──────────────┐
-│   Client     │────▶│   API Server    │────▶│   Database   │
-│ Accept-Lang  │     │  LocalizeSvc    │     │ translations │
-└──────────────┘     └─────────────────┘     └──────────────┘
-                            │
-                            ▼
-                     ┌─────────────────┐
-                     │   Redis Cache   │
-                     │ discover:v2:*   │
-                     └─────────────────┘
+```mermaid
+flowchart LR
+    A["Client<br>Accept-Lang"] --> B["API Server<br>LocalizeSvc"]
+    B --> C["Database<br>translations"]
+    B --> D["Redis Cache<br>discover:v2:*"]
 ```
 
 ### 2.3 Translations Table Schema

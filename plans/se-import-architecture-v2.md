@@ -6,36 +6,25 @@
 
 ## 一、架构概览
 
-```
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                              架构总览                                          │
-├───────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│   Droplet (PM2)                      R2 Storage                                │
-│   ┌──────────────┐                   ┌──────────────┐                          │
-│   │  SE Download │ ──── EPUB ────▶   │ raw-epubs/   │                          │
-│   │  - 断点续传   │                   │ {slug}.epub  │                          │
-│   │  - 文件去重   │                   └──────┬───────┘                          │
-│   └──────────────┘                          │                                  │
-│                                              │                                  │
-│   ──────────────────────────────────────────────────────────────────────────── │
-│                                              │                                  │
-│   Dashboard Pipeline                         ▼                                  │
-│   ┌────────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                          │   │
-│   │  Node 1         Node 2           Node 3              Node 4             │   │
-│   │  ┌─────────┐   ┌─────────┐      ┌──────────────┐    ┌──────────────┐   │   │
-│   │  │ 增量计算 │──▶│ 解析修正 │────▶ │ 数据填充      │───▶│ Discover Tab │   │   │
-│   │  │         │   │         │      │              │    │              │   │   │
-│   │  │ R2 raw  │   │ EPUB    │      │ ✓ DB: Book   │    │ ✓ BookList   │   │   │
-│   │  │   vs    │   │ 解析    │      │ ✓ DB: Author │    │ ✓ Category   │   │   │
-│   │  │ DB Book │   │ CSS保留 │      │ ✓ DB: Chapter│    │ ✓ Featured   │   │   │
-│   │  │         │   │ HTML修正│      │ ✓ R2: covers │    │ ✓ 自动分类   │   │   │
-│   │  └─────────┘   └─────────┘      └──────────────┘    └──────────────┘   │   │
-│   │                                                                          │   │
-│   └────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                 │
-└───────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Droplet["Droplet (PM2)"]
+        DL["SE Download<br>断点续传 / 文件去重"]
+    end
+
+    subgraph R2["R2 Storage"]
+        RAW["raw-epubs/<br>{slug}.epub"]
+    end
+
+    DL -->|"EPUB"| RAW
+
+    subgraph Pipeline["Dashboard Pipeline"]
+        N1["Node 1<br>增量计算<br>R2 raw vs DB Book"] --> N2["Node 2<br>解析修正<br>EPUB 解析 / CSS保留 / HTML修正"]
+        N2 --> N3["Node 3<br>数据填充<br>DB: Book/Author/Chapter<br>R2: covers"]
+        N3 --> N4["Node 4<br>Discover Tab<br>BookList / Category<br>Featured / 自动分类"]
+    end
+
+    RAW --> N1
 ```
 
 ---
@@ -61,14 +50,10 @@
 
 **数据流：**
 
-```
-SE 网站
-   │
-   ▼ HTTP 下载
-Droplet 本地缓存 (/tmp/)
-   │
-   ▼ wrangler r2 put
-R2 raw-epubs/{slug}.epub
+```mermaid
+graph TB
+    SE["SE 网站"] -->|"HTTP 下载"| Local["Droplet 本地缓存 (/tmp/)"]
+    Local -->|"wrangler r2 put"| R2["R2 raw-epubs/{slug}.epub"]
 ```
 
 **不负责：**
@@ -91,22 +76,18 @@ R2 raw-epubs/{slug}.epub
 | 输出 | 待处理 EPUB slug 列表 |
 | 逻辑 | R2 存在但 DB 不存在 = 增量 |
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      增量计算逻辑                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│   R2 raw-epubs/                    DB Book 表                │
-│   ┌─────────────────┐              ┌─────────────────┐       │
-│   │ pride-and-prej  │              │ pride-and-prej  │       │
-│   │ great-gatsby    │              │ great-gatsby    │       │
-│   │ moby-dick       │  ──比较──▶   │                 │       │
-│   │ 1984            │              │                 │       │
-│   └─────────────────┘              └─────────────────┘       │
-│                                                               │
-│   结果: moby-dick, 1984 为增量                                │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph R2["R2 raw-epubs/"]
+        R2List["pride-and-prej<br>great-gatsby<br>moby-dick<br>1984"]
+    end
+
+    subgraph DB["DB Book 表"]
+        DBList["pride-and-prej<br>great-gatsby"]
+    end
+
+    R2List -->|"比较"| DBList
+    DBList --> Result["结果: moby-dick, 1984 为增量"]
 ```
 
 #### Node 2: 解析修正
@@ -214,24 +195,16 @@ readmigo-prod/
 
 **书单自动分类规则：**
 
+```mermaid
+graph LR
+    Fiction["Genre: Fiction"] --> BL1["经典小说 书单"]
+    Drama["Genre: Drama"] --> BL2["戏剧 书单"]
+    Poetry["Genre: Poetry"] --> BL3["诗歌 书单"]
+    Famous["Author: Famous"] --> BL4["大师作品 书单"]
+    Long["WordCount > 100k"] --> BL5["长篇巨著 书单"]
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                   自动分类逻辑                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│   新导入书籍                     目标书单                     │
-│   ┌─────────────────┐            ┌─────────────────┐         │
-│   │ Genre: Fiction  │ ────────▶  │ "经典小说" 书单  │         │
-│   │ Genre: Drama    │ ────────▶  │ "戏剧" 书单      │         │
-│   │ Genre: Poetry   │ ────────▶  │ "诗歌" 书单      │         │
-│   │ Author: Famous  │ ────────▶  │ "大师作品" 书单  │         │
-│   │ WordCount > 100k│ ────────▶  │ "长篇巨著" 书单  │         │
-│   └─────────────────┘            └─────────────────┘         │
-│                                                               │
-│   规则引擎：基于 metadata 匹配预定义书单规则                  │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
-```
+
+> 规则引擎：基于 metadata 匹配预定义书单规则
 
 **写入目标：**
 
@@ -270,25 +243,18 @@ readmigo-prod/
 
 ### 3.2 iOS 客户端兼容
 
+```mermaid
+graph LR
+    subgraph v2["iOS 2.0+"]
+        V2C["X-App-Version >= 2.0.0<br>使用 contentV2 URL"]
+    end
+
+    subgraph v1["iOS 1.x"]
+        V1C["X-App-Version < 2.0.0<br>Fallback 到 contentV2Url"]
+    end
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    客户端内容获取逻辑                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│   iOS 2.0+                         iOS 1.x                   │
-│   ┌─────────────────┐              ┌─────────────────┐       │
-│   │ X-App-Version   │              │ X-App-Version   │       │
-│   │ >= 2.0.0        │              │ < 2.0.0         │       │
-│   │                 │              │                 │       │
-│   │ 使用 contentV2  │              │ Fallback 到     │       │
-│   │ URL             │              │ contentV2Url    │       │
-│   └─────────────────┘              └─────────────────┘       │
-│                                                               │
-│   books.service.ts 已支持 fallback 逻辑 ✅                    │
-│   (contentUrl 为空时自动使用 contentV2Url)                    │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
-```
+
+> books.service.ts 已支持 fallback 逻辑 (contentUrl 为空时自动使用 contentV2Url)
 
 > **注**: 新导入书籍仅有 V2 内容，iOS 1.x 将 fallback 使用 V2 内容
 
@@ -356,26 +322,12 @@ Body: { "environment": "production" }
 
 **执行顺序：**
 
-```
-Node 1 (增量计算)
-   │
-   │ 输出增量列表:
-   │ ["moby-dick", "1984", ...]
-   ▼
-Node 2 (解析修正)
-   │
-   │ 逐本处理，输出结构化数据
-   ▼
-Node 3 (数据填充)
-   │
-   │ 写入 DB + R2
-   │ 返回新导入书籍 ID 列表
-   ▼
-Node 4 (Discover Tab)
-   │
-   │ 自动分类 + 书单关联
-   ▼
-完成
+```mermaid
+graph TB
+    N1["Node 1 (增量计算)"] -->|'输出增量列表: moby-dick, 1984, ...'| N2["Node 2 (解析修正)"]
+    N2 -->|"逐本处理，输出结构化数据"| N3["Node 3 (数据填充)"]
+    N3 -->|"写入 DB + R2<br>返回新导入书籍 ID 列表"| N4["Node 4 (Discover Tab)"]
+    N4 -->|"自动分类 + 书单关联"| Done["完成"]
 ```
 
 ---
@@ -483,20 +435,15 @@ Dashboard 现有 Pipeline (8 阶段) 继续保留，用于：
 
 专门用于批量 SE 内容导入，与现有系统并行。
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Pipeline 系统                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│   现有 Pipeline                    新增 SE Pipeline          │
-│   ┌─────────────────┐              ┌─────────────────┐       │
-│   │ 8 阶段流程       │              │ 4 Node 流程     │       │
-│   │ 单本导入        │              │ 批量增量导入    │       │
-│   │ 书单管理        │              │ SE 专用         │       │
-│   └─────────────────┘              │ + Discover 集成 │       │
-│                                     └─────────────────┘       │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph Existing["现有 Pipeline"]
+        EP["8 阶段流程<br>单本导入<br>书单管理"]
+    end
+
+    subgraph New["新增 SE Pipeline"]
+        NP["4 Node 流程<br>批量增量导入<br>SE 专用<br>+ Discover 集成"]
+    end
 ```
 
 ---
