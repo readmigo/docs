@@ -18,30 +18,28 @@
 
 ## 技术栈总览
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              客户端层 (Clients)                               │
-├─────────────────┬─────────────────┬──────────────────┬─────────────────────┤
-│   iOS (Swift)   │ Android (Kotlin)│   Web (Next.js)  │  Mobile (Expo RN)   │
-│   SwiftUI       │ Jetpack Compose │   React 19       │  React Native 0.81  │
-│   iOS 17+       │ SDK 26+         │   TypeScript     │  iOS 15+ / SDK 26+  │
-└────────┬────────┴────────┬────────┴─────────┬────────┴──────────┬──────────┘
-         │                 │                  │                   │
-         └─────────────────┴─────────┬────────┴───────────────────┘
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           API 网关 (Fly.io)                                  │
-│                    NestJS 10.4 + TypeScript 5.6 + Node.js 20                │
-│                         37+ 功能模块 · JWT 认证                               │
-└─────────────────────────────────────────────────────────────────────────────┘
-         │                    │                    │                    │
-         ▼                    ▼                    ▼                    ▼
-┌─────────────┐    ┌─────────────────┐    ┌─────────────┐    ┌───────────────┐
-│ PostgreSQL  │    │     Redis 7     │    │ Cloudflare  │    │   AI 服务     │
-│   (Neon)    │    │   (Tokyo/nrt)   │    │     R2      │    │  多供应商路由  │
-│  Prisma ORM │    │  会话 · AI缓存   │    │ EPUB · 封面 │    │              │
-│  60+ 模型   │    │   队列 · 限流    │    │  有声书     │    │              │
-└─────────────┘    └─────────────────┘    └─────────────┘    └───────────────┘
+```mermaid
+graph TD
+    subgraph Clients["客户端层 Clients"]
+        iOS["iOS (Swift)\nSwiftUI · iOS 17+"]
+        Android["Android (Kotlin)\nJetpack Compose · SDK 26+"]
+        Web["Web (Next.js)\nReact 19 · TypeScript"]
+        Mobile["Mobile (Expo RN)\nReact Native 0.81"]
+    end
+
+    subgraph Gateway["API 网关 · Fly.io"]
+        API["NestJS 10.4 + TypeScript 5.6 + Node.js 20\n37+ 功能模块 · JWT 认证"]
+    end
+
+    iOS --> API
+    Android --> API
+    Web --> API
+    Mobile --> API
+
+    API --> PG["PostgreSQL (Neon)\nPrisma ORM · 60+ 模型"]
+    API --> Redis["Redis 7 (Tokyo/nrt)\n会话 · AI缓存 · 队列 · 限流"]
+    API --> R2["Cloudflare R2\nEPUB · 封面 · 有声书"]
+    API --> AI["AI 服务\n多供应商路由"]
 ```
 
 ---
@@ -188,16 +186,16 @@ ios/Readmigo/Features/
 
 ### 内容管道
 
-```
-数据源 → EPUB 解析 → 元数据提取 → 章节切分 → R2 存储 → 数据库持久化
-                ↓
-           AI 增强处理
-           ├── 书籍简介生成
-           ├── CEFR 难度评级
-           ├── 作者传记生成
-           ├── 角色关系抽取
-           ├── 金句提取
-           └── 中文翻译
+```mermaid
+graph LR
+    A[数据源] --> B[EPUB 解析] --> C[元数据提取] --> D[章节切分] --> E[R2 存储] --> F[数据库持久化]
+    B --> G[AI 增强处理]
+    G --> G1[书籍简介生成]
+    G --> G2[CEFR 难度评级]
+    G --> G3[作者传记生成]
+    G --> G4[角色关系抽取]
+    G --> G5[金句提取]
+    G --> G6[中文翻译]
 ```
 
 ### 文档
