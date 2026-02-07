@@ -326,42 +326,27 @@ AutoPageTurnConfig
 
 ### 8.1 与高亮同步系统
 
-```
-翻页动画开始
-    │
-    ├──► 通知HighlightSyncManager暂停更新
-    │
-    ▼
-翻页动画进行中
-    │
-    ├──► 高亮同步暂停,不更新DOM
-    │
-    ▼
-翻页动画完成
-    │
-    ├──► 通知HighlightSyncManager恢复
-    ├──► 传递新页面信息
-    └──► 高亮同步应用新位置高亮
+```mermaid
+flowchart TD
+    A["翻页动画开始"] -->|"通知HighlightSyncManager暂停更新"| B["翻页动画进行中"]
+    B -->|"高亮同步暂停, 不更新DOM"| C["翻页动画完成"]
+    C --> D["通知HighlightSyncManager恢复"]
+    C --> E["传递新页面信息"]
+    C --> F["高亮同步应用新位置高亮"]
 ```
 
 ### 8.2 与朗读引擎
 
-```
-朗读引擎                    AutoPageTurnManager
-    │                              │
-    │ 发送CFI位置更新             │
-    ├─────────────────────────────►│
-    │                              │ 检测是否需要翻页
-    │                              │
-    │                              │ 需要翻页时:
-    │ 可选: 暂停朗读              │
-    │◄─────────────────────────────┤
-    │                              │
-    │                              │ 执行翻页动画
-    │                              │
-    │ 翻页完成,继续朗读          │
-    │◄─────────────────────────────┤
-    │                              │
+```mermaid
+sequenceDiagram
+    participant Engine as 朗读引擎
+    participant APTM as AutoPageTurnManager
+
+    Engine->>APTM: 发送CFI位置更新
+    APTM->>APTM: 检测是否需要翻页
+    APTM-->>Engine: 可选: 暂停朗读
+    APTM->>APTM: 执行翻页动画
+    APTM-->>Engine: 翻页完成, 继续朗读
 ```
 
 ## 9. 回调与事件
