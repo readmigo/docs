@@ -186,10 +186,10 @@ flowchart TD
 
 **当前WebView生命周期**
 
-```
-需要新章节 → 创建WebView → 使用 → 移出chapterViews → 销毁
-                                         ↑
-                                    每次都重新创建
+```mermaid
+flowchart LR
+    A["需要新章节"] --> B["创建WebView"] --> C["使用"] --> D["移出chapterViews"] --> E["销毁"]
+    E -.->|"每次都重新创建"| B
 ```
 
 **优化后: 对象池模式**
