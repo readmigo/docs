@@ -31,24 +31,10 @@ This document outlines the comprehensive logging and crash collection infrastruc
 
 ## Architecture Design
 
-```
-+------------------+       +-------------------+       +------------------+
-|   iOS Client     |       |   NestJS Backend  |       |   Storage/Tools  |
-+------------------+       +-------------------+       +------------------+
-|                  |       |                   |       |                  |
-| CrashTracking    |------>| LogsController    |------>| PostgreSQL       |
-| Service          |       |   /logs/crash     |       |   - CrashReport  |
-|                  |       |   /logs/batch     |       |   - ErrorLog     |
-| LoggingService   |       |                   |       |   - AppLog       |
-|   - Breadcrumbs  |       | GlobalException   |       |                  |
-|   - Batch Queue  |       |   Filter          |       | Sentry           |
-|   - Offline      |       |                   |       |   - Real-time    |
-|                  |       | Winston Logger    |       |   - Grouping     |
-| Signal Handlers  |       |   - JSON format   |       |   - Alerts       |
-|   - SIGABRT      |       |   - Correlation   |       |                  |
-|   - SIGSEGV      |       |                   |       | Prometheus       |
-|                  |       | Metrics Collector |       |   - Metrics      |
-+------------------+       +-------------------+       +------------------+
+```mermaid
+graph LR
+    A["iOS Client<br>CrashTracking Service<br>LoggingService<br>Signal Handlers"] --> B["NestJS Backend<br>LogsController<br>GlobalException Filter<br>Winston Logger<br>Metrics Collector"]
+    B --> C["Storage/Tools<br>PostgreSQL (CrashReport, ErrorLog, AppLog)<br>Sentry (Real-time, Grouping, Alerts)<br>Prometheus (Metrics)"]
 ```
 
 ---
