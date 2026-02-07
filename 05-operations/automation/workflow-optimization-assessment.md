@@ -26,13 +26,12 @@
 
 ### 2.1 当前数据流程
 
-```
-人工筛选书单 → 数据源采集 → 内容处理 → AI 增强 → 上线
-     │              │            │          │
-     ▼              ▼            ▼          ▼
-  booklists/    Gutenberg     EPUB解析    摘要/评级
-  v1/phase1     Standard      封面获取    翻译
-               Ebooks
+```mermaid
+graph LR
+    A["人工筛选书单<br>booklists/<br>v1/phase1"] --> B["数据源采集<br>Gutenberg<br>Standard Ebooks"]
+    B --> C["内容处理<br>EPUB解析<br>封面获取"]
+    C --> D["AI 增强<br>摘要/评级<br>翻译"]
+    D --> E["上线"]
 ```
 
 **输入源结构：**
@@ -63,21 +62,14 @@
 
 ### 2.3 目标架构
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Ingestion Orchestrator                        │
-│                                                                   │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐  │
-│  │ Scheduler   │ →  │ Data Source │ →  │ Quality Gate        │  │
-│  │ (Cron)      │    │ Crawlers    │    │ (Validation)        │  │
-│  └─────────────┘    └─────────────┘    └─────────────────────┘  │
-│         │                                        │               │
-│         ▼                                        ▼               │
-│  ┌─────────────┐                      ┌─────────────────────┐   │
-│  │ Change      │                      │ Auto-Fix Pipeline   │   │
-│  │ Detection   │                      │ (covers, metadata)  │   │
-│  └─────────────┘                      └─────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph Orchestrator["Ingestion Orchestrator"]
+        A["Scheduler<br>(Cron)"] --> B["Data Source<br>Crawlers"]
+        B --> C["Quality Gate<br>(Validation)"]
+        A --> D["Change<br>Detection"]
+        C --> E["Auto-Fix Pipeline<br>(covers, metadata)"]
+    end
 ```
 
 ### 2.4 组件说明
@@ -92,24 +84,13 @@
 
 ### 2.5 书单处理流程优化
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Booklist Processing Pipeline                  │
-│                                                                   │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐  │
-│  │ Booklist    │ →  │ Source      │ →  │ Batch Processor     │  │
-│  │ Parser      │    │ Matcher     │    │ (parallel)          │  │
-│  └─────────────┘    └─────────────┘    └─────────────────────┘  │
-│         │                 │                      │               │
-│   phase1-ebooks.json  Gutenberg/SE          Import Queue        │
-│                       API 查询                                   │
-│                                                                   │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │ Batch Status Dashboard                                       │ │
-│  │  Phase 1: ████████████████████░░░░░░░░ 200/248 (80%)        │ │
-│  │  - Completed: 180  - In Progress: 20  - Failed: 5           │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph Pipeline["Booklist Processing Pipeline"]
+        A["Booklist Parser<br>(phase1-ebooks.json)"] --> B["Source Matcher<br>(Gutenberg/SE API 查询)"]
+        B --> C["Batch Processor<br>(parallel)<br>Import Queue"]
+        C --> D["Batch Status Dashboard<br>Phase 1: 200/248 (80%)<br>Completed: 180 | In Progress: 20 | Failed: 5"]
+    end
 ```
 
 ### 2.6 数据源匹配策略
@@ -123,28 +104,24 @@
 
 ### 2.7 完整采集流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Book Ingestion Workflow                          │
-│                                                                           │
-│  Phase 1: 资源获取                                                        │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────┐   │
-│  │ Source API   │ →  │ Download     │ →  │ Upload to R2             │   │
-│  │ 查询匹配     │    │ EPUB/资源    │    │ (books/, covers/)        │   │
-│  └──────────────┘    └──────────────┘    └──────────────────────────┘   │
-│                                                                           │
-│  Phase 2: 内容处理                                                        │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────┐   │
-│  │ EPUB 解析    │ →  │ 封面提取     │ →  │ 缩略图生成               │   │
-│  │ 章节拆分     │    │ 多尺寸处理   │    │ (small/medium/large)     │   │
-│  └──────────────┘    └──────────────┘    └──────────────────────────┘   │
-│                                                                           │
-│  Phase 3: 数据写入                                                        │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────┐   │
-│  │ 元数据写入   │ →  │ 章节数据     │ →  │ 运营数据更新             │   │
-│  │ Book 表      │    │ Chapter 表   │    │ Stats/Categories         │   │
-│  └──────────────┘    └──────────────┘    └──────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph Workflow["Book Ingestion Workflow"]
+        subgraph P1["Phase 1: 资源获取"]
+            A1["Source API<br>查询匹配"] --> A2["Download<br>EPUB/资源"]
+            A2 --> A3["Upload to R2<br>(books/, covers/)"]
+        end
+        subgraph P2["Phase 2: 内容处理"]
+            B1["EPUB 解析<br>章节拆分"] --> B2["封面提取<br>多尺寸处理"]
+            B2 --> B3["缩略图生成<br>(small/medium/large)"]
+        end
+        subgraph P3["Phase 3: 数据写入"]
+            C1["元数据写入<br>Book 表"] --> C2["章节数据<br>Chapter 表"]
+            C2 --> C3["运营数据更新<br>Stats/Categories"]
+        end
+        A3 --> B1
+        B3 --> C1
+    end
 ```
 
 **资源存储位置 (R2):**
@@ -255,50 +232,56 @@
 
 ### 3.3 脚本依赖关系
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          脚本执行依赖层级                                │
-│                                                                          │
-│  Layer 1: 基础数据源 (可独立并行)                                        │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐   │
-│  │ gutenberg.ts │ │ standard-    │ │ ctext.ts     │ │ librivox.ts  │   │
-│  │              │ │ ebooks.ts    │ │              │ │              │   │
-│  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘   │
-│         │                │                │                │            │
-│         └────────────────┴────────────────┴────────────────┘            │
-│                                   │                                      │
-│                                   ▼                                      │
-│  Layer 2: 管道聚合                                                       │
-│  ┌────────────────────────────────────────────────────────────────┐    │
-│  │ pipeline.ts / pipeline-chinese.ts                               │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│                                   │                                      │
-│                                   ▼                                      │
-│  Layer 3: 内容处理 (可并行)                                              │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐   │
-│  │ epub-parser  │ │ fetch-batch  │ │ fetch-author │ │ generate-    │   │
-│  │ .ts          │ │ .ts (context)│ │ -avatars.ts  │ │ quotes.ts    │   │
-│  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘   │
-│                                   │                                      │
-│                                   ▼                                      │
-│  Layer 4: 数据修复 (可并行)                                              │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐   │
-│  │ fix-covers   │ │ fix-book-    │ │ translate-   │ │ import.ts    │   │
-│  │ -*.ts        │ │ descriptions │ │ quotes.ts    │ │ (agora)      │   │
-│  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘   │
-│                                   │                                      │
-│                                   ▼                                      │
-│  Layer 5: 同步部署                                                       │
-│  ┌────────────────────────────────────────────────────────────────┐    │
-│  │ sync-to-staging.ts / db-sync/run-sync.ts                        │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│                                   │                                      │
-│                                   ▼                                      │
-│  Layer 6: 验证分析                                                       │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                    │
-│  │ verify-*.ts  │ │ check-*.ts   │ │ analyze-*.ts │                    │
-│  └──────────────┘ └──────────────┘ └──────────────┘                    │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph L1["Layer 1: 基础数据源 (可独立并行)"]
+        A1["gutenberg.ts"]
+        A2["standard-ebooks.ts"]
+        A3["ctext.ts"]
+        A4["librivox.ts"]
+    end
+    subgraph L2["Layer 2: 管道聚合"]
+        B1["pipeline.ts / pipeline-chinese.ts"]
+    end
+    subgraph L3["Layer 3: 内容处理 (可并行)"]
+        C1["epub-parser.ts"]
+        C2["fetch-batch.ts<br>(context)"]
+        C3["fetch-author-avatars.ts"]
+        C4["generate-quotes.ts"]
+    end
+    subgraph L4["Layer 4: 数据修复 (可并行)"]
+        D1["fix-covers-*.ts"]
+        D2["fix-book-descriptions"]
+        D3["translate-quotes.ts"]
+        D4["import.ts<br>(agora)"]
+    end
+    subgraph L5["Layer 5: 同步部署"]
+        E1["sync-to-staging.ts / db-sync/run-sync.ts"]
+    end
+    subgraph L6["Layer 6: 验证分析"]
+        F1["verify-*.ts"]
+        F2["check-*.ts"]
+        F3["analyze-*.ts"]
+    end
+    A1 --> B1
+    A2 --> B1
+    A3 --> B1
+    A4 --> B1
+    B1 --> C1
+    B1 --> C2
+    B1 --> C3
+    B1 --> C4
+    C1 --> D1
+    C2 --> D2
+    C3 --> D3
+    C4 --> D4
+    D1 --> E1
+    D2 --> E1
+    D3 --> E1
+    D4 --> E1
+    E1 --> F1
+    E1 --> F2
+    E1 --> F3
 ```
 
 ### 3.4 脚本执行频率分类
@@ -334,37 +317,27 @@
 
 ### 4.1 调度架构设计
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Unified Script Orchestrator                      │
-│                                                                          │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                        Orchestrator Core                            │ │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │ │
-│  │  │ Trigger  │  │ Dependency│  │ Resource │  │ Progress         │   │ │
-│  │  │ Manager  │  │ Resolver  │  │ Allocator│  │ Tracker          │   │ │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                    │                                     │
-│         ┌──────────────────────────┼──────────────────────────┐         │
-│         ▼                          ▼                          ▼         │
-│  ┌────────────┐           ┌────────────┐           ┌────────────┐      │
-│  │ Scheduled  │           │ Event      │           │ Manual     │      │
-│  │ Triggers   │           │ Triggers   │           │ Triggers   │      │
-│  │ (Cron)     │           │ (Webhook)  │           │ (CLI)      │      │
-│  └────────────┘           └────────────┘           └────────────┘      │
-│         │                          │                          │         │
-│         └──────────────────────────┼──────────────────────────┘         │
-│                                    ▼                                     │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                        Execution Pools                              │ │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │ │
-│  │  │ IO Pool      │  │ CPU Pool     │  │ API Pool                 │ │ │
-│  │  │ (Downloads)  │  │ (Parsing)    │  │ (External calls)         │ │ │
-│  │  │ Max: 5       │  │ Max: 3       │  │ Max: 2 per provider      │ │ │
-│  │  └──────────────┘  └──────────────┘  └──────────────────────────┘ │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph USO["Unified Script Orchestrator"]
+        subgraph Core["Orchestrator Core"]
+            TM["Trigger Manager"]
+            DR["Dependency Resolver"]
+            RA["Resource Allocator"]
+            PT["Progress Tracker"]
+        end
+        Core --> ST["Scheduled Triggers<br>(Cron)"]
+        Core --> ET["Event Triggers<br>(Webhook)"]
+        Core --> MT["Manual Triggers<br>(CLI)"]
+        ST --> Pools
+        ET --> Pools
+        MT --> Pools
+        subgraph Pools["Execution Pools"]
+            IO["IO Pool<br>(Downloads)<br>Max: 5"]
+            CPU["CPU Pool<br>(Parsing)<br>Max: 3"]
+            API["API Pool<br>(External calls)<br>Max: 2 per provider"]
+        end
+    end
 ```
 
 ### 4.2 触发方式设计
@@ -542,21 +515,14 @@ pnpm orchestrator history --last=10
 
 ### 5.2 目标架构
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                     Data Governance Layer                          │
-│                                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌───────────────────────┐  │
-│  │ Source      │ →  │ Merge &     │ →  │ Validation Engine     │  │
-│  │ Registry    │    │ Dedup       │    │                       │  │
-│  └─────────────┘    └─────────────┘    └───────────────────────┘  │
-│         │                                          │               │
-│         ▼                                          ▼               │
-│  ┌─────────────┐              ┌─────────────────────────────────┐ │
-│  │ Lineage     │              │ Discrepancy Alert               │ │
-│  │ Tracker     │              │ & Auto-Resolution               │ │
-│  └─────────────┘              └─────────────────────────────────┘ │
-└───────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph DGL["Data Governance Layer"]
+        A["Source<br>Registry"] --> B["Merge &<br>Dedup"]
+        B --> C["Validation Engine"]
+        A --> D["Lineage<br>Tracker"]
+        C --> E["Discrepancy Alert<br>& Auto-Resolution"]
+    end
 ```
 
 ### 5.3 组件说明
@@ -602,21 +568,15 @@ pnpm orchestrator history --last=10
 
 ### 6.3 目标架构
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                    Intelligent AI Orchestrator                     │
-│                                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌───────────────────────┐  │
-│  │ Smart       │ →  │ Cost-Aware  │ →  │ Quality Evaluator     │  │
-│  │ Dispatcher  │    │ Router      │    │                       │  │
-│  └─────────────┘    └─────────────┘    └───────────────────────┘  │
-│         │                 │                        │               │
-│         ▼                 ▼                        ▼               │
-│  ┌─────────────┐  ┌─────────────┐  ┌───────────────────────────┐ │
-│  │ Retry with  │  │ Provider    │  │ Human-in-the-Loop for    │ │
-│  │ Fallback    │  │ Health Mon  │  │ Low-Quality Output       │ │
-│  └─────────────┘  └─────────────┘  └───────────────────────────┘ │
-└───────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph IAO["Intelligent AI Orchestrator"]
+        A["Smart<br>Dispatcher"] --> B["Cost-Aware<br>Router"]
+        B --> C["Quality Evaluator"]
+        A --> D["Retry with<br>Fallback"]
+        B --> E["Provider<br>Health Mon"]
+        C --> F["Human-in-the-Loop for<br>Low-Quality Output"]
+    end
 ```
 
 ### 6.4 组件说明
@@ -654,21 +614,15 @@ pnpm orchestrator history --last=10
 
 ### 7.2 目标架构
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                    Analytics & Reporting Pipeline                  │
-│                                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌───────────────────────┐  │
-│  │ Metrics     │ →  │ Anomaly     │ →  │ Report Generator      │  │
-│  │ Aggregator  │    │ Detector    │    │                       │  │
-│  └─────────────┘    └─────────────┘    └───────────────────────┘  │
-│         │                 │                        │               │
-│         ▼                 ▼                        ▼               │
-│  ┌─────────────┐  ┌─────────────┐  ┌───────────────────────────┐ │
-│  │ Real-time   │  │ Alert       │  │ Scheduled Reports         │ │
-│  │ Dashboard   │  │ System      │  │ (Daily/Weekly)            │ │
-│  └─────────────┘  └─────────────┘  └───────────────────────────┘ │
-└───────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph ARP["Analytics & Reporting Pipeline"]
+        A["Metrics<br>Aggregator"] --> B["Anomaly<br>Detector"]
+        B --> C["Report Generator"]
+        A --> D["Real-time<br>Dashboard"]
+        B --> E["Alert<br>System"]
+        C --> F["Scheduled Reports<br>(Daily/Weekly)"]
+    end
 ```
 
 ### 7.3 组件说明
