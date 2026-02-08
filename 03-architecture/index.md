@@ -51,6 +51,7 @@ graph TD
 | [客户端架构](./client-architecture.md) | iOS、Android、Web 客户端设计 |
 | [扩展性设计](./scalability.md) | 水平扩展、垂直扩展策略 |
 | [安全设计](./security.md) | 认证、授权、数据安全 |
+| [埋点与数据追踪系统](./analytics-tracking-system.md) | 客户端埋点、BE 埋点、日志、数据分析、结果呈现 |
 
 ---
 
