@@ -136,6 +136,7 @@
 | 英式女声 | Kate | en-GB | Enhanced | 英国文学 |
 | 英式男声 | Daniel | en-GB | Enhanced | 英国文学 |
 | 澳式女声 | Karen | en-AU | Enhanced | 口音多样性 |
+| 澳式男声 | Lee | en-AU | Enhanced | 口音多样性 |
 
 ### 2.4 Delegate 回调链
 
