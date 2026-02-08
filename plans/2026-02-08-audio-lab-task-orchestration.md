@@ -205,13 +205,13 @@ TTSUsage（用量记录）
 
 ---
 
-## 四、Phase 2S — 共享基础设施 ✅ 已完成（2S.1~2S.3, 2S.6）
+## 四、Phase 2S — 共享基础设施 ✅ 已完成
 
 > 目标：为轨道 A/B 搭建共用的音频标准化工具链、存储结构、数据模型
 >
-> **完成时间：2026-02-08** — 数据模型、DB 迁移、R2 存储结构、API 端点已完成
+> **完成时间：2026-02-08** — 全部 Backend + Pipeline 任务完成
 >
-> **待完成：** 2S.4（FFmpeg 音频标准化脚本）、2S.5（音质评审标准文档）
+> **待完成：** 2S.5（音质评审标准文档）
 
 ### 任务拆解
 
@@ -259,9 +259,11 @@ Audiobook
 
 ---
 
-## 五、Phase 2A — 轨道 A 管道（重制 LibriVox）
+## 五、Phase 2A — 轨道 A 管道（重制 LibriVox） ✅ Pipeline 代码完成
 
 > 目标：搭建 LibriVox 高质量录音的自动化重制管道
+>
+> **完成时间：2026-02-08** — 独立 pipeline 项目，repo: `readmigo/pipeline`
 
 ### 现有资源盘点
 
@@ -317,9 +319,11 @@ flowchart TD
 
 ---
 
-## 六、Phase 2B — 轨道 B 管道（AI TTS 原创）
+## 六、Phase 2B — 轨道 B 管道（AI TTS 原创） ✅ Pipeline 代码完成
 
 > 目标：为无 LibriVox 高质量录音的书籍建设 AI TTS 原创制作管道
+>
+> **完成时间：2026-02-08** — 独立 pipeline 项目，repo: `readmigo/pipeline`
 >
 > 注意：2B.2 和 2B.3 复用 Phase 1B 的 Provider 抽象层，不重新集成 TTS API
 
@@ -626,4 +630,4 @@ Audio Lab 需在现有流水线系统中注册以下新管道：
 ---
 
 *创建日期：2026-02-08*
-*最后更新：2026-02-08 — Phase 1 iOS + Phase 1B + Phase 2S(Backend) 完成*
+*最后更新：2026-02-08 — Phase 1 iOS + 1B + 2S + 2A + 2B 完成，pipeline 独立项目 readmigo/pipeline*
