@@ -3,6 +3,8 @@
 > Readmigo Audio Lab（生产端 · 精品有声书制作）完整任务分解与依赖编排
 >
 > 源文档：[01-product/audiobook-vision.md](../01-product/audiobook-vision.md)
+>
+> 关联设计：[ios-tts-system-design.md](../03-architecture/ios-tts-system-design.md) · [ios-tts-implementation.md](../03-architecture/ios-tts-implementation.md) · [tts-proxy-design.md](../03-architecture/api/tts-proxy-design.md)
 
 ---
 
@@ -11,14 +13,17 @@
 ```mermaid
 flowchart TD
     P1["Phase 1<br>客户端 TTS<br>──────<br>让用户先能听<br>验证需求 + 收集数据"]
+    P1B["Phase 1B<br>BE TTS 代理层<br>──────<br>Provider 无感知切换<br>音频持久化 + 用量管控"]
     P2A["Phase 2A<br>轨道 A 管道<br>──────<br>LibriVox 重制管道"]
     P2B["Phase 2B<br>轨道 B 管道<br>──────<br>AI TTS 原创管道"]
     P2S["Phase 2S<br>共享基础设施<br>──────<br>音频标准化 + 存储 + 数据模型"]
     P3["Phase 3<br>精品制作与导入<br>──────<br>首批 50 本入库"]
-    P4["Phase 4<br>播放体验<br>──────<br>精品优先 + TTS 兜底"]
+    P4["Phase 4<br>播放体验<br>──────<br>精品优先 + 云端TTS + 系统TTS"]
     P5["Phase 5<br>章节级同步<br>──────<br>三位一体沉浸体验"]
 
     P1 -->|"热门书排行<br>选书依据"| P3
+    P1B -->|"Provider 抽象层<br>复用于轨道 B"| P2B
+    P1B -->|"云端 TTS 能力<br>三级音频源"| P4
     P2S -->|"标准化工具链<br>存储/数据模型"| P2A
     P2S -->|"标准化工具链<br>存储/数据模型"| P2B
     P2A -->|"重制管道就绪"| P3
@@ -27,6 +32,7 @@ flowchart TD
     P4 -->|"播放器就绪"| P5
 
     style P1 fill:#e8f5e9
+    style P1B fill:#e8eaf6
     style P2S fill:#fff3e0
     style P2A fill:#e3f2fd
     style P2B fill:#fce4ec
@@ -40,21 +46,23 @@ flowchart TD
 ```
 时间线 →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 
-Phase 1 ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Phase 1  ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Phase 1B ████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 Phase 2S      ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 Phase 2A           ██████████████░░░░░░░░░░░░░░░░░░░░░░░
-Phase 2B           ██████████████░░░░░░░░░░░░░░░░░░░░░░░
+Phase 2B                ██████████████░░░░░░░░░░░░░░░░░░░
 
 Phase 3                         ████████████░░░░░░░░░░░░
 Phase 4                                      ████████░░░
 Phase 5                                              ████
 
-P1 与 P2 可完全并行
+P1 ∥ P1B ∥ P2S 三者完全并行
+P1B → P2B（轨道 B 复用 BE Provider 抽象层）
 P2S → P2A/P2B 串行（基础设施先行）
 P2A ∥ P2B 并行
 P3 等待 P2A + P2B + P1（选书数据）
-P4 等待 P3
+P4 等待 P3 + P1B（三级音频源策略）
 P5 等待 P4
 ```
 
@@ -68,6 +76,8 @@ P5 等待 P4
 
 | 文档 | 路径 | 状态 | 可复用度 |
 |------|------|:----:|:-------:|
+| iOS TTS 系统设计 | `03-architecture/ios-tts-system-design.md` | ✅ 完整 | 高 |
+| iOS TTS 实现文档 | `03-architecture/ios-tts-implementation.md` | ✅ 完整 | 高 |
 | iOS TTS 概念设计 | `03-architecture/ios-tts-concept.md` | ✅ 完整 | 高 |
 | iOS TTS 详细设计 | `03-architecture/ios-tts-design.md` | ✅ 完整 | 高 |
 | iOS 有声书功能规格 | `04-development/platforms/ios/features/audiobook.md` | ✅ 完整 | 高 |
@@ -96,7 +106,104 @@ P5 等待 P4
 
 ---
 
-## 三、Phase 2S — 共享基础设施
+## 三、Phase 1B — BE TTS 代理层
+
+> 目标：搭建 Provider 无感知切换的云端 TTS 代理层，音频持久化至 R2，统一声音体系与用量管控
+>
+> 设计文档：[03-architecture/api/tts-proxy-design.md](../03-architecture/api/tts-proxy-design.md)
+
+### 架构概要
+
+```
+iOS 请求 POST /tts/generate { text, voiceId, speed }
+     │
+     ▼
+┌─────────────────────────────────────────────────┐
+│  BE TTS 代理层                                   │
+│  Guard → Cache → Router → Adapter → Persist     │
+│                                                  │
+│  · 统一 Readmigo voiceId（rm-azure-*, rm-eleven-*）│
+│  · Provider 无感知切换 / A/B 测试 / 降级          │
+│  · 音频写入 R2，返回 CDN URL                      │
+│  · 订阅权限校验 + 用量追踪                        │
+└─────────────────────────────────────────────────┘
+     │
+     ▼
+返回 { audioUrl (R2 CDN), duration, wordTimestamps? }
+```
+
+### 任务拆解
+
+| ID | 任务 | 依赖 | 执行环境 | 产出 |
+|:--:|------|:----:|:-------:|------|
+| **1B.1** | **Provider 抽象层设计** | — | Backend | `TTSProvider` 统一接口：synthesize / getVoices / healthCheck |
+| **1B.2** | Azure Speech Adapter | 1B.1 | Backend | Azure Speech SDK 集成 + SSML 构建 + 单词时间戳解析 |
+| **1B.3** | ElevenLabs Adapter | 1B.1 | Backend | ElevenLabs REST API 集成 + alignment 时间戳获取 |
+| **1B.4** | OpenAI Adapter 改造 | 1B.1 | Backend | 现有 `TranslationTTSService` 重构为统一接口适配 |
+| **1B.5** | 声音映射表 + 路由层 | 1B.1 | Backend | `TTSVoiceMapping` 模型 + voiceId → Provider 路由 + 降级链 |
+| **1B.6** | R2 音频持久化 + 缓存层 | 1B.5 | Backend | cacheKey 计算 + R2 写入 + Redis 元数据 + `TTSAudioCache` 模型 |
+| **1B.7** | TTS API 端点 | 1B.6 | Backend | `POST /tts/generate` · `POST /tts/generate/batch` · `GET /tts/voices` · `GET /tts/usage` |
+| **1B.8** | 订阅权限 + 用量追踪 | 1B.7 | Backend | Feature Guard + Plan 校验 + `TTSUsage` 模型 + Redis 月度计量 + 限流 |
+
+### 数据模型新增
+
+```
+TTSVoiceMapping（声音映射表）
+├── rmVoiceId (PK)       // "rm-azure-jenny"
+├── provider             // "azure" | "elevenlabs" | "openai"
+├── nativeVoiceId        // "en-US-JennyNeural"
+├── displayName / gender / accent / quality
+├── minPlan              // PRO | PREMIUM
+├── enabled / sortOrder
+└── sampleAudioUrl
+
+TTSAudioCache（音频缓存索引）
+├── cacheKey (Unique)    // SHA256(text + voiceId + speed)
+├── r2Path / cdnUrl
+├── duration / charCount
+├── hasTimestamps / timestampsPath
+├── permanent / accessCount
+└── lastAccessedAt
+
+TTSUsage（用量记录）
+├── userId / month       // "2026-02"
+├── rmVoiceId / provider
+├── charCount / duration / cached
+├── estimatedCost
+└── bookId / chapterId（可选）
+```
+
+### 订阅权限矩阵
+
+| 维度 | FREE | PRO | PREMIUM |
+|------|:----:|:---:|:-------:|
+| 系统 TTS（客户端本地） | ✅ | ✅ | ✅ |
+| 云端 TTS | ❌ | ✅ | ✅ |
+| 可用声音 | — | Azure + OpenAI | 全部（含 ElevenLabs） |
+| 月度字符限额 | 0 | 2,000,000 | 无限 |
+
+### 降级链
+
+```
+请求的 Provider 失败
+     │
+     ├── Azure 失败 → 降级到 OpenAI（同性别同口音声音）
+     ├── ElevenLabs 失败 → 降级到 Azure
+     └── OpenAI 失败 → 返回 503
+
+熔断规则：连续 5 次失败 → 熔断 60s → 半开放 10% 流量探测
+```
+
+### 交付物
+
+- 统一 TTS Provider 抽象层（Azure / ElevenLabs / OpenAI）
+- 音频持久化至 R2 + CDN 分发
+- 统一声音体系（Readmigo voiceId）
+- TTS API 端点 + 订阅权限 + 用量追踪
+
+---
+
+## 四、Phase 2S — 共享基础设施
 
 > 目标：为轨道 A/B 搭建共用的音频标准化工具链、存储结构、数据模型
 
@@ -146,7 +253,7 @@ Audiobook
 
 ---
 
-## 四、Phase 2A — 轨道 A 管道（重制 LibriVox）
+## 五、Phase 2A — 轨道 A 管道（重制 LibriVox）
 
 > 目标：搭建 LibriVox 高质量录音的自动化重制管道
 
@@ -204,21 +311,23 @@ flowchart TD
 
 ---
 
-## 五、Phase 2B — 轨道 B 管道（AI TTS 原创）
+## 六、Phase 2B — 轨道 B 管道（AI TTS 原创）
 
 > 目标：为无 LibriVox 高质量录音的书籍建设 AI TTS 原创制作管道
+>
+> 注意：2B.2 和 2B.3 复用 Phase 1B 的 Provider 抽象层，不重新集成 TTS API
 
 ### 任务拆解
 
 | ID | 任务 | 依赖 | 执行环境 | 产出 |
 |:--:|------|:----:|:-------:|------|
 | **2B.1** | **SE HTML → 纯文本预处理** | — | Pipeline | 按章节拆分 + 去 HTML 标签 + 保留段落结构 + 处理特殊字符 |
-| **2B.2** | AI TTS API 选型 & 集成 | — | Pipeline | OpenAI TTS / ElevenLabs 接入 + 声音选择 + 费用估算 |
-| **2B.3** | 章节级 TTS 批量生成 | 2B.1, 2B.2 | Pipeline | 输入纯文本 → 输出 MP3 + 断点续传 + 错误重试 |
-| **2B.4** | 声音一致性管理 | 2B.2 | Pipeline | 同一本书保持同一声音；声音档案库（voice_id → 适用场景） |
+| **2B.2** | AI TTS 批量生成集成 | **1B.1~1B.4** | Pipeline | 复用 BE Provider 抽象层（Azure/ElevenLabs/OpenAI），Pipeline 通过内部 API 调用 |
+| **2B.3** | 章节级 TTS 批量生成 | 2B.1, 2B.2 | Pipeline | 调用 `POST /tts/generate/batch` → 输出 R2 音频 URL + 断点续传 + 错误重试 |
+| **2B.4** | 声音一致性管理 | 2B.2 | Pipeline | 同一本书保持同一 Readmigo voiceId；声音档案库（voiceId → 适用场景） |
 | **2B.5** | 音频标准化执行 | 2B.3, 2S.4 | Pipeline | 调用共享工具链（与轨道 A 统一标准） |
 | **2B.6** | 质量抽检流程 | 2B.5 | Web/CLI | AI 生成音频抽检：发音准确性、自然度、无异常 |
-| **2B.7** | 成本追踪与优化 | 2B.3 | Pipeline | 按书/按章节记录 API 费用；热门书用高质量模型，长尾书用经济模型 |
+| **2B.7** | 成本追踪与优化 | 2B.3 | Pipeline | 复用 BE `TTSUsage` 表追踪；热门书用 HD 模型，长尾书用 Standard |
 | **2B.8** | R2 上传 + 数据库写入 | 2B.5, 2B.6, 2S.3, 2S.6 | Pipeline | 音频文件 → R2, 元数据 → Audiobook/AudiobookChapter 记录 |
 
 ### 轨道 B 管道流程
@@ -226,12 +335,12 @@ flowchart TD
 ```mermaid
 flowchart TD
     B1["2B.1 文本预处理<br>SE HTML → 纯文本"]
-    B2["2B.2 TTS API 集成<br>OpenAI / ElevenLabs"]
-    B3["2B.3 批量 TTS 生成<br>章节级音频"]
-    B4["2B.4 声音一致性<br>同书同声音"]
+    B2["2B.2 TTS 集成<br>复用 BE Provider 抽象层"]
+    B3["2B.3 批量 TTS 生成<br>调用 /tts/generate/batch"]
+    B4["2B.4 声音一致性<br>同书同 voiceId"]
     B5["2B.5 音频标准化<br>-16 LUFS · MP3 128k"]
     B6["2B.6 质量抽检<br>发音 · 自然度"]
-    B7["2B.7 成本追踪<br>API 费用监控"]
+    B7["2B.7 成本追踪<br>复用 TTSUsage"]
     B8["2B.8 上传入库<br>R2 + DB"]
 
     B1 --> B3
@@ -252,16 +361,17 @@ flowchart TD
 | 章节对齐 | 需要复杂匹配算法（2A.6） | **天然对齐（从 SE 文本直接生成）** |
 | 覆盖率 | 受限于 LibriVox 已有录音 | **任何 SE 书籍都可制作** |
 | 质量上限 | 受限于原始录音 | **可用最新 AI 模型** |
+| Provider 切换 | 不适用 | **复用 BE 代理层，可无感知切换 Provider** |
 
 ### 交付物
 
 - SE 文本预处理工具
-- AI TTS 批量生成管道（支持 OpenAI / ElevenLabs）
+- AI TTS 批量生成管道（复用 BE Provider 抽象层）
 - 端到端原创管道（文本 → TTS → 标准化 → 抽检 → 入库）
 
 ---
 
-## 六、Phase 3 — 精品制作与导入
+## 七、Phase 3 — 精品制作与导入
 
 > 目标：首批 50 本精品有声书通过管道产出并入库
 
@@ -303,45 +413,57 @@ flowchart TD
 
 ---
 
-## 七、Phase 4 — 播放体验
+## 八、Phase 4 — 播放体验
 
-> 目标：用户在 App 中听到精品有声书，无精品时自动回退 TTS
+> 目标：用户在 App 中享受三级音频源：精品有声书 > 云端 TTS > 系统 TTS
 
 ### 任务拆解
 
 | ID | 任务 | 依赖 | 平台 | 产出 |
 |:--:|------|:----:|:----:|------|
-| **4.1** | 音频源优先级策略 | P3 入库 | iOS/Android | 有精品 → 播放精品；无 → 回退 TTS |
+| **4.1** | 三级音频源优先级策略 | P3 入库, **P1B 代理层** | iOS/Android | 精品 → 云端 TTS → 系统 TTS 自动降级 |
 | **4.2** | 精品音频流式播放 | 4.1 | iOS | AVPlayer 流式播放 R2 音频 |
-| **4.3** | 音频下载 & 离线收听 | 4.2 | iOS | 精品音频离线缓存管理 |
-| **4.4** | 播放器 UI 升级 | 4.2 | iOS | 进度条、倍速、定时关闭、章节列表 |
-| **4.5** | 音频源标识 | 4.1 | iOS | UI 展示：「精品录音」vs「AI 朗读」标签 |
-| **4.6** | 阅读/收听进度同步 | 4.2, 1.6 | iOS | 阅读进度 ↔ 收听进度双向关联 |
-| **4.7** | Android 精品播放实现 | 4.1~4.6 iOS 验证后 | Android | 同 iOS 功能对齐 |
+| **4.3** | 云端 TTS 集成（客户端） | 4.1, **1B.7** | iOS | 调用 `POST /tts/generate` → 播放返回的 CDN URL |
+| **4.4** | 音频下载 & 离线收听 | 4.2 | iOS | 精品音频 + 云端 TTS 缓存的离线管理 |
+| **4.5** | 播放器 UI 升级 | 4.2 | iOS | 进度条、倍速、定时关闭、章节列表、声音选择 |
+| **4.6** | 音频源标识 | 4.1 | iOS | UI 标签：「精品录音」/「高品质 AI 声音」/「系统朗读」 |
+| **4.7** | 阅读/收听进度同步 | 4.2, 1.6 | iOS | 阅读进度 ↔ 收听进度双向关联 |
+| **4.8** | Android 精品播放实现 | 4.1~4.7 iOS 验证后 | Android | 同 iOS 功能对齐 |
 
-### 音频源决策流程
+### 三级音频源决策流程
 
 ```
 用户点击「听」
      │
      ▼
-查询该书是否有 Audiobook 记录 (status = PUBLISHED)
+该书有精品有声书？(audiobook.status == PUBLISHED)
      │
-     ├── 有 → 加载精品音频 URL → 流式播放
+     ├── 有 → PremiumAudioEngine（AVPlayer 流式播放）
      │         UI 标签：「精品录音 · {narrator}」
      │
-     └── 无 → 回退客户端 TTS（与 Phase 1 体验一致）
-               UI 标签：「AI 朗读」
+     └── 无 → 用户订阅等级 + 网络状态？
+               │
+               ├── PRO/PREMIUM + 网络可用
+               │   └── CloudTTSEngine（调用 BE /tts/generate）
+               │       UI 标签：「高品质 AI 声音」
+               │
+               ├── FREE + 网络可用
+               │   └── SystemTTSEngine（AVSpeechSynthesizer）
+               │       UI 标签：「系统朗读」
+               │
+               └── 无网络
+                   └── SystemTTSEngine（离线保底）
+                       UI 标签：「离线朗读」
 ```
 
 ### 交付物
 
-- 用户可听到精品有声书
-- 精品音频 / TTS 无缝切换
+- 三级音频源无缝切换
+- 精品音频 / 云端 TTS / 系统 TTS 完整播放链路
 
 ---
 
-## 八、Phase 5 — 章节级音频+文本同步
+## 九、Phase 5 — 章节级音频+文本同步
 
 > 目标：音频播放时同步高亮文本，翻译联动，三位一体沉浸式体验
 
@@ -363,20 +485,39 @@ flowchart TD
 
 ---
 
-## 九、依赖关系矩阵
+## 十、依赖关系矩阵
 
 ### 关键路径
 
 ```mermaid
 flowchart LR
-    2S1["2S.1 数据模型"] --> 2S2["2S.2 DB 迁移"] --> 2S6["2S.6 API"]
-    2S4["2S.4 标准化工具"]
+    subgraph "Phase 1B (BE TTS 代理层)"
+        1B1["1B.1 Provider 抽象层"] --> 1B2["1B.2 Azure"]
+        1B1 --> 1B3["1B.3 ElevenLabs"]
+        1B1 --> 1B4["1B.4 OpenAI 改造"]
+        1B2 --> 1B5["1B.5 声音映射+路由"]
+        1B3 --> 1B5
+        1B4 --> 1B5
+        1B5 --> 1B6["1B.6 R2 持久化"]
+        1B6 --> 1B7["1B.7 API 端点"]
+        1B7 --> 1B8["1B.8 权限+用量"]
+    end
 
-    2A1["2A.1 目录抓取"] --> 2A2["2A.2 匹配算法"] --> 2A4["2A.4 择优"]
-    2A4 --> 2A5["2A.5 下载"] --> 2A7["2A.7 标准化"]
+    subgraph "Phase 2S (共享基础设施)"
+        2S1["2S.1 数据模型"] --> 2S2["2S.2 DB 迁移"] --> 2S6["2S.6 API"]
+        2S4["2S.4 标准化工具"]
+    end
 
-    2B1["2B.1 文本预处理"] --> 2B3["2B.3 TTS 生成"] --> 2B5["2B.5 标准化"]
+    subgraph "Phase 2A (轨道 A)"
+        2A1["2A.1 目录抓取"] --> 2A2["2A.2 匹配"] --> 2A4["2A.4 择优"]
+        2A4 --> 2A5["2A.5 下载"] --> 2A7["2A.7 标准化"]
+    end
 
+    subgraph "Phase 2B (轨道 B)"
+        2B1["2B.1 文本预处理"] --> 2B3["2B.3 TTS 生成"] --> 2B5["2B.5 标准化"]
+    end
+
+    1B5 -->|"Provider 抽象层"| 2B3
     2S4 --> 2A7
     2S4 --> 2B5
     2S6 --> 2A9["2A.9 入库"]
@@ -384,9 +525,12 @@ flowchart LR
 
     2A7 --> 3X["Phase 3"]
     2B5 --> 3X
-    3X --> 4X["Phase 4"]
+    1B8 --> 4X["Phase 4"]
+    3X --> 4X
     4X --> 5X["Phase 5"]
 
+    style 1B1 fill:#e8eaf6
+    style 1B7 fill:#e8eaf6
     style 2S1 fill:#fff3e0
     style 2S4 fill:#fff3e0
     style 2S6 fill:#fff3e0
@@ -396,59 +540,63 @@ flowchart LR
 
 | 并行组 | 可同时进行的任务 | 前置条件 |
 |:------:|----------------|---------|
-| **A** | 1.1~1.7（iOS TTS） ∥ 2S.1~2S.5（共享基础设施） ∥ 2A.1（LibriVox 抓取） ∥ 2B.1（文本预处理） ∥ 2B.2（TTS 选型） | 无 |
-| **B** | 2A.2~2A.5（匹配+下载） ∥ 2B.3~2B.4（TTS 生成） | 并行组 A |
-| **C** | 2A.6~2A.9（对齐+入库） ∥ 2B.5~2B.8（标准化+入库） | 并行组 B + 2S 完成 |
+| **A** | 1.1~1.7（iOS TTS） ∥ **1B.1~1B.4（BE Provider Adapter）** ∥ 2S.1~2S.5（共享基础设施） ∥ 2A.1（LibriVox 抓取） ∥ 2B.1（文本预处理） | 无 |
+| **B** | **1B.5~1B.8（BE 路由+持久化+API+权限）** ∥ 2A.2~2A.5（匹配+下载） | 并行组 A |
+| **C** | 2A.6~2A.9（对齐+入库） ∥ 2B.2~2B.8（TTS 生成+标准化+入库） | 并行组 B + 2S 完成 + **1B 完成** |
 | **D** | 3.3（轨道 A 执行） ∥ 3.4（轨道 B 执行） | 选书完成 |
-| **E** | 4.1~4.6（播放体验） ∥ 5.1~5.2（时间戳生成） | Phase 3 |
+| **E** | 4.1~4.8（播放体验） ∥ 5.1~5.2（时间戳生成） | Phase 3 + **Phase 1B** |
 
 ### 阻塞依赖（必须等待）
 
 | 被阻塞任务 | 等待 | 原因 |
 |-----------|------|------|
+| **2B.2 TTS 批量集成** | **1B.1~1B.4 Provider 抽象层** | 轨道 B 复用 BE Provider Adapter，不重复集成 |
+| **4.1 三级音频源策略** | **1B.7 TTS API 端点** | 云端 TTS 层级依赖 BE 代理层 |
+| **4.3 云端 TTS 客户端集成** | **1B.7 TTS API 端点** | 客户端调用 `/tts/generate` |
 | 2A.6 章节对齐 | 2A.5 下载完成 | 需要音频文件才能对齐 |
 | 2A.7/2B.5 标准化 | 2S.4 工具链就绪 | 共享工具链 |
 | 2A.9/2B.8 入库 | 2S.2 DB 迁移 + 2S.6 API | 需要数据表和接口 |
 | 3.1 选书 | P1 行为数据 + 2A.3 覆盖率 | 需要数据驱动选书 |
-| 4.1 音频源策略 | Phase 3 入库 | 需要精品音频数据 |
 | 5.4 同步播放 | 5.3 时间戳回写 | 需要时间戳数据 |
 
 ---
 
-## 十、里程碑与交付物总览
+## 十一、里程碑与交付物总览
 
 | 里程碑 | 阶段 | 核心交付物 | 决策点 |
 |:------:|:----:|-----------|--------|
 | **M1** | Phase 1 完成 | App 全书可 TTS 朗读 + 热门书排行 | 用户是否想听书？ |
+| **M1B** | **Phase 1B 完成** | **BE TTS 代理层 + 统一声音体系 + 用量管控** | **Provider 延迟/音质是否达标？** |
 | **M2** | Phase 2S 完成 | 数据模型 + R2 存储 + 标准化工具链 | — |
 | **M3** | Phase 2A 完成 | LibriVox 重制管道 + 覆盖率报告 | 轨道 A 覆盖率如何？决定 A/B 比例 |
 | **M4** | Phase 2B 完成 | AI TTS 原创管道 + 成本模型 | TTS 成本是否可控？ |
 | **M5** | Phase 3 完成 | 首批 50 本精品有声书入库 | 质量是否达标？ |
-| **M6** | Phase 4 完成 | 用户可听精品有声书 | 用户满意度如何？ |
+| **M6** | Phase 4 完成 | 三级音频源播放体验 | 用户满意度如何？ |
 | **M7** | Phase 5 完成 | 三位一体沉浸式体验 | — |
 
 ---
 
-## 十一、任务总量统计
+## 十二、任务总量统计
 
 | 阶段 | 任务数 | 类型分布 |
 |------|:------:|---------|
 | Phase 1 | 8 | iOS 6 + Android 1 + 埋点 1 |
+| **Phase 1B** | **8** | **Backend 8** |
 | Phase 2S | 6 | Backend 3 + Infra 1 + Pipeline 1 + 文档 1 |
 | Phase 2A | 9 | Pipeline 7 + Web/CLI 1 + 文档 1 |
 | Phase 2B | 8 | Pipeline 6 + Web/CLI 1 + Pipeline 1 |
 | Phase 3 | 7 | Pipeline 4 + 文档 2 + 决策 1 |
-| Phase 4 | 7 | iOS 5 + Android 1 + 跨端 1 |
+| Phase 4 | 8 | iOS 6 + Android 1 + 跨端 1 |
 | Phase 5 | 6 | Pipeline 3 + iOS 2 + 调优 1 |
-| **合计** | **51** | |
+| **合计** | **60** | |
 
 ### 按执行环境分布
 
 | 环境 | 任务数 | 说明 |
 |------|:------:|------|
+| **Backend (API)** | **11** | **数据模型、迁移、API、TTS 代理层（+8）** |
 | Pipeline (Droplet) | 22 | 数据处理、音频生成、标准化 |
-| iOS | 13 | 客户端 TTS + 播放器 + 同步 |
-| Backend (API) | 3 | 数据模型、迁移、API |
+| iOS | 14 | 客户端 TTS + 播放器 + 云端 TTS 集成 + 同步 |
 | Android | 2 | TTS + 精品播放 |
 | Web/CLI | 2 | 审核工具 |
 | Infra | 1 | R2 存储 |
@@ -457,7 +605,7 @@ flowchart LR
 
 ---
 
-## 十二、流水线注册（对接 pipeline-system）
+## 十三、流水线注册（对接 pipeline-system）
 
 Audio Lab 需在现有流水线系统中注册以下新管道：
 
@@ -466,9 +614,10 @@ Audio Lab 需在现有流水线系统中注册以下新管道：
 | **P010** | LibriVox 目录同步 | 抓取 LibriVox API 全量元数据 | — |
 | **P011** | SE-LibriVox 匹配 | 自动匹配 + 覆盖率报告 | P010 |
 | **P012** | 轨道 A 重制管道 | 下载 → 择优 → 标准化 → 对齐 → 审核 → 入库 | P011, P010 |
-| **P013** | 轨道 B 原创管道 | 文本预处理 → TTS 生成 → 标准化 → 抽检 → 入库 | — |
+| **P013** | 轨道 B 原创管道 | 文本预处理 → TTS 生成（调用 BE 代理层）→ 标准化 → 抽检 → 入库 | **Phase 1B** |
 | **P014** | Forced Alignment | 批量生成段落时间戳 | P012 或 P013 |
 
 ---
 
 *创建日期：2026-02-08*
+*最后更新：2026-02-08 — 新增 Phase 1B（BE TTS 代理层）*

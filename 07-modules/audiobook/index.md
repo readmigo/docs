@@ -21,6 +21,14 @@ Audiobook 模块提供有声书播放和管理功能，包含：
 | [audiobook-design-v2.md](./audiobook-design-v2.md) | 有声书功能设计 V2 | 🚧 进行中 |
 | [audiobook-ebook-linking-design.md](./audiobook-ebook-linking-design.md) | 有声书-电子书关联设计 | 📝 规划中 |
 
+### TTS 语音朗读（详细文档在 03-architecture）
+
+| 文档 | 说明 |
+|------|------|
+| [TTS 系统设计](../../03-architecture/ios-tts-system-design.md) | 竞品分析 · 功能矩阵 · 五层架构 |
+| [iOS TTS 实现方案](../../03-architecture/ios-tts-implementation.md) | 技术选型 · 三引擎实现 · 状态管理 |
+| [BE TTS 代理层设计](../../03-architecture/api/tts-proxy-design.md) | Provider 抽象 · R2 持久化 · 订阅权限 |
+
 ---
 
 ## 实现状态

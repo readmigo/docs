@@ -94,6 +94,19 @@ graph TD
 | [后端架构](../api/backend-architecture.md) | NestJS 服务架构 |
 | [API设计](../api/api-design.md) | RESTful API 规范 |
 | [数据库设计](../api/database-design.md) | PostgreSQL 数据模型 (60+ 表) |
+| [TTS 代理层设计](./api/tts-proxy-design.md) | Provider 无感知切换 · R2 持久化 · 用量追踪 |
+
+---
+
+## TTS 语音朗读系统
+
+> 三层文档体系：系统设计 → iOS 实现 → BE 代理层
+
+| 文档 | 职责 |
+|------|------|
+| [TTS 系统设计](./ios-tts-system-design.md) | 竞品分析 · 功能矩阵 · 五层架构 · 三音频源 · 学习模式 |
+| [iOS TTS 实现方案](./ios-tts-implementation.md) | 技术选型 · 三引擎实现 · AudioPlayable 协议 · 状态管理 |
+| [BE TTS 代理层设计](./api/tts-proxy-design.md) | Provider 抽象 · 统一声音体系 · R2 持久化 · 订阅权限 |
 
 ---
 
