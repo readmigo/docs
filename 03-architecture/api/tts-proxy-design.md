@@ -138,6 +138,7 @@ iOS TTS 实现文档确定云端 TTS 走 BE 代理架构，带来以下 BE 必�
 | `rm-azure-sonia` | Azure Speech | en-GB-SoniaNeural | 女 | 英式 | PRO |
 | `rm-azure-ryan` | Azure Speech | en-GB-RyanNeural | 男 | 英式 | PRO |
 | `rm-azure-natasha` | Azure Speech | en-AU-NatashaNeural | 女 | 澳式 | PRO |
+| `rm-azure-william` | Azure Speech | en-AU-WilliamNeural | 男 | 澳式 | PRO |
 | `rm-eleven-rachel` | ElevenLabs | Rachel | 女 | 美式 | PREMIUM |
 | `rm-eleven-adam` | ElevenLabs | Adam | 男 | 美式 | PREMIUM |
 | `rm-eleven-charlotte` | ElevenLabs | Charlotte | 女 | 英式 | PREMIUM |
@@ -247,19 +248,35 @@ VoiceMapping
 
 ```
 R2 Bucket
-└── tts/
-    └── {cacheKey}/                    ← SHA256(text + voiceId + speed)
-        ├── audio.mp3                  ← 音频文件
-        └── meta.json                  ← 元数据（duration, provider, timestamps）
+└── books/
+    └── {bookId}/
+        └── tts/
+            └── {voiceId}/
+                └── {speed}/
+                    └── {chapterId}/
+                        ├── p{index}.mp3           ← 段落音频
+                        └── p{index}_meta.json     ← 元数据（duration, provider, timestamps）
+```
+
+**路径示例**：
+
+```
+books/abc123/tts/rm-azure-jenny/1.0/ch001/p0.mp3
+books/abc123/tts/rm-azure-jenny/1.0/ch001/p0_meta.json
+books/abc123/tts/rm-azure-jenny/1.0/ch001/p1.mp3
 ```
 
 **设计理由**：
 
 | 决策 | 理由 |
 |------|------|
-| 用 cacheKey 而非 userId | 相同文本 + 相同声音 = 全用户共享缓存，大幅降低存储和 API 成本 |
-| 不按 bookId/chapterId 组织 | 同一段文本在不同书中出现时也能命中缓存 |
+| `books/{bookId}/` 为根 | 与现有 R2 路径规范一致（cover、chapters、translations 均以此为根） |
+| 按 voiceId + speed 分目录 | 同书同声音同倍速 = 全用户共享缓存，路径确定性保证跨用户命中 |
+| 按段落拆分存储 | 单段落粒度，支持逐段生成和缓存，未命中段落不影响已缓存段落 |
 | meta.json 分离存储 | 元数据小，读取快，不需要下载音频就能获取 duration 和时间戳 |
+| 删书可批量清理 | `deleteByPrefix('books/{bookId}/tts/')` 即可清除该书全部 TTS 文件 |
+
+> CacheKey（SHA256）仍用于 Redis 快速查找，value 指向上述 R2 路径。Redis 为热缓存层，R2 路径为持久存储层。
 
 ### 5.2 CacheKey 计算
 
@@ -498,7 +515,7 @@ TTS 请求到达
 | cacheKey | String (Unique) | SHA256(text + voiceId + speed) |
 | rmVoiceId | String | 声音 ID |
 | provider | String | 实际使用的 Provider |
-| r2Path | String | R2 存储路径 |
+| r2Path | String | R2 存储路径（如 `books/{bookId}/tts/{voiceId}/{speed}/{chapterId}/p{index}.mp3`） |
 | cdnUrl | String | CDN 访问 URL |
 | duration | Float | 音频时长（秒） |
 | charCount | Int | 文本字符数 |
