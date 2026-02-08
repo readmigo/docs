@@ -263,7 +263,7 @@ Audiobook
 
 > 目标：搭建 LibriVox 高质量录音的自动化重制管道
 >
-> **完成时间：2026-02-08** — 独立 pipeline 项目，repo: `readmigo/pipeline`
+> **完成时间：2026-02-08** — 独立 pipeline 项目，repo: `readmigo/audiolab`
 
 ### 现有资源盘点
 
@@ -323,7 +323,7 @@ flowchart TD
 
 > 目标：为无 LibriVox 高质量录音的书籍建设 AI TTS 原创制作管道
 >
-> **完成时间：2026-02-08** — 独立 pipeline 项目，repo: `readmigo/pipeline`
+> **完成时间：2026-02-08** — 独立 pipeline 项目，repo: `readmigo/audiolab`
 >
 > 注意：2B.2 和 2B.3 复用 Phase 1B 的 Provider 抽象层，不重新集成 TTS API
 
@@ -630,4 +630,4 @@ Audio Lab 需在现有流水线系统中注册以下新管道：
 ---
 
 *创建日期：2026-02-08*
-*最后更新：2026-02-08 — Phase 1 iOS + 1B + 2S + 2A + 2B 完成，pipeline 独立项目 readmigo/pipeline*
+*最后更新：2026-02-08 — Phase 1 iOS + 1B + 2S + 2A + 2B 完成，pipeline 独立项目 readmigo/audiolab*
