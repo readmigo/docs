@@ -7,14 +7,25 @@ Readmigo bookstore uses a multi-dimensional scoring algorithm to rank books for 
 ## Final Score Formula
 
 ```
-finalScore = quality x 0.35 + popularity x 0.50 + freshness x 0.15
+finalScore = rating x 0.35 + quality x 0.25 + popularity x 0.30 + freshness x 0.10
 ```
 
 Books are sorted by `finalScore DESC`, then `createdAt DESC` as tiebreaker.
 
 ## Score Dimensions
 
-### 1. Quality Score (weight: 35%)
+### 1. Rating Score (weight: 35%) - Highest Priority
+
+Community ratings from Goodreads and Douban. Takes the higher normalized value.
+
+| Source | Raw Range | Normalization |
+|--------|-----------|---------------|
+| Goodreads | 1-5 | (rating - 1) / 4 |
+| Douban | 1-10 | (rating - 1) / 9 |
+
+Books without any rating get 0 for this dimension.
+
+### 2. Quality Score (weight: 25%)
 
 Measures intrinsic book quality based on metadata and reading outcomes.
 
@@ -25,7 +36,7 @@ Measures intrinsic book quality based on metadata and reading outcomes.
 | Completion Rate | 25% | readCompleteCount / readStartCount |
 | Reading Depth | 15% | avg reading time (60%) + highlight density (40%) |
 
-### 2. Popularity Score (weight: 50%)
+### 3. Popularity Score (weight: 30%)
 
 Measures user engagement and trending signals.
 
@@ -39,7 +50,7 @@ Measures user engagement and trending signals.
 
 All values use log-normalization: `min(1, log10(value + 1) / maxLog)`
 
-### 3. Freshness Score (weight: 15%)
+### 4. Freshness Score (weight: 10%)
 
 Time-decay function based on book creation date.
 
@@ -97,17 +108,9 @@ Client-side filtering applied on top of cached results:
 
 ## Known Issues
 
-### Goodreads/Douban ratings not used in scoring
+### Douban ratings not yet populated
 
-**Problem**: `goodreadsRating` (88.5% coverage) and `doubanRating` (0% coverage) exist in the Book table but are NOT included in the score calculation. This causes books without community ratings to appear at the top of recommendations.
-
-**Impact**: First page of bookstore shows many unrated books, missing an important quality signal.
-
-**Proposed fix**: Add a `rating` dimension with highest weight, shifting the formula to:
-
-```
-finalScore = rating x 0.35 + quality x 0.25 + popularity x 0.30 + freshness x 0.10
-```
+Douban ratings have 0% coverage (0/1326 books). Future work: batch-import Douban ratings for Chinese locale users.
 
 ## Source Files
 
