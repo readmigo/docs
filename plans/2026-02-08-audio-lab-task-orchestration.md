@@ -78,13 +78,11 @@ P5 等待 P4
 |------|------|:----:|:-------:|
 | iOS TTS 系统设计 | `03-architecture/ios-tts-system-design.md` | ✅ 完整 | 高 |
 | iOS TTS 实现文档 | `03-architecture/ios-tts-implementation.md` | ✅ 完整 | 高 |
-| iOS TTS 概念设计 | `03-architecture/ios-tts-concept.md` | ✅ 完整 | 高 |
-| iOS TTS 详细设计 | `03-architecture/ios-tts-design.md` | ✅ 完整 | 高 |
+| BE TTS 代理层设计 | `03-architecture/api/tts-proxy-design.md` | ✅ 完整 | 高 |
 | iOS 有声书功能规格 | `04-development/platforms/ios/features/audiobook.md` | ✅ 完整 | 高 |
 | Android 有声书功能规格 | `04-development/platforms/android/features/audiobook.md` | ✅ 完整 | 高 |
 | Web 有声书模块 | `04-development/platforms/web/features/audiobook.md` | ✅ 完整 | 中 |
 | RN 有声书功能 | `04-development/platforms/rn/features/audiobook.md` | ✅ 完整 | 中 |
-| TTS 系统设计（多声音） | `07-modules/audiobook/tts-system-design.md` | ✅ 完整 | 高 |
 
 ### 任务拆解
 
